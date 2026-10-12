@@ -6,6 +6,7 @@ import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
 import { apiFetch, ApiError, uid } from "@/components/editor/api";
 import { cancelQuoteAction } from "@/app/actions";
+import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function SendButton({ quoteId, primary }: { quoteId: string; primary: boolean }) {
   const router = useRouter();
@@ -154,13 +155,14 @@ export function ManualResponse({ quoteId, version }: { quoteId: string; version:
   const router = useRouter();
   const [open, setOpen] = useState<"accept" | "refuse" | null>(null);
   const [proof, setProof] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const submit = async () => {
     setBusy(true);
     setError("");
     try {
-      await apiFetch(`/api/quotes/${quoteId}/accept`, { method: "POST", json: { decision: open, version, proof } });
+      await apiFetch(`/api/quotes/${quoteId}/accept`, { method: "POST", json: { decision: open, version, proof, ...(open === "refuse" && reasonCode ? { reasonCode } : {}) } });
       setOpen(null);
       router.refresh();
     } catch (e) {
@@ -194,6 +196,21 @@ export function ManualResponse({ quoteId, version }: { quoteId: string; version:
             placeholder={open === "accept" ? "Ex. : devis signé avec la mention « bon pour accord », reçu par courrier le 12/10" : "Ex. : appel téléphonique du 12/10"}
             aria-label="Preuve"
           />
+          {open === "refuse" ? (
+            <div>
+              <label className="label" htmlFor="m-reason">
+                Raison du refus
+              </label>
+              <select id="m-reason" className="field" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
+                <option value="">Non précisée</option>
+                {Object.entries(REFUSAL_REASONS).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           {error ? <p className="text-danger">{error}</p> : null}
           <div className="flex justify-end gap-2">
             <button type="button" className="btn-secondary" onClick={() => setOpen(null)}>

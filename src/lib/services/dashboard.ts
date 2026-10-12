@@ -9,6 +9,7 @@ import { num } from "@/lib/db";
 import type { Ctx } from "./context";
 import { expireQuotes } from "./quotes";
 import type { QuoteStatus } from "./quote-types";
+import { REFUSAL_REASONS, type RefusalReason } from "./refusal";
 
 export interface DashboardData {
   counts: Record<QuoteStatus, number>;
@@ -20,6 +21,48 @@ export interface DashboardData {
   toPrepare: { id: string; number: string; title: string; totalTtcCents: number }[];
   recent: { type: string; quoteId: string; number: string | null; title: string; createdAt: string; actor: string }[];
   periodDays: number;
+  /** Refus de la période par raison, la plus fréquente en premier */
+  refusals: { code: RefusalReason | ""; label: string; count: number }[];
+  /** Encaissements attendus : factures restant dues par échéance, et devis acceptés pas encore facturés */
+  forecast: { overdueCents: number; within30Cents: number; within60Cents: number; within90Cents: number; laterCents: number; notInvoicedCents: number };
+}
+
+/** Encaissements prévus sur 90 jours, à partir des factures émises et non soldées. */
+async function cashForecast(ctx: Ctx): Promise<DashboardData["forecast"]> {
+  const r = (
+    await ctx.db.query<Record<string, unknown>>(
+      `WITH due AS (
+         SELECT due_date, amount_due_cents - paid_cents - credited_cents AS rest
+         FROM invoices WHERE org_id=$1 AND kind <> 'credit_note'
+       )
+       SELECT
+         coalesce(sum(rest) FILTER (WHERE due_date < current_date), 0) AS overdue,
+         coalesce(sum(rest) FILTER (WHERE due_date >= current_date AND due_date < current_date + 30), 0) AS d30,
+         coalesce(sum(rest) FILTER (WHERE due_date >= current_date + 30 AND due_date < current_date + 60), 0) AS d60,
+         coalesce(sum(rest) FILTER (WHERE due_date >= current_date + 60 AND due_date < current_date + 90), 0) AS d90,
+         coalesce(sum(rest) FILTER (WHERE due_date >= current_date + 90), 0) AS later
+       FROM due WHERE rest > 0`,
+      [ctx.orgId],
+    )
+  )[0];
+  const n = (
+    await ctx.db.query<{ rest: unknown }>(
+      `SELECT coalesce(sum(greatest(q.total_ttc_cents - coalesce(i.invoiced, 0), 0)), 0) AS rest
+       FROM quotes q
+       LEFT JOIN (SELECT quote_id, sum(amount_due_cents - credited_cents) AS invoiced FROM invoices
+                  WHERE org_id=$1 AND kind <> 'credit_note' GROUP BY quote_id) i ON i.quote_id = q.id
+       WHERE q.org_id=$1 AND q.status='accepted' AND q.archived_at IS NULL`,
+      [ctx.orgId],
+    )
+  )[0];
+  return {
+    overdueCents: num(r?.overdue),
+    within30Cents: num(r?.d30),
+    within60Cents: num(r?.d60),
+    within90Cents: num(r?.d90),
+    laterCents: num(r?.later),
+    notInvoicedCents: num(n?.rest),
+  };
 }
 
 export async function getDashboard(ctx: Ctx, periodDays = 90): Promise<DashboardData> {
@@ -71,6 +114,10 @@ export async function getDashboard(ctx: Ctx, periodDays = 90): Promise<Dashboard
      WHERE e.org_id=$1 ORDER BY e.created_at DESC LIMIT 15`,
     [ctx.orgId],
   );
+  const refusals = await ctx.db.query<{ code: string; n: unknown }>(
+    "SELECT refusal_reason AS code, count(*) AS n FROM quotes WHERE org_id=$1 AND status='refused' AND responded_at >= $2 GROUP BY 1 ORDER BY 2 DESC, 1",
+    [ctx.orgId, since],
+  );
   const avg = decided?.avg_days === null || decided?.avg_days === undefined ? null : Math.round(Number(decided.avg_days) * 10) / 10;
   return {
     counts,
@@ -95,6 +142,12 @@ export async function getDashboard(ctx: Ctx, periodDays = 90): Promise<Dashboard
       actor: r.actor_type === "client" ? "Client" : r.actor_type === "system" ? "Automatique" : String(r.actor_name ?? ""),
     })),
     periodDays,
+    refusals: refusals.map((r) => ({
+      code: (r.code in REFUSAL_REASONS ? r.code : "") as RefusalReason | "",
+      label: r.code in REFUSAL_REASONS ? REFUSAL_REASONS[r.code as RefusalReason] : "Raison non précisée",
+      count: num(r.n),
+    })),
+    forecast: await cashForecast(ctx),
   };
 }
 

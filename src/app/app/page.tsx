@@ -96,6 +96,55 @@ export default async function Dashboard() {
               )}
             </Section>
           </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section title="Encaissements prévus" description="Factures restant dues par échéance, montants TTC.">
+              <dl className="space-y-1.5 text-sm">
+                {(
+                  [
+                    ["En retard", d.forecast.overdueCents, true],
+                    ["Sous 30 jours", d.forecast.within30Cents, false],
+                    ["De 30 à 60 jours", d.forecast.within60Cents, false],
+                    ["De 60 à 90 jours", d.forecast.within90Cents, false],
+                    ["Au-delà de 90 jours", d.forecast.laterCents, false],
+                  ] as [string, number, boolean][]
+                ).map(([label, cents, late]) => (
+                  <div key={label} className="flex justify-between gap-3">
+                    <dt className={late && cents > 0 ? "font-medium text-danger" : "text-muted"}>{label}</dt>
+                    <dd className={`tabular ${late && cents > 0 ? "font-medium text-danger" : ""}`}>{formatEuros(cents)}</dd>
+                  </div>
+                ))}
+                <div className="flex justify-between gap-3 border-t border-line pt-2">
+                  <dt className="text-muted">Devis acceptés restant à facturer</dt>
+                  <dd className="tabular">{formatEuros(d.forecast.notInvoicedCents)}</dd>
+                </div>
+              </dl>
+              <Link href="/app/factures" className="link mt-3 inline-block text-sm">
+                Voir les factures
+              </Link>
+            </Section>
+            <Section title={`Raisons des refus (${d.periodDays} j)`} description="Ce que vos clients indiquent quand ils refusent un devis.">
+              {d.refusals.length === 0 ? (
+                <p className="text-sm text-muted">Aucun refus sur la période.</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {d.refusals.map((r) => {
+                    const max = d.refusals[0].count;
+                    return (
+                      <li key={r.code || "none"}>
+                        <div className="flex justify-between gap-3">
+                          <span>{r.label}</span>
+                          <span className="tabular text-muted">{r.count}</span>
+                        </div>
+                        <div className="mt-1 h-1.5 rounded-full bg-surface-2" aria-hidden="true">
+                          <div className="h-1.5 rounded-full bg-accent" style={{ width: `${Math.max(6, Math.round((r.count / max) * 100))}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </Section>
+          </div>
           <Section title="Activité récente">
             <ul className="divide-y divide-line">
               {d.recent.map((e, i) => (

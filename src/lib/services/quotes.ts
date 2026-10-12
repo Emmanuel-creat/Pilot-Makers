@@ -15,6 +15,7 @@ import { canonicalJson, randomToken, sha256 } from "@/lib/security";
 import { assertCanIssue } from "./billing";
 import { incrementUsage } from "./catalog";
 import { retentionBp } from "./btp";
+import { REFUSAL_CODES, REFUSAL_REASONS } from "./refusal";
 import { consumerTerms, isContractPlace, reducedVatAttestation } from "./consumer";
 import { buildMentions, checkCompliance, COMPLIANCE_RULES_VERSION, type ComplianceIssue } from "./compliance";
 import type { Ctx } from "./context";
@@ -55,6 +56,7 @@ const lineSchema = z.object({
   vatPercent: str(10),
   estimated: z.boolean().default(false),
   estimateNote: str(500),
+  internalNote: str(1000),
 });
 
 const sectionSchema = z.object({
@@ -132,6 +134,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
           vatPercent: String(l.vat_percent),
           estimated: Boolean(l.estimated),
           estimateNote: String(l.estimate_note),
+          internalNote: String(l.internal_note ?? ""),
         }),
       ),
   }));
@@ -357,10 +360,10 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
       seen.add(l.id);
       await tx.query(
         `INSERT INTO quote_lines (id, section_id, quote_id, org_id, position, kind, catalog_item_id, nature, label, description,
-           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note)
+           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note)
          VALUES ($1,$2,$3,$4,$5,$6,
            (SELECT id FROM catalog_items WHERE id=$7::uuid AND org_id=$4),
-           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
         [
           l.id,
           s.id,
@@ -380,6 +383,7 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
           l.vatPercent,
           l.estimated,
           l.estimateNote,
+          l.internalNote ?? "",
         ],
       );
     }
@@ -627,7 +631,8 @@ export function buildSnapshot(args: {
       reverseCharge: d.reverseCharge,
       retentionPercent: d.retentionPercent,
     },
-    sections: d.sections,
+    // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
+    sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, ...l }) => l) })),
     calc,
     mentions: buildMentions({
       org,
@@ -1105,6 +1110,7 @@ export const responseSchema = z.object({
   name: z.string().trim().min(2, "Indiquez vos nom et prénom").max(160),
   consent: z.boolean().optional(),
   reason: z.string().trim().max(2000).optional().default(""),
+  reasonCode: z.enum(REFUSAL_CODES).optional(),
   vatAttestation: z.boolean().optional().default(false),
   earlyStart: z.boolean().optional().default(false),
 });
@@ -1133,10 +1139,11 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
     if (accepted && consumer?.reducedVatBp.length && !input.vatAttestation) {
       throw badRequest("Cochez l'attestation sur le taux réduit de TVA pour accepter");
     }
-    await tx.query(`UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, updated_at=now() WHERE id=$1`, [
+    await tx.query(`UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, refusal_reason=$4, updated_at=now() WHERE id=$1`, [
       r.link.quote_id,
       accepted ? "accepted" : "refused",
       accepted ? r.version.version : null,
+      accepted ? "" : (input.reasonCode ?? ""),
     ]);
     // Éléments de preuve conservés : version, empreinte du PDF, nom saisi, date, adresse IP, navigateur.
     await tx.query(
@@ -1151,6 +1158,7 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
           name: input.name,
           consent_text: accepted ? "Bon pour accord" : null,
           reason: input.reason,
+          reason_code: accepted ? null : (input.reasonCode ?? null),
           vat_attestation: accepted && consumer?.reducedVatBp.length ? reducedVatAttestation(consumer.reducedVatBp) : null,
           withdrawal_period: accepted && consumer?.withdrawal ? true : null,
           early_start_requested: accepted && consumer?.withdrawal ? input.earlyStart : null,
@@ -1170,7 +1178,7 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
         kind: "notification",
         to: org.email,
         subject: `Devis ${r.version.number} ${accepted ? "accepté" : "refusé"} par ${input.name}`,
-        body: `Le devis ${r.version.number} (version ${r.version.version}) a été ${accepted ? "accepté" : "refusé"} en ligne par ${input.name}.${input.reason ? "\nMotif : " + input.reason : ""}\n\n${appUrl("/app/devis/" + r.link.quote_id)}`,
+        body: `Le devis ${r.version.number} (version ${r.version.version}) a été ${accepted ? "accepté" : "refusé"} en ligne par ${input.name}.${!accepted && input.reasonCode ? "\nRaison : " + REFUSAL_REASONS[input.reasonCode] : ""}${input.reason ? "\nMotif : " + input.reason : ""}\n\n${appUrl("/app/devis/" + r.link.quote_id)}`,
       });
     }
     return { status: accepted ? "accepted" : "refused" };
@@ -1184,6 +1192,7 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
     decision: z.enum(["accept", "refuse"]),
     version: z.coerce.number().int().min(1),
     proof: z.string().trim().min(3, "Précisez la preuve de l'acceptation (ex. devis signé reçu le...)").max(2000),
+    reasonCode: z.enum(REFUSAL_CODES).optional(),
   });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
@@ -1198,13 +1207,15 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
     if (num(r.current_version) !== input.version) throw conflict("Seule la dernière version émise peut être acceptée");
     if (!PENDING_STATUSES.includes(r.status) && r.status !== "expired") throw conflict("Ce devis n'attend pas de réponse");
     const accepted = input.decision === "accept";
-    await tx.query("UPDATE quotes SET status=$3, responded_at=now(), accepted_version=$4, updated_at=now() WHERE id=$1 AND org_id=$2", [
-      quoteId,
-      ctx.orgId,
-      accepted ? "accepted" : "refused",
-      accepted ? input.version : null,
-    ]);
-    await addEvent(tx, ctx, quoteId, input.version, accepted ? "accepted" : "refused", { proof: input.proof, via: "saisie par l'entreprise" });
+    await tx.query(
+      "UPDATE quotes SET status=$3, responded_at=now(), accepted_version=$4, refusal_reason=$5, updated_at=now() WHERE id=$1 AND org_id=$2",
+      [quoteId, ctx.orgId, accepted ? "accepted" : "refused", accepted ? input.version : null, accepted ? "" : (input.reasonCode ?? "")],
+    );
+    await addEvent(tx, ctx, quoteId, input.version, accepted ? "accepted" : "refused", {
+      proof: input.proof,
+      via: "saisie par l'entreprise",
+      ...(accepted || !input.reasonCode ? {} : { reason_code: input.reasonCode }),
+    });
     return { status: accepted ? "accepted" : "refused" };
   });
 }

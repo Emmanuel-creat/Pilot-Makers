@@ -41,6 +41,7 @@ interface Props {
 
 export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
   const [showDesc, setShowDesc] = useState(!!line.description);
+  const [showNote, setShowNote] = useState(!!line.internalNote);
   const err = (field: string) => issues.find((i) => i.field === field && i.blocking)?.message;
   const fieldCls = (field: string) => `field-xs tabular ${err(field) ? "border-danger! bg-danger-soft" : ""}`;
 
@@ -143,6 +144,21 @@ export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, 
               aria-label="Description"
             />
           ) : null}
+          {showNote || line.internalNote ? (
+            <label className="mt-1.5 flex items-start gap-1.5 rounded border border-dashed border-warning/50 bg-warning-soft px-2 py-1 text-xs">
+              <Icon name="lock" size={12} className="mt-1.5 shrink-0 text-warning" />
+              <span className="sr-only">Commentaire interne</span>
+              <textarea
+                value={line.internalNote ?? ""}
+                onChange={(e) => onChange({ internalNote: e.target.value })}
+                rows={1}
+                maxLength={1000}
+                placeholder="Commentaire interne : jamais visible par le client ni imprimé"
+                className="field-sm min-h-7 flex-1 resize-y bg-transparent text-xs"
+                disabled={readOnly}
+              />
+            </label>
+          ) : null}
           {showCosts || line.estimated ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 rounded bg-surface-2 px-2 py-1 text-xs">
               {showCosts ? (
@@ -173,7 +189,7 @@ export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, 
             </div>
           ) : null}
         </div>
-        <LineMenu onRemove={onRemove} onDuplicate={onDuplicate} onMove={onMove} readOnly={readOnly} onSaveToCatalog={!line.catalogItemId && line.kind === "item" ? onSaveToCatalog : undefined} onMarkPending={pending ? () => onChange({ kind: "item" }) : undefined} />
+        <LineMenu onRemove={onRemove} onDuplicate={onDuplicate} onMove={onMove} readOnly={readOnly} onSaveToCatalog={!line.catalogItemId && line.kind === "item" ? onSaveToCatalog : undefined} onMarkPending={pending ? () => onChange({ kind: "item" }) : undefined} onAddNote={showNote || line.internalNote ? undefined : () => setShowNote(true)} />
       </div>
     </div>
   );
@@ -203,6 +219,7 @@ function LineMenu({
   readOnly,
   onSaveToCatalog,
   onMarkPending,
+  onAddNote,
 }: {
   onRemove: () => void;
   onDuplicate: () => void;
@@ -210,6 +227,7 @@ function LineMenu({
   readOnly: boolean;
   onSaveToCatalog?: () => void;
   onMarkPending?: () => void;
+  onAddNote?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   if (readOnly) return null;
@@ -226,6 +244,7 @@ function LineMenu({
           <MenuItem icon="up" label="Monter" onClick={() => (onMove(-1), setOpen(false))} />
           <MenuItem icon="down" label="Descendre" onClick={() => (onMove(1), setOpen(false))} />
           <MenuItem icon="copy" label="Dupliquer" onClick={() => (onDuplicate(), setOpen(false))} />
+          {onAddNote ? <MenuItem icon="lock" label="Ajouter un commentaire interne" onClick={() => (onAddNote(), setOpen(false))} /> : null}
           {onSaveToCatalog ? <MenuItem icon="box" label="Enregistrer dans le catalogue" onClick={() => (onSaveToCatalog(), setOpen(false))} /> : null}
           <MenuItem icon="trash" label="Supprimer" danger onClick={() => (onRemove(), setOpen(false))} />
         </div>

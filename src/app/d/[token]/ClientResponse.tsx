@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { apiFetch, ApiError } from "@/components/editor/api";
 import { formatEuros } from "@/lib/calc/format";
+import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function ClientResponse({
   token,
@@ -28,6 +29,7 @@ export function ClientResponse({
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [reason, setReason] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [attest, setAttest] = useState(false);
   const [earlyStart, setEarlyStart] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -40,7 +42,7 @@ export function ClientResponse({
     try {
       await apiFetch(`/api/public/quotes/${token}/respond`, {
         method: "POST",
-        json: { decision: mode, name, consent, reason, vatAttestation: attest, earlyStart },
+        json: { decision: mode, name, consent, reason, vatAttestation: attest, earlyStart, ...(mode === "refuse" && reasonCode ? { reasonCode } : {}) },
       });
       router.refresh();
     } catch (err) {
@@ -107,9 +109,22 @@ export function ClientResponse({
         </div>
       ) : null}
       {mode === "refuse" ? (
-        <div>
+        <div className="space-y-3">
+          <div>
+            <label className="label" htmlFor="r-code">
+              Raison principale (facultatif)
+            </label>
+            <select id="r-code" className="field" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
+              <option value="">Je préfère ne pas répondre</option>
+              {Object.entries(REFUSAL_REASONS).map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
           <label className="label" htmlFor="r-reason">
-            Motif (facultatif)
+            Précisions (facultatif)
           </label>
           <textarea id="r-reason" rows={3} className="field" value={reason} onChange={(e) => setReason(e.target.value)} />
         </div>

@@ -35,6 +35,8 @@ export interface DraftLine {
   vatPercent: string;
   estimated: boolean;
   estimateNote: string;
+  /** Commentaire interne, jamais montré au client ni imprimé */
+  internalNote?: string;
 }
 
 export interface DraftSection {

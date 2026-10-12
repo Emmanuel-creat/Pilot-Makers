@@ -451,7 +451,7 @@ export async function deleteDraftAction(fd: FormData) {
 
 export async function manualResponseAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    await withCtx((ctx) => recordResponseManually(ctx, s(fd, "id"), { decision: s(fd, "decision"), version: s(fd, "version"), proof: s(fd, "proof") }));
+    await withCtx((ctx) => recordResponseManually(ctx, s(fd, "id"), { decision: s(fd, "decision"), version: s(fd, "version"), proof: s(fd, "proof"), reasonCode: s(fd, "reasonCode") || undefined }));
     revalidatePath(`/app/devis/${s(fd, "id")}`);
     return { ok: true };
   } catch (e) {
