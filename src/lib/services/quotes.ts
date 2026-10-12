@@ -1,0 +1,1181 @@
+/**
+ * Devis : brouillons, émission de versions figées, envoi, acceptation (modules E, F, I).
+ */
+
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import type { Queryable } from "@/lib/db";
+import { num, numOrNull, one } from "@/lib/db";
+import { computeQuote, type CalcInput, type CalcResult } from "@/lib/calc/engine";
+import { formatEuros } from "@/lib/calc/format";
+import { badRequest, conflict, forbidden, HttpError, isUuid, notFound } from "@/lib/http";
+import { renderQuotePdf, pdfTotals } from "@/lib/pdf/quote-pdf";
+import { canonicalJson, randomToken, sha256 } from "@/lib/security";
+import { assertCanIssue } from "./billing";
+import { incrementUsage } from "./catalog";
+import { buildMentions, checkCompliance, COMPLIANCE_RULES_VERSION, type ComplianceIssue } from "./compliance";
+import type { Ctx } from "./context";
+import { audit, logError, recordUsage, requireWritable } from "./context";
+import { customerDisplayName, type Customer } from "./customers";
+import { appUrl, renderTemplate, sendMail } from "./mail";
+import type { Organization } from "./organization";
+import {
+  EDITABLE_STATUSES,
+  PENDING_STATUSES,
+  type DraftLine,
+  type DraftSection,
+  type QuoteDraft,
+  type QuoteSnapshot,
+  type QuoteStatus,
+} from "./quote-types";
+
+const DAY = 86_400_000;
+
+/* ------------------------------------------------------------------ */
+/* Validation des brouillons                                           */
+/* ------------------------------------------------------------------ */
+
+const str = (max: number) => z.string().max(max).optional().default("");
+
+const lineSchema = z.object({
+  id: z.string().refine(isUuid, "Identifiant de ligne invalide"),
+  kind: z.enum(["item", "pending", "note"]),
+  catalogItemId: z.string().refine(isUuid).nullable().optional().default(null),
+  nature: z.enum(["materiau", "main_oeuvre", "deplacement", "sous_traitance", "forfait", "autre"]).default("autre"),
+  label: str(500),
+  description: str(4000),
+  quantity: str(30),
+  unit: str(20),
+  unitPrice: str(30),
+  unitCost: str(30),
+  discountPercent: str(10),
+  vatPercent: str(10),
+  estimated: z.boolean().default(false),
+  estimateNote: str(500),
+});
+
+const sectionSchema = z.object({
+  id: z.string().refine(isUuid, "Identifiant de section invalide"),
+  title: str(200),
+  description: str(2000),
+  lines: z.array(lineSchema).max(500),
+});
+
+export const draftSchema = z.object({
+  customerId: z.string().refine(isUuid).nullable().optional().default(null),
+  title: str(300),
+  description: str(8000),
+  site: z
+    .object({ line1: str(300), line2: str(300), postalCode: str(10), city: str(120) })
+    .default({ line1: "", line2: "", postalCode: "", city: "" }),
+  validityDays: z.coerce.number().int().min(1).max(365).default(30),
+  paymentTerms: str(2000),
+  specialConditions: str(4000),
+  depositPercent: str(10),
+  estimatedDuration: str(120),
+  estimatedStart: str(120),
+  globalDiscount: str(10),
+  template: str(20),
+  internalNotes: str(4000),
+  sections: z.array(sectionSchema).max(50),
+});
+
+export type DraftInput = z.input<typeof draftSchema>;
+
+/* ------------------------------------------------------------------ */
+/* Lecture                                                             */
+/* ------------------------------------------------------------------ */
+
+function iso(d: unknown): string {
+  return d instanceof Date ? d.toISOString() : d ? String(d) : "";
+}
+
+async function loadSections(q: Queryable, quoteId: string, orgId: string): Promise<DraftSection[]> {
+  const secs = await q.query<{ id: string; title: string; description: string }>(
+    "SELECT id, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
+    [quoteId, orgId],
+  );
+  const lines = await q.query<Record<string, unknown>>(
+    "SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
+    [quoteId, orgId],
+  );
+  return secs.map((s) => ({
+    id: s.id,
+    title: s.title,
+    description: s.description,
+    lines: lines
+      .filter((l) => l.section_id === s.id)
+      .map(
+        (l): DraftLine => ({
+          id: String(l.id),
+          kind: l.kind as DraftLine["kind"],
+          catalogItemId: (l.catalog_item_id as string | null) ?? null,
+          nature: l.nature as DraftLine["nature"],
+          label: String(l.label),
+          description: String(l.description),
+          quantity: String(l.quantity),
+          unit: String(l.unit),
+          unitPrice: String(l.unit_price),
+          unitCost: String(l.unit_cost),
+          discountPercent: String(l.discount_percent),
+          vatPercent: String(l.vat_percent),
+          estimated: Boolean(l.estimated),
+          estimateNote: String(l.estimate_note),
+        }),
+      ),
+  }));
+}
+
+export async function getQuoteRow(q: Queryable, ctx: Pick<Ctx, "orgId">, id: string) {
+  if (!isUuid(id)) throw notFound("Devis introuvable");
+  const r = await one<Record<string, unknown>>(
+    q,
+    "SELECT q.*, u.name AS author_name FROM quotes q LEFT JOIN users u ON u.id=q.author_id WHERE q.id=$1 AND q.org_id=$2",
+    [id, ctx.orgId],
+  );
+  if (!r) throw notFound("Devis introuvable");
+  return r;
+}
+
+export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Promise<QuoteDraft> {
+  const r = await getQuoteRow(q, ctx, id);
+  return {
+    id: String(r.id),
+    number: (r.number as string | null) ?? null,
+    status: r.status as QuoteStatus,
+    customerId: (r.customer_id as string | null) ?? null,
+    title: String(r.title),
+    description: String(r.description),
+    site: {
+      line1: String(r.site_line1),
+      line2: String(r.site_line2),
+      postalCode: String(r.site_postal_code),
+      city: String(r.site_city),
+    },
+    validityDays: num(r.validity_days),
+    paymentTerms: String(r.payment_terms),
+    specialConditions: String(r.special_conditions),
+    depositPercent: String(r.deposit_percent),
+    estimatedDuration: String(r.estimated_duration),
+    estimatedStart: String(r.estimated_start),
+    globalDiscount: String(r.global_discount),
+    template: String(r.template),
+    internalNotes: String(r.internal_notes),
+    sections: await loadSections(q, id, ctx.orgId),
+    draftRevision: num(r.draft_revision),
+    currentVersion: num(r.current_version),
+    acceptedVersion: numOrNull(r.accepted_version),
+    authorName: String(r.author_name ?? ""),
+    createdAt: iso(r.created_at),
+    updatedAt: iso(r.updated_at),
+  };
+}
+
+export function draftToCalcInput(d: Pick<QuoteDraft, "sections" | "globalDiscount">, vatExempt: boolean): CalcInput {
+  return {
+    vatExempt,
+    globalDiscountPercent: d.globalDiscount,
+    sections: d.sections.map((s) => ({
+      id: s.id,
+      title: s.title,
+      lines: s.lines.map((l) => ({
+        id: l.id,
+        kind: l.kind,
+        label: l.label,
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+        unitCost: l.unitCost,
+        discountPercent: l.discountPercent,
+        vatPercent: l.vatPercent,
+        nature: l.nature,
+      })),
+    })),
+  };
+}
+
+export interface QuoteListFilters {
+  status?: string;
+  customerId?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+  minTtc?: number;
+  maxTtc?: number;
+  archived?: boolean;
+  sort?: "updated" | "created" | "number" | "amount" | "customer";
+  dir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listQuotes(ctx: Ctx, f: QuoteListFilters = {}) {
+  await expireQuotes(ctx.db, ctx.orgId);
+  const params: unknown[] = [ctx.orgId];
+  const where = ["q.org_id=$1", f.archived ? "q.archived_at IS NOT NULL" : "q.archived_at IS NULL"];
+  const add = (v: unknown) => {
+    params.push(v);
+    return `$${params.length}`;
+  };
+  if (f.status === "pending") where.push(`q.status IN ('ready','sent','viewed')`);
+  else if (f.status === "drafts") where.push(`q.status IN ('draft','incomplete')`);
+  else if (f.status) where.push(`q.status = ${add(f.status)}`);
+  if (f.customerId && isUuid(f.customerId)) where.push(`q.customer_id = ${add(f.customerId)}`);
+  if (f.q?.trim()) {
+    const p = add(`%${f.q.trim().toLowerCase()}%`);
+    where.push(
+      `(lower(coalesce(q.number,'')) LIKE ${p} OR lower(q.title) LIKE ${p} OR lower(coalesce(c.company_name,'') || ' ' || coalesce(c.first_name,'') || ' ' || coalesce(c.last_name,'')) LIKE ${p})`,
+    );
+  }
+  if (f.from) where.push(`q.created_at >= ${add(f.from)}`);
+  if (f.to) where.push(`q.created_at < (${add(f.to)}::date + 1)`);
+  if (f.minTtc !== undefined && Number.isFinite(f.minTtc)) where.push(`q.total_ttc_cents >= ${add(Math.round(f.minTtc * 100))}`);
+  if (f.maxTtc !== undefined && Number.isFinite(f.maxTtc)) where.push(`q.total_ttc_cents <= ${add(Math.round(f.maxTtc * 100))}`);
+  const sortCol = {
+    updated: "q.updated_at",
+    created: "q.created_at",
+    number: "q.number",
+    amount: "q.total_ttc_cents",
+    customer: "coalesce(nullif(c.company_name,''), c.last_name)",
+  }[f.sort ?? "updated"];
+  const dir = f.dir === "asc" ? "ASC" : "DESC";
+  const pageSize = Math.min(Math.max(f.pageSize ?? 25, 1), 100);
+  const page = Math.max(f.page ?? 1, 1);
+  const count = await one<{ n: unknown }>(
+    ctx.db,
+    `SELECT count(*) AS n FROM quotes q LEFT JOIN customers c ON c.id=q.customer_id WHERE ${where.join(" AND ")}`,
+    params,
+  );
+  const rows = await ctx.db.query<Record<string, unknown>>(
+    `SELECT q.id, q.number, q.status, q.title, q.total_ht_cents, q.total_ttc_cents, q.margin_cents, q.created_at, q.updated_at,
+            q.issued_at, q.valid_until, q.current_version, q.customer_id,
+            c.type AS c_type, c.company_name, c.first_name, c.last_name, c.civility
+     FROM quotes q LEFT JOIN customers c ON c.id=q.customer_id
+     WHERE ${where.join(" AND ")} ORDER BY ${sortCol} ${dir} NULLS LAST, q.id
+     LIMIT ${add(pageSize)} OFFSET ${add((page - 1) * pageSize)}`,
+    params,
+  );
+  return {
+    total: num(count?.n),
+    page,
+    pageSize,
+    items: rows.map((r) => ({
+      id: String(r.id),
+      number: (r.number as string | null) ?? null,
+      status: r.status as QuoteStatus,
+      title: String(r.title),
+      customerId: (r.customer_id as string | null) ?? null,
+      customerName: r.customer_id
+        ? customerDisplayName({
+            type: r.c_type as Customer["type"],
+            company_name: String(r.company_name ?? ""),
+            first_name: String(r.first_name ?? ""),
+            last_name: String(r.last_name ?? ""),
+            civility: String(r.civility ?? ""),
+          })
+        : "",
+      totalHtCents: num(r.total_ht_cents),
+      totalTtcCents: num(r.total_ttc_cents),
+      marginCents: num(r.margin_cents),
+      createdAt: iso(r.created_at),
+      updatedAt: iso(r.updated_at),
+      issuedAt: r.issued_at ? iso(r.issued_at) : null,
+      validUntil: r.valid_until ? iso(r.valid_until).slice(0, 10) : null,
+      currentVersion: num(r.current_version),
+    })),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Création et modification                                            */
+/* ------------------------------------------------------------------ */
+
+async function orgRow(q: Queryable, orgId: string): Promise<Organization> {
+  return (await one<Organization>(q, "SELECT * FROM organizations WHERE id=$1", [orgId]))!;
+}
+
+export function emptySection(title = ""): DraftSection {
+  return { id: randomUUID(), title, description: "", lines: [] };
+}
+
+export async function createQuote(ctx: Ctx, init: { customerId?: string | null; title?: string; description?: string } = {}) {
+  requireWritable(ctx);
+  const org = await orgRow(ctx.db, ctx.orgId);
+  let site = { line1: "", line2: "", postalCode: "", city: "" };
+  if (init.customerId) {
+    const c = await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [init.customerId, ctx.orgId]);
+    if (!c) throw notFound("Client introuvable");
+    site = customerSite(c);
+  }
+  return ctx.db.transaction(async (tx) => {
+    const row = await one<{ id: string }>(
+      tx,
+      `INSERT INTO quotes (org_id, customer_id, author_id, title, description, site_line1, site_line2, site_postal_code, site_city,
+         validity_days, payment_terms, deposit_percent, template)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+      [
+        ctx.orgId,
+        init.customerId ?? null,
+        ctx.userId,
+        init.title ?? "",
+        init.description ?? "",
+        site.line1,
+        site.line2,
+        site.postalCode,
+        site.city,
+        num(org.default_validity_days) || 30,
+        org.payment_terms,
+        org.default_deposit_percent,
+        org.quote_template,
+      ],
+    );
+    const id = row!.id;
+    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title) VALUES ($1,$2,$3,0,'')", [randomUUID(), id, ctx.orgId]);
+    await addEvent(tx, ctx, id, null, "created");
+    return id;
+  });
+}
+
+export function customerSite(c: Customer) {
+  return c.site_same_as_billing
+    ? { line1: c.billing_line1, line2: c.billing_line2, postalCode: c.billing_postal_code, city: c.billing_city }
+    : { line1: c.site_line1, line2: c.site_line2, postalCode: c.site_postal_code, city: c.site_city };
+}
+
+async function writeSections(tx: Queryable, quoteId: string, orgId: string, sections: z.infer<typeof sectionSchema>[]) {
+  await tx.query("DELETE FROM quote_lines WHERE quote_id=$1 AND org_id=$2", [quoteId, orgId]);
+  await tx.query("DELETE FROM quote_sections WHERE quote_id=$1 AND org_id=$2", [quoteId, orgId]);
+  const seen = new Set<string>();
+  let sp = 0;
+  for (const s of sections) {
+    if (seen.has(s.id)) throw badRequest("Identifiant de section en double");
+    seen.add(s.id);
+    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title, description) VALUES ($1,$2,$3,$4,$5,$6)", [
+      s.id,
+      quoteId,
+      orgId,
+      sp++,
+      s.title,
+      s.description,
+    ]);
+    let lp = 0;
+    for (const l of s.lines) {
+      if (seen.has(l.id)) throw badRequest("Identifiant de ligne en double");
+      seen.add(l.id);
+      await tx.query(
+        `INSERT INTO quote_lines (id, section_id, quote_id, org_id, position, kind, catalog_item_id, nature, label, description,
+           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note)
+         VALUES ($1,$2,$3,$4,$5,$6,
+           (SELECT id FROM catalog_items WHERE id=$7::uuid AND org_id=$4),
+           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
+        [
+          l.id,
+          s.id,
+          quoteId,
+          orgId,
+          lp++,
+          l.kind,
+          l.catalogItemId,
+          l.nature,
+          l.label,
+          l.description,
+          l.quantity,
+          l.unit,
+          l.unitPrice,
+          l.unitCost,
+          l.discountPercent,
+          l.vatPercent,
+          l.estimated,
+          l.estimateNote,
+        ],
+      );
+    }
+  }
+}
+
+/**
+ * Enregistre un brouillon. La révision attendue protège contre l'écrasement
+ * silencieux d'une modification faite ailleurs (autre onglet, autre appareil).
+ */
+export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevision: number) {
+  requireWritable(ctx);
+  const parsed = draftSchema.safeParse(raw);
+  if (!parsed.success) throw badRequest(parsed.error.issues[0].message, parsed.error.issues);
+  const d = parsed.data;
+  const org = await orgRow(ctx.db, ctx.orgId);
+  return ctx.db.transaction(async (tx) => {
+    const r = await one<{ status: QuoteStatus; draft_revision: unknown }>(
+      tx,
+      "SELECT status, draft_revision FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
+      [id, ctx.orgId],
+    );
+    if (!r) throw notFound("Devis introuvable");
+    if (!EDITABLE_STATUSES.includes(r.status)) {
+      throw conflict("Ce devis a été émis : créez une nouvelle version pour le modifier");
+    }
+    if (num(r.draft_revision) !== expectedRevision) {
+      throw new HttpError(409, "revision_conflict", "Ce devis a été modifié ailleurs. Rechargez-le pour ne rien perdre.", {
+        currentRevision: num(r.draft_revision),
+      });
+    }
+    if (d.customerId) {
+      const c = await one(tx, "SELECT 1 FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]);
+      if (!c) throw notFound("Client introuvable");
+    }
+    const calc = computeQuote(draftToCalcInput({ sections: d.sections, globalDiscount: d.globalDiscount }, org.vat_regime === "franchise"));
+    const status: QuoteStatus = calc.ok ? "draft" : "incomplete";
+    await writeSections(tx, id, ctx.orgId, d.sections);
+    await tx.query(
+      `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
+         validity_days=$10, payment_terms=$11, special_conditions=$12, deposit_percent=$13, estimated_duration=$14,
+         estimated_start=$15, global_discount=$16, template=$17, internal_notes=$18, status=$19,
+         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, draft_revision=draft_revision+1, updated_at=now()
+       WHERE id=$1 AND org_id=$2`,
+      [
+        id,
+        ctx.orgId,
+        d.customerId,
+        d.title,
+        d.description,
+        d.site.line1,
+        d.site.line2,
+        d.site.postalCode,
+        d.site.city,
+        d.validityDays,
+        d.paymentTerms,
+        d.specialConditions,
+        d.depositPercent,
+        d.estimatedDuration,
+        d.estimatedStart,
+        d.globalDiscount,
+        d.template,
+        d.internalNotes,
+        status,
+        calc.totalHtCents,
+        calc.totalTtcCents,
+        calc.margin.marginCents,
+      ],
+    );
+    if (d.customerId) await tx.query("UPDATE customers SET last_activity_at=now() WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]);
+    return { draftRevision: expectedRevision + 1, status, calc };
+  });
+}
+
+/** Aperçu des calculs et contrôles, sans rien enregistrer. */
+export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
+  const draft = await getDraft(ctx, id);
+  const d = raw ? draftSchema.parse(raw) : draft;
+  const org = await orgRow(ctx.db, ctx.orgId);
+  const calc = computeQuote(draftToCalcInput(d, org.vat_regime === "franchise"));
+  const customer = d.customerId
+    ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId])
+    : null;
+  const issues = checkCompliance(complianceInput(org, customer, d, calc));
+  return { calc, issues, canIssue: !issues.some((i) => i.blocking) };
+}
+
+function complianceInput(
+  org: Organization,
+  customer: Customer | null,
+  d: Pick<QuoteDraft, "title" | "description" | "site" | "validityDays" | "paymentTerms" | "sections">,
+  calc: CalcResult,
+) {
+  return {
+    org,
+    customer: customer
+      ? {
+          type: customer.type,
+          name: customerDisplayName(customer),
+          billing_line1: customer.billing_line1,
+          billing_postal_code: customer.billing_postal_code,
+          billing_city: customer.billing_city,
+          siren: customer.siren,
+        }
+      : null,
+    quote: {
+      title: d.title,
+      description: d.description,
+      site_line1: d.site.line1,
+      site_postal_code: d.site.postalCode,
+      site_city: d.site.city,
+      validity_days: d.validityDays,
+      payment_terms: d.paymentTerms,
+    },
+    lines: d.sections.flatMap((s) =>
+      s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
+    ),
+    calc,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Émission                                                            */
+/* ------------------------------------------------------------------ */
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * DAY);
+}
+
+function parisDate(d: Date): string {
+  // Date civile à Paris (AAAA-MM-JJ), indépendante du fuseau du serveur.
+  return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+}
+
+export function frDate(isoDate: string) {
+  const [y, m, d] = isoDate.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}
+
+/** Vérifie qu'un snapshot est cohérent : les totaux enregistrés sont ceux que le moteur recalcule. */
+export function verifySnapshot(s: QuoteSnapshot): { ok: boolean; reason?: string } {
+  const re = computeQuote(draftToCalcInput({ sections: s.sections, globalDiscount: s.quote.globalDiscount }, s.org.vat_regime === "franchise"));
+  if (canonicalJson(re) !== canonicalJson(s.calc)) return { ok: false, reason: "Les totaux enregistrés ne correspondent pas au recalcul" };
+  const t = pdfTotals(s);
+  if (t.totalTtc !== formatEuros(re.totalTtcCents) || t.totalHt !== formatEuros(re.totalHtCents)) {
+    return { ok: false, reason: "Les totaux du PDF ne correspondent pas aux données" };
+  }
+  return { ok: true };
+}
+
+export async function issueQuote(ctx: Ctx, id: string, expectedRevision?: number) {
+  requireWritable(ctx);
+  try {
+    return await issueInTransaction(ctx, id, expectedRevision);
+  } catch (e) {
+    // Journalisé hors transaction pour ne pas être annulé avec elle.
+    if (e instanceof HttpError && (e.code === "pdf_failed" || e.code === "integrity")) {
+      await logError(ctx.db, e.code === "pdf_failed" ? "pdf.render" : "quote.integrity", String(e.details ?? e.message), ctx.orgId, { quoteId: id });
+    }
+    throw e;
+  }
+}
+
+async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: number) {
+  return ctx.db.transaction(async (tx) => {
+    const row = await one<{ status: QuoteStatus; draft_revision: unknown; current_version: unknown; number: string | null }>(
+      tx,
+      "SELECT status, draft_revision, current_version, number FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
+      [id, ctx.orgId],
+    );
+    if (!row) throw notFound("Devis introuvable");
+    if (!EDITABLE_STATUSES.includes(row.status)) throw conflict("Ce devis est déjà émis");
+    if (expectedRevision !== undefined && num(row.draft_revision) !== expectedRevision) {
+      throw new HttpError(409, "revision_conflict", "Ce devis a été modifié ailleurs. Rechargez-le avant d'émettre.");
+    }
+    const d = await getDraft(ctx, id, tx);
+    const org = await orgRow(tx, ctx.orgId);
+    const customer = d.customerId
+      ? await one<Customer>(tx, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId])
+      : null;
+    // Recalcul côté serveur : les totaux envoyés par le navigateur ne sont jamais utilisés.
+    const calc = computeQuote(draftToCalcInput(d, org.vat_regime === "franchise"));
+    const issues = checkCompliance(complianceInput(org, customer, d, calc));
+    const blocking = issues.filter((i) => i.blocking);
+    if (blocking.length || !customer) {
+      throw new HttpError(422, "not_issuable", "Le devis ne peut pas être émis : " + blocking.map((b) => b.message).join(" ; "), { issues });
+    }
+    const version = num(row.current_version) + 1;
+    if (version === 1) await assertCanIssue(tx, ctx);
+
+    let number = row.number;
+    if (!number) {
+      const seqRow = await one<{ seq: unknown; prefix: string }>(
+        tx,
+        "UPDATE organizations SET next_quote_seq = next_quote_seq + 1 WHERE id=$1 RETURNING next_quote_seq - 1 AS seq, quote_prefix AS prefix",
+        [ctx.orgId],
+      );
+      const year = parisDate(new Date()).slice(0, 4);
+      number = `${seqRow!.prefix || "D"}-${year}-${String(num(seqRow!.seq)).padStart(4, "0")}`;
+    }
+
+    const now = new Date();
+    const issueDate = parisDate(now);
+    const validUntil = parisDate(addDays(now, d.validityDays));
+    const site = d.site;
+    const snapshot: QuoteSnapshot = {
+      schema: 1,
+      rulesVersion: COMPLIANCE_RULES_VERSION,
+      number,
+      version,
+      issuedAt: now.toISOString(),
+      issueDate,
+      validUntil,
+      author: d.authorName || ctx.userName,
+      template: d.template || org.quote_template,
+      accentColor: org.accent_color,
+      watermark: Boolean(ctx.entitlements.plan.features.watermark),
+      org: {
+        trade_name: org.trade_name,
+        legal_name: org.legal_name,
+        legal_form: org.legal_form,
+        share_capital: org.share_capital,
+        rcs_rm: org.rcs_rm,
+        address_line1: org.address_line1,
+        address_line2: org.address_line2,
+        postal_code: org.postal_code,
+        city: org.city,
+        country: org.country,
+        siren: org.siren,
+        siret: org.siret,
+        vat_number: org.vat_number,
+        phone: org.phone,
+        email: org.email,
+        website: org.website,
+        logo_data: org.logo_data,
+        signature_data: org.signature_data,
+        vat_regime: org.vat_regime,
+        general_conditions: org.general_conditions,
+      },
+      customer: {
+        id: customer.id,
+        type: customer.type,
+        name: customerDisplayName(customer),
+        contact:
+          customer.type !== "particulier" ? [customer.civility, customer.first_name, customer.last_name].filter(Boolean).join(" ") : "",
+        billing_line1: customer.billing_line1,
+        billing_line2: customer.billing_line2,
+        billing_postal_code: customer.billing_postal_code,
+        billing_city: customer.billing_city,
+        billing_country: customer.billing_country,
+        email: customer.email,
+        phone: customer.phone,
+        siren: customer.siren,
+        vat_number: customer.vat_number,
+      },
+      quote: {
+        title: d.title,
+        description: d.description,
+        site,
+        paymentTerms: d.paymentTerms,
+        specialConditions: d.specialConditions,
+        depositPercent: d.depositPercent,
+        estimatedDuration: d.estimatedDuration,
+        estimatedStart: d.estimatedStart,
+        globalDiscount: d.globalDiscount,
+      },
+      sections: d.sections,
+      calc,
+      mentions: buildMentions({
+        org,
+        customer: { type: customer.type, name: "", billing_line1: "", billing_postal_code: "", billing_city: "", siren: "" },
+        validUntil: frDate(validUntil),
+        depositPercent: d.depositPercent,
+      }),
+      warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
+    };
+    const check = verifySnapshot(snapshot);
+    if (!check.ok) throw new HttpError(500, "integrity", "Contrôle de cohérence échoué : " + check.reason, check.reason);
+    let pdf: Uint8Array;
+    try {
+      pdf = await renderQuotePdf(snapshot);
+    } catch (e) {
+      throw new HttpError(500, "pdf_failed", "La génération du PDF a échoué. L'incident a été signalé.", (e as Error).message);
+    }
+    const pdfHash = sha256(pdf);
+    const snapHash = sha256(canonicalJson(snapshot));
+    await tx.query(
+      `INSERT INTO quote_versions (quote_id, org_id, version, number, snapshot, pdf, pdf_sha256, snapshot_sha256, total_ht_cents, total_ttc_cents, issued_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [id, ctx.orgId, version, number, JSON.stringify(snapshot), pdf, pdfHash, snapHash, calc.totalHtCents, calc.totalTtcCents, ctx.userId],
+    );
+    await tx.query(
+      `UPDATE quotes SET status='ready', number=$3, current_version=$4, issued_at=$5, valid_until=$6, total_ht_cents=$7,
+         total_ttc_cents=$8, margin_cents=$9, updated_at=now() WHERE id=$1 AND org_id=$2`,
+      [id, ctx.orgId, number, version, now, validUntil, calc.totalHtCents, calc.totalTtcCents, calc.margin.marginCents],
+    );
+    if (version > 1) {
+      // Les liens de la version précédente ne permettent plus d'accepter.
+      await tx.query("UPDATE share_links SET revoked_at=now() WHERE quote_id=$1 AND version < $2 AND revoked_at IS NULL", [id, version]);
+      await addEvent(tx, ctx, id, version - 1, "version.superseded");
+    }
+    await incrementUsage(
+      tx,
+      ctx.orgId,
+      d.sections.flatMap((s) => s.lines.map((l) => l.catalogItemId).filter((x): x is string => !!x)),
+    );
+    await addEvent(tx, ctx, id, version, "issued", { pdf_sha256: pdfHash, snapshot_sha256: snapHash, total_ttc_cents: calc.totalTtcCents });
+    await recordUsage(tx, ctx.orgId, ctx.userId, "pdf");
+    return { version, number, pdfSha256: pdfHash, warnings: snapshot.warnings };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Versions                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function listVersions(ctx: Ctx, quoteId: string) {
+  await getQuoteRow(ctx.db, ctx, quoteId);
+  const rows = await ctx.db.query<Record<string, unknown>>(
+    `SELECT v.version, v.number, v.issued_at, v.pdf_sha256, v.snapshot_sha256, v.total_ht_cents, v.total_ttc_cents, u.name AS issued_by
+     FROM quote_versions v LEFT JOIN users u ON u.id=v.issued_by WHERE v.quote_id=$1 AND v.org_id=$2 ORDER BY v.version DESC`,
+    [quoteId, ctx.orgId],
+  );
+  return rows.map((r) => ({
+    version: num(r.version),
+    number: String(r.number),
+    issuedAt: iso(r.issued_at),
+    pdfSha256: String(r.pdf_sha256),
+    snapshotSha256: String(r.snapshot_sha256),
+    totalHtCents: num(r.total_ht_cents),
+    totalTtcCents: num(r.total_ttc_cents),
+    issuedBy: String(r.issued_by ?? ""),
+  }));
+}
+
+export async function getVersion(q: Queryable, orgId: string, quoteId: string, version: number) {
+  const r = await one<Record<string, unknown>>(
+    q,
+    "SELECT * FROM quote_versions WHERE quote_id=$1 AND org_id=$2 AND version=$3",
+    [quoteId, orgId, version],
+  );
+  if (!r) throw notFound("Version introuvable");
+  return {
+    id: String(r.id),
+    version: num(r.version),
+    number: String(r.number),
+    snapshot: r.snapshot as QuoteSnapshot,
+    pdf: r.pdf as Uint8Array,
+    pdfSha256: String(r.pdf_sha256),
+    issuedAt: iso(r.issued_at),
+  };
+}
+
+/** Contrôle d'intégrité d'une version conservée : empreintes et totaux. */
+export async function verifyVersion(ctx: Ctx, quoteId: string, version: number) {
+  const v = await getVersion(ctx.db, ctx.orgId, quoteId, version);
+  const pdfOk = sha256(v.pdf) === v.pdfSha256;
+  const consistency = verifySnapshot(v.snapshot);
+  return { pdfOk, snapshotOk: consistency.ok, reason: consistency.reason ?? null };
+}
+
+/** Repasse un devis émis en brouillon pour préparer la version suivante. */
+export async function createRevision(ctx: Ctx, quoteId: string) {
+  requireWritable(ctx);
+  return ctx.db.transaction(async (tx) => {
+    const r = await one<{ status: QuoteStatus; current_version: unknown }>(
+      tx,
+      "SELECT status, current_version FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
+      [quoteId, ctx.orgId],
+    );
+    if (!r) throw notFound("Devis introuvable");
+    if (r.status === "accepted") {
+      throw conflict("Un devis accepté ne peut pas être modifié. Dupliquez-le pour établir un avenant ou un nouveau devis.");
+    }
+    if (r.status === "canceled" || r.status === "superseded") throw conflict("Ce devis est clos");
+    if (EDITABLE_STATUSES.includes(r.status)) return { status: r.status };
+    await tx.query("UPDATE quotes SET status='draft', draft_revision=draft_revision+1, updated_at=now() WHERE id=$1 AND org_id=$2", [
+      quoteId,
+      ctx.orgId,
+    ]);
+    await addEvent(tx, ctx, quoteId, num(r.current_version), "revision.started", { from_status: r.status });
+    return { status: "draft" as QuoteStatus };
+  });
+}
+
+export interface VersionDiff {
+  from: number;
+  to: number;
+  fields: { field: string; before: string; after: string }[];
+  lines: { status: "added" | "removed" | "changed"; label: string; changes: string[] }[];
+  totals: { before: number; after: number };
+}
+
+/** Comparaison lisible entre deux versions émises. */
+export async function compareVersions(ctx: Ctx, quoteId: string, a: number, b: number): Promise<VersionDiff> {
+  const va = (await getVersion(ctx.db, ctx.orgId, quoteId, a)).snapshot;
+  const vb = (await getVersion(ctx.db, ctx.orgId, quoteId, b)).snapshot;
+  const fields: VersionDiff["fields"] = [];
+  const cmp = (field: string, x: string, y: string) => {
+    if (x !== y) fields.push({ field, before: x, after: y });
+  };
+  cmp("Objet", va.quote.title, vb.quote.title);
+  cmp("Description", va.quote.description, vb.quote.description);
+  cmp("Client", va.customer.name, vb.customer.name);
+  cmp("Lieu d'exécution", Object.values(va.quote.site).join(" "), Object.values(vb.quote.site).join(" "));
+  cmp("Conditions de paiement", va.quote.paymentTerms, vb.quote.paymentTerms);
+  cmp("Conditions particulières", va.quote.specialConditions, vb.quote.specialConditions);
+  cmp("Acompte", va.quote.depositPercent, vb.quote.depositPercent);
+  cmp("Remise globale", va.quote.globalDiscount, vb.quote.globalDiscount);
+  cmp("Validité", frDate(va.validUntil), frDate(vb.validUntil));
+  const flat = (s: QuoteSnapshot) => new Map(s.sections.flatMap((sec) => sec.lines.map((l) => [l.id, { ...l, section: sec.title }] as const)));
+  const la = flat(va);
+  const lb = flat(vb);
+  const lines: VersionDiff["lines"] = [];
+  const keys: (keyof DraftLine)[] = ["label", "description", "quantity", "unit", "unitPrice", "discountPercent", "vatPercent", "kind"];
+  const names: Partial<Record<keyof DraftLine, string>> = {
+    label: "libellé",
+    description: "description",
+    quantity: "quantité",
+    unit: "unité",
+    unitPrice: "prix unitaire",
+    discountPercent: "remise",
+    vatPercent: "TVA",
+    kind: "type",
+  };
+  for (const [id, l] of lb) {
+    const old = la.get(id);
+    if (!old) {
+      lines.push({ status: "added", label: l.label, changes: [] });
+      continue;
+    }
+    const changes = keys.filter((k) => String(old[k]) !== String(l[k])).map((k) => `${names[k]} : ${String(old[k]) || "(vide)"} devient ${String(l[k]) || "(vide)"}`);
+    if (changes.length) lines.push({ status: "changed", label: l.label, changes });
+  }
+  for (const [id, l] of la) if (!lb.has(id)) lines.push({ status: "removed", label: l.label, changes: [] });
+  return { from: a, to: b, fields, lines, totals: { before: va.calc.totalTtcCents, after: vb.calc.totalTtcCents } };
+}
+
+/* ------------------------------------------------------------------ */
+/* Envoi et lien client                                                */
+/* ------------------------------------------------------------------ */
+
+export async function createShareLink(q: Queryable, orgId: string, quoteId: string, version: number, validUntil: string) {
+  const token = randomToken();
+  const expires = new Date(new Date(validUntil + "T23:59:59Z").getTime() + 30 * DAY);
+  await q.query("INSERT INTO share_links (org_id, quote_id, version, token_hash, expires_at) VALUES ($1,$2,$3,$4,$5)", [
+    orgId,
+    quoteId,
+    version,
+    sha256(token),
+    expires,
+  ]);
+  return { token, url: appUrl("/d/" + token), expiresAt: expires };
+}
+
+export async function revokeShareLinks(ctx: Ctx, quoteId: string) {
+  requireWritable(ctx);
+  await getQuoteRow(ctx.db, ctx, quoteId);
+  await ctx.db.query("UPDATE share_links SET revoked_at=now() WHERE quote_id=$1 AND org_id=$2 AND revoked_at IS NULL", [quoteId, ctx.orgId]);
+  await addEvent(ctx.db, ctx, quoteId, null, "links.revoked");
+}
+
+export const sendSchema = z.object({
+  to: z.string().trim().toLowerCase().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Adresse e-mail invalide"),
+  subject: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(1).max(10000),
+  idempotencyKey: z.string().max(100).optional(),
+});
+
+export async function prepareSendMessage(ctx: Ctx, quoteId: string) {
+  const r = await getQuoteRow(ctx.db, ctx, quoteId);
+  const version = num(r.current_version);
+  if (version === 0) throw conflict("Émettez le devis avant de l'envoyer");
+  const v = await getVersion(ctx.db, ctx.orgId, quoteId, version);
+  const org = await orgRow(ctx.db, ctx.orgId);
+  const vars = templateVars(v.snapshot, org, "{lien}");
+  return {
+    to: v.snapshot.customer.email,
+    subject: renderTemplate(org.mail_subject_template || "Votre devis {numero}", vars),
+    body: renderTemplate(org.mail_body_template, vars),
+  };
+}
+
+function templateVars(s: QuoteSnapshot, org: Organization, link: string): Record<string, string> {
+  return {
+    client: s.customer.contact || s.customer.name,
+    numero: s.number,
+    objet: s.quote.title,
+    total_ttc: formatEuros(s.calc.totalTtcCents),
+    total_ht: formatEuros(s.calc.totalHtCents),
+    validite: frDate(s.validUntil),
+    entreprise: org.trade_name,
+    lien: link,
+  };
+}
+
+export async function sendQuote(ctx: Ctx, quoteId: string, raw: unknown) {
+  requireWritable(ctx);
+  const parsed = sendSchema.safeParse(raw);
+  if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  const input = parsed.data;
+  return ctx.db.transaction(async (tx) => {
+    const r = await one<{ status: QuoteStatus; current_version: unknown; valid_until: unknown }>(
+      tx,
+      "SELECT status, current_version, valid_until FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
+      [quoteId, ctx.orgId],
+    );
+    if (!r) throw notFound("Devis introuvable");
+    if (!PENDING_STATUSES.includes(r.status)) {
+      throw conflict(EDITABLE_STATUSES.includes(r.status) ? "Émettez le devis avant de l'envoyer" : "Ce devis ne peut plus être envoyé");
+    }
+    const version = num(r.current_version);
+    const v = await getVersion(tx, ctx.orgId, quoteId, version);
+    if (input.idempotencyKey) {
+      const dup = await one<{ id: string; status: string }>(tx, "SELECT id, status FROM emails WHERE idempotency_key=$1", [
+        `${ctx.orgId}:${input.idempotencyKey}`,
+      ]);
+      if (dup) return { emailId: dup.id, status: dup.status, duplicate: true, link: null };
+    }
+    const link = await createShareLink(tx, ctx.orgId, quoteId, version, v.snapshot.validUntil);
+    const body = input.body.includes("{lien}") ? input.body.replaceAll("{lien}", link.url) : `${input.body}\n\nConsulter le devis : ${link.url}`;
+    const mail = await sendMail(tx, {
+      orgId: ctx.orgId,
+      quoteId,
+      kind: "quote",
+      to: input.to,
+      subject: input.subject,
+      body,
+      attachmentVersionId: v.id,
+      idempotencyKey: input.idempotencyKey ? `${ctx.orgId}:${input.idempotencyKey}` : null,
+    });
+    if (mail.status === "sent") {
+      await tx.query(
+        "UPDATE quotes SET status = CASE WHEN status='ready' THEN 'sent' ELSE status END, sent_at=coalesce(sent_at, now()), updated_at=now() WHERE id=$1 AND org_id=$2",
+        [quoteId, ctx.orgId],
+      );
+    }
+    await addEvent(tx, ctx, quoteId, version, mail.status === "sent" ? "sent" : "send_failed", {
+      to: input.to,
+      email_id: mail.id,
+      status: mail.status,
+      error: mail.error,
+    });
+    return { emailId: mail.id, status: mail.status, error: mail.error, duplicate: false, link: link.url };
+  });
+}
+
+/** Lien de consultation sans envoi d'e-mail (à transmettre par un autre moyen). */
+export async function getShareLink(ctx: Ctx, quoteId: string) {
+  requireWritable(ctx);
+  const r = await getQuoteRow(ctx.db, ctx, quoteId);
+  if (!PENDING_STATUSES.includes(r.status as QuoteStatus)) throw conflict("Le devis doit être émis et en attente de réponse");
+  const v = await getVersion(ctx.db, ctx.orgId, quoteId, num(r.current_version));
+  const link = await createShareLink(ctx.db, ctx.orgId, quoteId, v.version, v.snapshot.validUntil);
+  await addEvent(ctx.db, ctx, quoteId, v.version, "link.created");
+  return link;
+}
+
+export async function resolveShareToken(q: Queryable, token: string) {
+  const link = await one<{ id: string; org_id: string; quote_id: string; version: unknown; expires_at: Date; revoked_at: Date | null; first_viewed_at: Date | null }>(
+    q,
+    "SELECT * FROM share_links WHERE token_hash=$1",
+    [sha256(String(token))],
+  );
+  if (!link || link.expires_at < new Date()) return null;
+  const quote = await one<Record<string, unknown>>(q, "SELECT * FROM quotes WHERE id=$1 AND org_id=$2", [link.quote_id, link.org_id]);
+  if (!quote) return null;
+  const v = await getVersion(q, link.org_id, link.quote_id, num(link.version));
+  const isCurrent = num(quote.current_version) === v.version;
+  const status = quote.status as QuoteStatus;
+  const canRespond = !link.revoked_at && isCurrent && ["ready", "sent", "viewed"].includes(status) && v.snapshot.validUntil >= parisDate(new Date());
+  return { link, quote, version: v, isCurrent, status, canRespond, revoked: !!link.revoked_at };
+}
+
+/** Consultation par le client via le lien sécurisé : seule méthode fiable pour le statut « Consulté ». */
+export async function recordClientView(q: Queryable, token: string, meta: { ip: string; userAgent: string }) {
+  const r = await resolveShareToken(q, token);
+  if (!r) return null;
+  if (!r.link.first_viewed_at) {
+    await q.query("UPDATE share_links SET first_viewed_at=now() WHERE id=$1", [r.link.id]);
+    await q.query(
+      "UPDATE quotes SET status = CASE WHEN status IN ('ready','sent') THEN 'viewed' ELSE status END, viewed_at=coalesce(viewed_at, now()) WHERE id=$1",
+      [r.link.quote_id],
+    );
+    await q.query(
+      "INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data, ip, user_agent) VALUES ($1,$2,$3,'viewed','client','{}',$4,$5)",
+      [r.link.org_id, r.link.quote_id, r.version.version, meta.ip, meta.userAgent.slice(0, 300)],
+    );
+  }
+  return r;
+}
+
+export const responseSchema = z.object({
+  decision: z.enum(["accept", "refuse"]),
+  name: z.string().trim().min(2, "Indiquez vos nom et prénom").max(160),
+  consent: z.boolean().optional(),
+  reason: z.string().trim().max(2000).optional().default(""),
+});
+
+/** Réponse du client depuis le lien : rattachée à la version exacte qu'il a consultée. */
+export async function respondFromLink(
+  db: Ctx["db"],
+  token: string,
+  raw: unknown,
+  meta: { ip: string; userAgent: string },
+) {
+  const parsed = responseSchema.safeParse(raw);
+  if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  const input = parsed.data;
+  if (input.decision === "accept" && !input.consent) throw badRequest("Cochez la case « Bon pour accord » pour accepter");
+  return db.transaction(async (tx) => {
+    const r = await resolveShareToken(tx, token);
+    if (!r) throw notFound("Lien invalide ou expiré");
+    const locked = await one<{ status: QuoteStatus; current_version: unknown }>(
+      tx,
+      "SELECT status, current_version FROM quotes WHERE id=$1 FOR UPDATE",
+      [r.link.quote_id],
+    );
+    if (!locked || num(locked.current_version) !== r.version.version || r.revoked) {
+      throw conflict("Ce devis a été remplacé par une nouvelle version. Utilisez le dernier lien reçu.");
+    }
+    if (!["ready", "sent", "viewed"].includes(locked.status)) throw conflict("Ce devis n'attend plus de réponse");
+    if (r.version.snapshot.validUntil < parisDate(new Date())) throw conflict("La durée de validité de ce devis est dépassée");
+    const accepted = input.decision === "accept";
+    await tx.query(
+      `UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, updated_at=now() WHERE id=$1`,
+      [r.link.quote_id, accepted ? "accepted" : "refused", accepted ? r.version.version : null],
+    );
+    // Éléments de preuve conservés : version, empreinte du PDF, nom saisi, date, adresse IP, navigateur.
+    await tx.query(
+      `INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data, ip, user_agent)
+       VALUES ($1,$2,$3,$4,'client',$5,$6,$7)`,
+      [
+        r.link.org_id,
+        r.link.quote_id,
+        r.version.version,
+        accepted ? "accepted" : "refused",
+        JSON.stringify({
+          name: input.name,
+          consent_text: accepted ? "Bon pour accord" : null,
+          reason: input.reason,
+          pdf_sha256: r.version.pdfSha256,
+          total_ttc_cents: r.version.snapshot.calc.totalTtcCents,
+          via: "lien sécurisé",
+        }),
+        meta.ip,
+        meta.userAgent.slice(0, 300),
+      ],
+    );
+    const org = await one<{ email: string; trade_name: string }>(tx, "SELECT email, trade_name FROM organizations WHERE id=$1", [r.link.org_id]);
+    if (org?.email) {
+      await sendMail(tx, {
+        orgId: r.link.org_id,
+        quoteId: r.link.quote_id,
+        kind: "notification",
+        to: org.email,
+        subject: `Devis ${r.version.number} ${accepted ? "accepté" : "refusé"} par ${input.name}`,
+        body: `Le devis ${r.version.number} (version ${r.version.version}) a été ${accepted ? "accepté" : "refusé"} en ligne par ${input.name}.${input.reason ? "\nMotif : " + input.reason : ""}\n\n${appUrl("/app/devis/" + r.link.quote_id)}`,
+      });
+    }
+    return { status: accepted ? "accepted" : "refused" };
+  });
+}
+
+/** Acceptation ou refus enregistré par l'artisan (devis signé sur papier, accord écrit...). */
+export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unknown) {
+  requireWritable(ctx);
+  const schema = z.object({
+    decision: z.enum(["accept", "refuse"]),
+    version: z.coerce.number().int().min(1),
+    proof: z.string().trim().min(3, "Précisez la preuve de l'acceptation (ex. devis signé reçu le...)").max(2000),
+  });
+  const parsed = schema.safeParse(raw);
+  if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  const input = parsed.data;
+  return ctx.db.transaction(async (tx) => {
+    const r = await one<{ status: QuoteStatus; current_version: unknown }>(
+      tx,
+      "SELECT status, current_version FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
+      [quoteId, ctx.orgId],
+    );
+    if (!r) throw notFound("Devis introuvable");
+    if (num(r.current_version) !== input.version) throw conflict("Seule la dernière version émise peut être acceptée");
+    if (!PENDING_STATUSES.includes(r.status) && r.status !== "expired") throw conflict("Ce devis n'attend pas de réponse");
+    const accepted = input.decision === "accept";
+    await tx.query("UPDATE quotes SET status=$3, responded_at=now(), accepted_version=$4, updated_at=now() WHERE id=$1 AND org_id=$2", [
+      quoteId,
+      ctx.orgId,
+      accepted ? "accepted" : "refused",
+      accepted ? input.version : null,
+    ]);
+    await addEvent(tx, ctx, quoteId, input.version, accepted ? "accepted" : "refused", { proof: input.proof, via: "saisie par l'entreprise" });
+    return { status: accepted ? "accepted" : "refused" };
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Autres actions                                                      */
+/* ------------------------------------------------------------------ */
+
+export async function duplicateQuote(ctx: Ctx, quoteId: string, opts: { replace?: boolean } = {}) {
+  requireWritable(ctx);
+  const src = await getDraft(ctx, quoteId);
+  const newId = await createQuote(ctx, { customerId: src.customerId });
+  const sections = src.sections.map((s) => ({ ...s, id: randomUUID(), lines: s.lines.map((l) => ({ ...l, id: randomUUID() })) }));
+  const fresh = await getDraft(ctx, newId);
+  await saveDraft(
+    ctx,
+    newId,
+    { ...src, title: src.title + (opts.replace ? "" : " (copie)"), sections },
+    fresh.draftRevision,
+  );
+  if (opts.replace) {
+    await ctx.db.query(
+      "UPDATE quotes SET status='superseded', updated_at=now() WHERE id=$1 AND org_id=$2 AND status IN ('ready','sent','viewed','refused','expired')",
+      [quoteId, ctx.orgId],
+    );
+    await addEvent(ctx.db, ctx, quoteId, null, "replaced", { by: newId });
+  }
+  await addEvent(ctx.db, ctx, newId, null, "duplicated", { from: quoteId });
+  return newId;
+}
+
+export async function cancelQuote(ctx: Ctx, quoteId: string, reason: string) {
+  requireWritable(ctx);
+  const r = await getQuoteRow(ctx.db, ctx, quoteId);
+  if (r.status === "accepted" && !reason.trim()) throw badRequest("Indiquez le motif d'annulation d'un devis accepté");
+  if (r.status === "canceled") return;
+  await ctx.db.query("UPDATE quotes SET status='canceled', updated_at=now() WHERE id=$1 AND org_id=$2", [quoteId, ctx.orgId]);
+  await ctx.db.query("UPDATE share_links SET revoked_at=now() WHERE quote_id=$1 AND revoked_at IS NULL", [quoteId]);
+  await addEvent(ctx.db, ctx, quoteId, num(r.current_version) || null, "canceled", { reason, previous_status: r.status });
+}
+
+export async function setArchived(ctx: Ctx, quoteId: string, archived: boolean) {
+  requireWritable(ctx);
+  await getQuoteRow(ctx.db, ctx, quoteId);
+  await ctx.db.query(`UPDATE quotes SET archived_at=${archived ? "now()" : "NULL"} WHERE id=$1 AND org_id=$2`, [quoteId, ctx.orgId]);
+}
+
+/** Supprime un brouillon jamais émis. Un devis émis n'est jamais supprimé. */
+export async function deleteDraft(ctx: Ctx, quoteId: string) {
+  requireWritable(ctx);
+  const r = await getQuoteRow(ctx.db, ctx, quoteId);
+  if (num(r.current_version) > 0) throw conflict("Un devis émis ne peut pas être supprimé : annulez-le ou archivez-le");
+  await ctx.db.query("DELETE FROM quotes WHERE id=$1 AND org_id=$2", [quoteId, ctx.orgId]);
+}
+
+export async function quoteEvents(ctx: Ctx, quoteId: string) {
+  await getQuoteRow(ctx.db, ctx, quoteId);
+  return ctx.db.query<{ id: string; type: string; version: number | null; actor_type: string; data: Record<string, unknown>; ip: string; created_at: Date; actor_name: string | null }>(
+    `SELECT e.id, e.type, e.version, e.actor_type, e.data, e.ip, e.created_at, u.name AS actor_name
+     FROM document_events e LEFT JOIN users u ON u.id = e.actor_id
+     WHERE e.quote_id=$1 AND e.org_id=$2 ORDER BY e.created_at DESC, e.id`,
+    [quoteId, ctx.orgId],
+  );
+}
+
+export async function quoteEmails(ctx: Ctx, quoteId: string) {
+  return ctx.db.query<{ id: string; kind: string; to_address: string; subject: string; status: string; error: string | null; created_at: Date }>(
+    "SELECT id, kind, to_address, subject, status, error, created_at FROM emails WHERE quote_id=$1 AND org_id=$2 ORDER BY created_at DESC",
+    [quoteId, ctx.orgId],
+  );
+}
+
+export async function addEvent(q: Queryable, ctx: Ctx, quoteId: string, version: number | null, type: string, data: unknown = {}) {
+  await q.query(
+    "INSERT INTO document_events (org_id, quote_id, version, type, actor_type, actor_id, data, ip, user_agent) VALUES ($1,$2,$3,$4,'user',$5,$6,$7,$8)",
+    [ctx.orgId, quoteId, version, type, ctx.userId, JSON.stringify(data), ctx.ip, ctx.userAgent.slice(0, 300)],
+  );
+  await audit(q, { orgId: ctx.orgId, userId: ctx.userId, action: "quote." + type, target: quoteId, ip: ctx.ip });
+}
+
+/** Passe en « Expiré » les devis en attente dont la validité est dépassée. */
+export async function expireQuotes(q: Queryable, orgId?: string) {
+  const today = parisDate(new Date());
+  const rows = await q.query<{ id: string; org_id: string; current_version: unknown }>(
+    `UPDATE quotes SET status='expired', updated_at=now()
+     WHERE status IN ('ready','sent','viewed') AND valid_until < $1 AND ($2::uuid IS NULL OR org_id=$2)
+     RETURNING id, org_id, current_version`,
+    [today, orgId ?? null],
+  );
+  for (const r of rows) {
+    await q.query(
+      "INSERT INTO document_events (org_id, quote_id, version, type, actor_type) VALUES ($1,$2,$3,'expired','system')",
+      [r.org_id, r.id, num(r.current_version)],
+    );
+  }
+  return rows.length;
+}
+
+export function assertNotSupport(ctx: Ctx) {
+  if (ctx.supportAccess) throw forbidden("Action impossible en accès support");
+}
