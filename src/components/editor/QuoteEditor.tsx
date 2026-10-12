@@ -19,6 +19,7 @@ import { AssistantPanel } from "./AssistantPanel";
 import { CatalogPicker } from "./CatalogPicker";
 import { CustomerForm } from "./CustomerForm";
 import { LineRow, UNITS } from "./LineRow";
+import { travelCostCents, travelLine, type Pricing, type TravelSettings } from "@/lib/services/pricing";
 
 export interface EditorCustomer {
   id: string;
@@ -105,6 +106,7 @@ export function QuoteEditor({
   assistantQuota,
   defaultVat,
   openAssistant,
+  pricing,
 }: {
   initial: QuoteDraft;
   org: ComplianceInput["org"];
@@ -113,6 +115,8 @@ export function QuoteEditor({
   assistantQuota: number;
   defaultVat: string;
   openAssistant: boolean;
+  /** Taux horaires et barème des déplacements de l'entreprise */
+  pricing: Pricing;
 }) {
   const router = useRouter();
   const [d, setD] = useState<QuoteDraft>(initial);
@@ -127,6 +131,7 @@ export function QuoteEditor({
   const [showCosts, setShowCosts] = useState(showMargin);
   const [drag, setDrag] = useState<{ s: string; l: string } | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
+  const [travelFor, setTravelFor] = useState<string | null>(null);
 
   const revision = useRef(initial.draftRevision);
   const changeSeq = useRef(0);
@@ -746,6 +751,7 @@ export function QuoteEditor({
                         result={lineResults.get(l.id)}
                         issues={calc.issues.filter((i) => i.lineId === l.id)}
                         showCosts={showCosts}
+                        laborRates={pricing.laborRates}
                         vatExempt={vatExempt}
                         readOnly={false}
                         onChange={(patch) => setLine(s.id, l.id, patch)}
@@ -820,12 +826,32 @@ export function QuoteEditor({
                     >
                       <Icon name="note" size={16} /> Note
                     </button>
+                    {pricing.travel.fixedCents || pricing.travel.perKmCents ? (
+                      <button
+                        type="button"
+                        className="btn-ghost min-h-9 text-sm"
+                        onClick={() => setTravelFor((t) => (t === s.id ? null : s.id))}
+                        aria-expanded={travelFor === s.id}
+                      >
+                        <Icon name="truck" size={16} /> Déplacement
+                      </button>
+                    ) : null}
                     {sres && d.sections.length > 1 ? (
                       <span className="tabular ml-auto text-sm text-muted">
                         Sous-total : <strong className="text-ink">{formatEuros(sres.subtotalCents)}</strong>
                       </span>
                     ) : null}
                   </div>
+                  {travelFor === s.id ? (
+                    <TravelForm
+                      travel={pricing.travel}
+                      onAdd={(km, trips) => {
+                        addLines(s.id, [blankLine({ ...travelLine(pricing.travel, km, trips), vatPercent: franchise ? "0" : defaultVat })]);
+                        setTravelFor(null);
+                      }}
+                      onCancel={() => setTravelFor(null)}
+                    />
+                  ) : null}
                 </div>
               );
             })}
@@ -1418,5 +1444,41 @@ function IssueDialog({
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Frais de déplacement calculés avec le barème de l'entreprise. */
+function TravelForm({ travel, onAdd, onCancel }: { travel: TravelSettings; onAdd: (km: number, trips: number) => void; onCancel: () => void }) {
+  const [km, setKm] = useState("");
+  const [trips, setTrips] = useState("1");
+  const k = Number(km.replace(",", "."));
+  const n = Number(trips);
+  const valid = Number.isFinite(k) && k >= 0 && k <= 1000 && km.trim() !== "" && Number.isInteger(n) && n >= 1 && n <= 500;
+  return (
+    <div className="mt-3 flex flex-wrap items-end gap-3 rounded-md bg-surface-2 p-3 text-sm">
+      <div>
+        <label className="label" htmlFor="tr-km">
+          Distance du chantier (km, aller)
+        </label>
+        <input id="tr-km" className="field-sm tabular w-32" inputMode="decimal" value={km} onChange={(e) => setKm(e.target.value)} autoFocus />
+      </div>
+      <div>
+        <label className="label" htmlFor="tr-n">
+          Nombre de déplacements
+        </label>
+        <input id="tr-n" className="field-sm tabular w-24" inputMode="numeric" value={trips} onChange={(e) => setTrips(e.target.value)} />
+      </div>
+      <p className="tabular pb-1.5 text-muted">
+        {valid ? `${formatEuros(travelCostCents(travel, k))} HT par déplacement, ${formatEuros(travelCostCents(travel, k) * n)} HT au total` : ""}
+      </p>
+      <div className="ml-auto flex gap-2">
+        <button type="button" className="btn-ghost min-h-9" onClick={onCancel}>
+          Annuler
+        </button>
+        <button type="button" className="btn-primary min-h-9" disabled={!valid} onClick={() => onAdd(k, n)}>
+          Ajouter la ligne
+        </button>
+      </div>
+    </div>
   );
 }

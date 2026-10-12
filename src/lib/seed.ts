@@ -10,7 +10,7 @@ import { contextFromToken, createSession, register, verifyEmail } from "./servic
 import { installLibrary, searchItems } from "./services/catalog";
 import type { Ctx } from "./services/context";
 import { createCustomer } from "./services/customers";
-import { updateOrganization } from "./services/organization";
+import { savePricing, updateOrganization } from "./services/organization";
 import { createQuote, getDraft, issueQuote, saveDraft, sendQuote } from "./services/quotes";
 import { price4ToInput, bpToInput } from "./calc/format";
 
@@ -65,6 +65,17 @@ export async function seedDemo(db: Database): Promise<{ created: boolean }> {
     insurance_coverage: "responsabilité civile décennale",
     default_deposit_percent: "30",
     payment_terms: "Acompte de 30 % à la signature, solde à la réception des travaux, par virement.",
+  });
+
+  await savePricing(ctx, {
+    rates: [
+      { label: "Apprenti", price: "32", cost: "18" },
+      { label: "Ouvrier", price: "45", cost: "29" },
+      { label: "Chef d'équipe", price: "55", cost: "36" },
+    ],
+    perKm: "0,60",
+    fixed: "35",
+    freeKm: "30",
   });
 
   await installLibrary(ctx, "commun");

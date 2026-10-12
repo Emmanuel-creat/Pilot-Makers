@@ -26,7 +26,7 @@ import { cancelAtPeriodEnd, startCheckout } from "@/lib/services/billing";
 import { bulkAdjustPrices, duplicateItem, installLibrary, setItemFlags } from "@/lib/services/catalog";
 import type { Ctx } from "@/lib/services/context";
 import { setCustomerArchived } from "@/lib/services/customers";
-import { updateOrganization } from "@/lib/services/organization";
+import { savePricing, updateOrganization } from "@/lib/services/organization";
 import { cancelQuote, createAmendment, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
 import { convertLeadToQuote, createLead, updateLead } from "@/lib/services/leads";
@@ -565,6 +565,26 @@ export async function releaseAction(_: ActionState, fd: FormData): Promise<Actio
 }
 
 /* Factures ---------------------------------------------------------- */
+
+export async function savePricingAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const labels = fd.getAll("rate_label").map(String);
+    const prices = fd.getAll("rate_price").map(String);
+    const costs = fd.getAll("rate_cost").map(String);
+    await withCtx((ctx) =>
+      savePricing(ctx, {
+        rates: labels.map((label, i) => ({ label, price: prices[i] ?? "", cost: costs[i] ?? "" })),
+        perKm: s(fd, "per_km"),
+        fixed: s(fd, "fixed"),
+        freeKm: s(fd, "free_km"),
+      }),
+    );
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Tarifs enregistrés. Ils servent aux prochains devis." };
+  } catch (e) {
+    return toState(e);
+  }
+}
 
 export async function saveInvoiceSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {

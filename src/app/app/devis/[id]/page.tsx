@@ -11,6 +11,7 @@ import { requirePageCtx } from "@/lib/server/session";
 import { EVENT_LABELS } from "@/lib/services/dashboard";
 import { customerDisplayName, getCustomer, searchCustomers } from "@/lib/services/customers";
 import { getOrganization } from "@/lib/services/organization";
+import { readPricing, type Pricing } from "@/lib/services/pricing";
 import { EDITABLE_STATUSES, PENDING_STATUSES, QUOTE_STATUSES } from "@/lib/services/quote-types";
 import { getDraft, getQuoteRow, getVersion, listAmendments, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
 import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
@@ -102,6 +103,7 @@ export default async function QuotePage({
           assistantQuota={ctx.entitlements.plan.aiQuotaMonth}
           defaultVat={String(org.default_vat_bp / 100).replace(".", ",")}
           openAssistant={sp.assistant === "1"}
+          pricing={editorPricing(readPricing(org.pricing), !!ctx.entitlements.plan.features.margin)}
         />
       </>
     );
@@ -472,4 +474,9 @@ export default async function QuotePage({
       </div>
     </div>
   );
+}
+
+/** Le coût interne des heures ne part dans le navigateur que si la marge est affichée. */
+function editorPricing(p: Pricing, withCosts: boolean): Pricing {
+  return withCosts ? p : { ...p, laborRates: p.laborRates.map((r) => ({ ...r, costCents: 0 })) };
 }

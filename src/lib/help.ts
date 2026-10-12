@@ -214,6 +214,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Les avenants sont numérotés dans l'ordre pour chaque devis initial."],
   },
   {
+    slug: "taux-horaires-et-deplacements",
+    category: "devis",
+    title: "Taux horaires par qualification et frais de déplacement",
+    summary: "Chiffrer la main-d'œuvre et les déplacements d'un clic, avec vos propres tarifs.",
+    steps: [
+      "Dans Entreprise, onglet Tarifs, indiquez le prix de l'heure de chaque qualification (apprenti, ouvrier, chef d'équipe) et, si vous le souhaitez, son coût interne.",
+      "Renseignez le barème des déplacements : forfait par déplacement, prix du kilomètre et rayon sans frais kilométriques.",
+      "Dans l'éditeur, une ligne de main-d'œuvre propose la liste des qualifications : le prix de l'heure et le coût interne se remplissent.",
+      "Le bouton « Déplacement » d'une section calcule la ligne à partir de la distance du chantier et du nombre de déplacements.",
+    ],
+    notes: [
+      "Les kilomètres comptés sont ceux de l'aller-retour au-delà du rayon sans frais.",
+      "Pensez à décrire vos modalités dans l'onglet Devis : elles sont imprimées sur le devis.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

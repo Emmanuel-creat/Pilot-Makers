@@ -14,6 +14,7 @@ import {
   validateVatNumber,
 } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
+import { eurosToCents, LABOR_RATES_MAX, readPricing, type Pricing } from "./pricing";
 import { audit, requireRole, requireWritable } from "./context";
 
 export interface Organization {
@@ -67,6 +68,7 @@ export interface Organization {
   invoice_due_days: number;
   late_penalty_text: string;
   invoice_reminder_settings: { enabled?: boolean; days?: number[] };
+  pricing: Record<string, unknown>;
   status: string;
   suspended_reason: string | null;
   created_at: Date;
@@ -232,4 +234,41 @@ export async function organizationHistory(ctx: Ctx) {
 export function redactForRole<T extends Partial<Organization>>(org: T, role: Ctx["role"]): T {
   if (role === "member") return { ...org, bank_iban: "", bank_bic: "", bank_holder: "" };
   return org;
+}
+
+/**
+ * Tarifs structurés : taux horaires par qualification et barème des déplacements.
+ * Les montants arrivent en euros saisis, ils sont stockés en centimes.
+ */
+export async function savePricing(
+  ctx: Ctx,
+  input: { rates: { label: string; price: string; cost: string }[]; perKm: string; fixed: string; freeKm: string },
+): Promise<Pricing> {
+  requireRole(ctx, "admin");
+  requireWritable(ctx);
+  const cents = (v: string, label: string) => {
+    try {
+      return eurosToCents(v, label);
+    } catch (e) {
+      throw badRequest((e as Error).message);
+    }
+  };
+  const rows = input.rates.filter((r) => r.label.trim() || r.price.trim());
+  if (rows.length > LABOR_RATES_MAX) throw badRequest(`Au plus ${LABOR_RATES_MAX} qualifications`);
+  const laborRates = rows.map((r, i) => {
+    const label = r.label.trim();
+    if (!label) throw badRequest(`Qualification ${i + 1} : nom manquant`);
+    const priceCents = cents(r.price, label);
+    if (!priceCents) throw badRequest(`${label} : taux horaire manquant`);
+    return { label: label.slice(0, 60), priceCents, costCents: cents(r.cost, label) };
+  });
+  const freeKm = input.freeKm.trim() ? Number(input.freeKm.trim()) : 0;
+  if (!Number.isInteger(freeKm) || freeKm < 0 || freeKm > 500) throw badRequest("Rayon sans frais : nombre entier de kilomètres, 500 au plus");
+  const pricing = readPricing({
+    laborRates,
+    travel: { perKmCents: cents(input.perKm, "Prix du kilomètre"), fixedCents: cents(input.fixed, "Forfait par déplacement"), freeKm },
+  });
+  await ctx.db.query("UPDATE organizations SET pricing=$2, updated_at=now() WHERE id=$1", [ctx.orgId, JSON.stringify(pricing)]);
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "organization.pricing", data: { rates: laborRates.length }, ip: ctx.ip });
+  return pricing;
 }

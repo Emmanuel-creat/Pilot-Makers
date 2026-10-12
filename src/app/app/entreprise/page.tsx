@@ -6,6 +6,8 @@ import { readSettings } from "@/lib/services/reminders";
 import { OrgForm } from "./OrgForm";
 import { RemindersForm } from "./RemindersForm";
 import { InvoiceSettingsForm } from "./InvoiceSettingsForm";
+import { PricingForm } from "./PricingForm";
+import { readPricing } from "@/lib/services/pricing";
 
 export const metadata = { title: "Entreprise" };
 
@@ -13,6 +15,7 @@ const TABS = [
   ["identite", "Identité"],
   ["assurance", "Assurance"],
   ["devis", "Devis"],
+  ["tarifs", "Tarifs"],
   ["apparence", "Apparence"],
   ["paiement", "Banque"],
   ["emails", "E-mails"],
@@ -44,7 +47,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const org = redactForRole(await getOrganization(ctx), ctx.role);
   const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
   const tabs = TABS.filter(([k]) => k !== "paiement" || ctx.role !== "member");
-  const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, ...values } = org;
+  const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader title="Entreprise" subtitle="Ces informations figurent sur vos devis. Une modification ne change jamais un devis déjà émis." />
@@ -71,6 +74,8 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
             reminder_days: (invoice_reminder_settings?.days ?? [3, 15, 30]).join(", "),
           }}
         />
+      ) : tab === "tarifs" ? (
+        <PricingForm initial={readPricing(pricing)} canEdit={canEdit} />
       ) : tab === "relances" ? (
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "historique" ? (

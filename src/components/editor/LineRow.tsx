@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { formatEuros } from "@/lib/calc/format";
 import type { CalcIssue, CalcLineResult } from "@/lib/calc/engine";
 import type { DraftLine } from "@/lib/services/quote-types";
+import { laborPatch, rateForPrice, type LaborRate } from "@/lib/services/pricing";
 
 export const UNITS = ["u", "h", "j", "m²", "m³", "ml", "m", "kg", "t", "l", "forfait", "lot", "ens", "sac"];
 export const VAT_OPTIONS = ["20", "10", "5,5", "2,1", "0"];
@@ -22,6 +23,8 @@ interface Props {
   result?: CalcLineResult;
   issues: CalcIssue[];
   showCosts: boolean;
+  /** Qualifications proposées sur une ligne de main-d'oeuvre */
+  laborRates?: LaborRate[];
   vatExempt: boolean;
   readOnly: boolean;
   onChange: (patch: Partial<DraftLine>) => void;
@@ -39,7 +42,7 @@ interface Props {
   dragOver: boolean;
 }
 
-export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
+export function LineRow({ line, result, issues, showCosts, laborRates = [], vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
   const [showDesc, setShowDesc] = useState(!!line.description);
   const [showNote, setShowNote] = useState(!!line.internalNote);
   const err = (field: string) => issues.find((i) => i.field === field && i.blocking)?.message;
@@ -97,6 +100,25 @@ export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, 
                 </option>
               ))}
             </select>
+            {line.nature === "main_oeuvre" && laborRates.length ? (
+              <select
+                value={String(rateForPrice(laborRates, line.unitPrice))}
+                onChange={(e) => {
+                  const rate = laborRates[Number(e.target.value)];
+                  if (rate) onChange(laborPatch(rate));
+                }}
+                className="bg-transparent text-xs hover:text-ink"
+                disabled={readOnly}
+                aria-label="Qualification"
+              >
+                <option value="-1">Qualification</option>
+                {laborRates.map((r, i) => (
+                  <option key={i} value={i}>
+                    {r.label} ({formatEuros(r.priceCents)}/h)
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <button type="button" className="hover:text-ink" onClick={() => setShowDesc((s) => !s)}>
               {showDesc ? "Masquer la description" : line.description ? "Description" : "Ajouter une description"}
             </button>
