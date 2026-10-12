@@ -2,6 +2,7 @@
  * Devis : brouillons, émission de versions figées, envoi, acceptation (modules E, F, I).
  */
 
+import { hitRate } from "@/lib/rate-limit";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Queryable } from "@/lib/db";
@@ -1041,6 +1042,7 @@ export async function sendQuote(ctx: Ctx, quoteId: string, raw: unknown) {
   requireWritable(ctx);
   const parsed = sendSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  await hitRate(ctx.db, "mail.send", ctx.orgId);
   const input = parsed.data;
   return ctx.db.transaction(async (tx) => {
     const r = await one<{ status: QuoteStatus; current_version: unknown; valid_until: unknown }>(
@@ -1121,6 +1123,7 @@ export async function resolveShareToken(q: Queryable, token: string) {
 
 /** Consultation par le client via le lien sécurisé : seule méthode fiable pour le statut « Consulté ». */
 export async function recordClientView(q: Queryable, token: string, meta: { ip: string; userAgent: string }) {
+  await hitRate(q, "public.view", meta.ip);
   const r = await resolveShareToken(q, token);
   if (!r) return null;
   if (!r.link.first_viewed_at) {
@@ -1167,6 +1170,7 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
   const input = parsed.data;
   if (input.decision === "accept" && !input.consent) throw badRequest("Cochez la case « Bon pour accord » pour accepter");
+  await hitRate(db, "public.respond", meta.ip);
   return db.transaction(async (tx) => {
     const r = await resolveShareToken(tx, token);
     if (!r) throw notFound("Lien invalide ou expiré");

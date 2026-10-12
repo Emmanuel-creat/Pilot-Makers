@@ -1,5 +1,6 @@
 import { getDb, num } from "@/lib/db";
-import { errorResponse } from "@/lib/server/session";
+import { hitRate } from "@/lib/rate-limit";
+import { errorResponse, requestMeta } from "@/lib/server/session";
 import { acceptedCopy, resolveShareToken } from "@/lib/services/quotes";
 
 /** PDF accessible avec le lien temporaire et révocable transmis au client. */
@@ -7,6 +8,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   try {
     const { token } = await params;
     const db = await getDb();
+    await hitRate(db, "public.view", (await requestMeta()).ip);
     const r = await resolveShareToken(db, token);
     if (!r) return new Response("Lien invalide ou expiré", { status: 404 });
     // Exemplaire accepté : seulement pour la version que le client a acceptée.

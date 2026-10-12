@@ -8,6 +8,7 @@ import type { Database, Queryable } from "@/lib/db";
 import { one } from "@/lib/db";
 import { deviceName } from "@/lib/device";
 import { badRequest, conflict, forbidden, HttpError, tooMany, unauthorized } from "@/lib/http";
+import { hitRate } from "@/lib/rate-limit";
 import { randomToken, sha256 } from "@/lib/security";
 import { computeEntitlements, createInitialSubscription } from "./billing";
 import type { Ctx, Role } from "./context";
@@ -79,6 +80,7 @@ export async function register(db: Database, input: unknown, meta: RequestMeta) 
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message, parsed.error.issues);
   const data = parsed.data;
+  await hitRate(db, "account.register", meta.ip);
   const admins = (process.env.PLATFORM_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
@@ -301,6 +303,7 @@ export async function requestPasswordReset(db: Database, emailInput: string) {
   const email = String(emailInput ?? "")
     .trim()
     .toLowerCase();
+  await hitRate(db, "account.reset", email);
   const user = await one<{ id: string; name: string }>(db, "SELECT id, name FROM users WHERE email=$1 AND status <> 'deleted'", [email]);
   // Réponse identique que le compte existe ou non.
   if (!user) return;

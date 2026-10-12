@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized, forbidden } from "@/lib/http";
+import { hitRate } from "@/lib/rate-limit";
 import { contextFromToken, SESSION_DAYS } from "@/lib/services/accounts";
 import { resolveSupportAccess } from "@/lib/services/admin";
 import { adminTwoFactorRequired, type Ctx } from "@/lib/services/context";
@@ -103,6 +104,9 @@ export function api<P = Record<string, string>>(handler: Handler<P>, opts: { aut
     try {
       if (req.method !== "GET" && req.method !== "HEAD" && !sameOrigin(req)) throw forbidden("Origine de la requête refusée");
       const ctx = await getCtx();
+      const db = await getDb();
+      await hitRate(db, "api.ip", (await requestMeta()).ip);
+      if (ctx) await hitRate(db, "api.user", ctx.userId);
       if (opts.auth !== false && !ctx) throw unauthorized();
       const params = context?.params ? await context.params : ({} as P);
       const out = await handler({ req, ctx: ctx as Ctx, params });
@@ -116,7 +120,11 @@ export function api<P = Record<string, string>>(handler: Handler<P>, opts: { aut
 
 export function errorResponse(e: unknown) {
   if (e instanceof HttpError) {
-    return NextResponse.json({ error: e.message, code: e.code, details: e.details ?? null }, { status: e.status });
+    const retry = (e.details as { retryAfter?: number } | undefined)?.retryAfter;
+    return NextResponse.json(
+      { error: e.message, code: e.code, details: e.details ?? null },
+      { status: e.status, headers: e.status === 429 && retry ? { "retry-after": String(retry) } : undefined },
+    );
   }
   console.error(e);
   void import("@/lib/monitoring").then((m) => m.reportError(e, { kind: "api.internal" }));

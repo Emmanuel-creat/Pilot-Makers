@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { errorResponse } from "@/lib/server/session";
 import { safeEqual } from "@/lib/security";
+import { purgeRateLimits } from "@/lib/rate-limit";
 import { resetDemo } from "@/lib/seed";
 import { purgeDeletedAccounts } from "@/lib/services/accounts";
 import { runBillingMaintenance } from "@/lib/services/billing";
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
       expired: await expireQuotes(db),
       billing: await runBillingMaintenance(db),
       accounts: await purgeDeletedAccounts(db),
+      rateLimits: await purgeRateLimits(db),
       // Instance de démonstration publique uniquement : le compte de démonstration repart de zéro chaque nuit.
       demo: process.env.DEMO_RESET === "1" ? await resetDemo(db) : null,
     });

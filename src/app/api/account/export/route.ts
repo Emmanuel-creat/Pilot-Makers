@@ -1,7 +1,9 @@
+import { hitRate } from "@/lib/rate-limit";
 import { api } from "@/lib/server/session";
 import { exportAccountData } from "@/lib/services/export";
 
 export const GET = api(async ({ ctx }) => {
+  await hitRate(ctx.db, "files.transfer", ctx.orgId);
   const data = await exportAccountData(ctx);
   return new Response(JSON.stringify(data, null, 2), {
     headers: {

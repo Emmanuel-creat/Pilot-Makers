@@ -14,6 +14,7 @@
  * l'interface AssistantProvider, à condition de respecter le même contrat de sortie.
  */
 
+import { hitRate } from "@/lib/rate-limit";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { bpToInput, price4ToInput } from "@/lib/calc/format";
@@ -317,6 +318,7 @@ export async function proposeDraft(ctx: Ctx, raw: unknown): Promise<AssistantPro
   requireWritable(ctx);
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  await hitRate(ctx.db, "assistant.burst", ctx.orgId);
   await assertAiQuota(ctx.db, ctx);
   const provider = getAssistantProvider();
   const catalog = await searchItems(ctx, { limit: 2000 });

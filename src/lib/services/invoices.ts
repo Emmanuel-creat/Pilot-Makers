@@ -15,6 +15,7 @@ import { bpToInput, centsToInput, formatEuros, formatPercent } from "@/lib/calc/
 import type { Database, Queryable } from "@/lib/db";
 import { num, one } from "@/lib/db";
 import { badRequest, conflict, HttpError, notFound } from "@/lib/http";
+import { hitRate } from "@/lib/rate-limit";
 import { renderQuotePdf, type PdfDocOptions } from "@/lib/pdf/quote-pdf";
 import { canonicalJson, sha256 } from "@/lib/security";
 import type { Ctx } from "./context";
@@ -1008,6 +1009,7 @@ export async function sendInvoice(ctx: Ctx, invoiceId: string, raw: unknown) {
   requireWritable(ctx);
   const parsed = sendSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  await hitRate(ctx.db, "mail.send", ctx.orgId);
   const inv = await getInvoice(ctx, invoiceId);
   const mail = await sendMail(ctx.db, {
     orgId: ctx.orgId,

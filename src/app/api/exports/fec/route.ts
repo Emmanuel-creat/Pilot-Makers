@@ -1,3 +1,4 @@
+import { hitRate } from "@/lib/rate-limit";
 import { forbidden } from "@/lib/http";
 import { api } from "@/lib/server/session";
 import { requireRole } from "@/lib/services/context";
@@ -7,6 +8,7 @@ import { buildFec } from "@/lib/services/fec";
 export const GET = api(async ({ req, ctx }) => {
   if (ctx.supportAccess) throw forbidden("Export indisponible en accès support");
   requireRole(ctx, "admin");
+  await hitRate(ctx.db, "files.transfer", ctx.orgId);
   const u = new URL(req.url);
   const year = new Date().getFullYear();
   const r = await buildFec(ctx, u.searchParams.get("du") ?? `${year}-01-01`, u.searchParams.get("au") ?? `${year}-12-31`);

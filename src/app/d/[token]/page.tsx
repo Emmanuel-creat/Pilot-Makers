@@ -3,6 +3,7 @@ import { SnapshotView } from "@/components/SnapshotView";
 import { Notice } from "@/components/ui";
 import { getDb } from "@/lib/db";
 import { requestMeta } from "@/lib/server/session";
+import { HttpError } from "@/lib/http";
 import { recordClientView } from "@/lib/services/quotes";
 import { reducedVatAttestation } from "@/lib/services/consumer";
 import { publicOptionSource } from "@/lib/services/options";
@@ -14,7 +15,19 @@ export const metadata = { title: "Votre devis", robots: { index: false, follow: 
 /** Page de consultation du devis par le client final, via un lien temporaire et révocable. */
 export default async function ClientQuotePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const r = await recordClientView(await getDb(), token, await requestMeta());
+  const r = await recordClientView(await getDb(), token, await requestMeta()).catch((e) => {
+    if (e instanceof HttpError && e.status === 429) return "limited" as const;
+    throw e;
+  });
+  if (r === "limited") {
+    return (
+      <Frame>
+        <Notice tone="warning" title="Trop de consultations">
+          Ce devis a été ouvert trop souvent depuis votre connexion en peu de temps. Patientez une minute puis rechargez la page.
+        </Notice>
+      </Frame>
+    );
+  }
   if (!r) {
     return (
       <Frame>
