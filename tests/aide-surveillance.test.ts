@@ -27,6 +27,7 @@ describe("centre d'aide", () => {
     expect(searchHelp("mot introuvable xyz")).toHaveLength(0);
     expect(searchHelp("")).toHaveLength(HELP_ARTICLES.length);
     expect(helpArticle("tva-reduite")?.title).toMatch(/TVA/);
+    expect(searchHelp("raccourcis clavier").map((a) => a.slug)).toContain("raccourcis-clavier");
   });
 });
 

@@ -9,7 +9,7 @@ import { HttpError } from "@/lib/http";
 import { formatEuros } from "@/lib/calc/format";
 import { requirePageCtx } from "@/lib/server/session";
 import { EVENT_LABELS } from "@/lib/services/dashboard";
-import { getCustomer } from "@/lib/services/customers";
+import { customerDisplayName, getCustomer, searchCustomers } from "@/lib/services/customers";
 import { getOrganization } from "@/lib/services/organization";
 import { EDITABLE_STATUSES, PENDING_STATUSES } from "@/lib/services/quote-types";
 import { getDraft, getQuoteRow, getVersion, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
@@ -20,7 +20,13 @@ import { INVOICE_KINDS, INVOICE_STATUSES, listInvoices } from "@/lib/services/in
 
 export const metadata = { title: "Devis" };
 
-export default async function QuotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ assistant?: string }> }) {
+export default async function QuotePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ assistant?: string }>;
+}) {
   const { id } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
@@ -102,6 +108,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
   /* Devis émis (ou consultation en lecture seule) */
   const row = await getQuoteRow(ctx.db, ctx, id);
   const versions = draft.currentVersion > 0 ? await listVersions(ctx, id) : [];
+  const customers = (await searchCustomers(ctx, { limit: 500 })).map((c) => ({ id: c.id, name: customerDisplayName(c) }));
   const shownVersion = draft.acceptedVersion ?? draft.currentVersion;
   const current = shownVersion > 0 ? await getVersion(ctx.db, ctx.orgId, id, shownVersion) : null;
   const [events, emails, invoices] = await Promise.all([quoteEvents(ctx, id), quoteEmails(ctx, id), listInvoices(ctx, { quoteId: id })]);
@@ -168,11 +175,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0">
-          {current ? (
-            <SnapshotView s={current.snapshot} />
-          ) : (
-            <Notice tone="info">Ce brouillon n'a pas encore été émis.</Notice>
-          )}
+          {current ? <SnapshotView s={current.snapshot} /> : <Notice tone="info">Ce brouillon n'a pas encore été émis.</Notice>}
         </div>
         <aside className="space-y-4">
           <section className="card space-y-3 p-4 text-sm">
@@ -191,7 +194,9 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                 <span className="flex items-center gap-1 text-muted">
                   <Icon name="lock" size={12} /> Marge prévue
                 </span>
-                <span className="tabular">{current.snapshot.calc.margin.linesWithoutCost ? "incomplète" : formatEuros(current.snapshot.calc.margin.marginCents)}</span>
+                <span className="tabular">
+                  {current.snapshot.calc.margin.linesWithoutCost ? "incomplète" : formatEuros(current.snapshot.calc.margin.marginCents)}
+                </span>
               </div>
             ) : null}
             {row.viewed_at ? (
@@ -217,7 +222,9 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                       </Link>
                       <div className="text-xs text-muted">
                         {INVOICE_STATUSES[i.status]}
-                        {i.kind !== "credit_note" && i.balance_cents > 0 && i.balance_cents !== i.amount_due_cents ? `, reste ${formatEuros(i.balance_cents)}` : ""}
+                        {i.kind !== "credit_note" && i.balance_cents > 0 && i.balance_cents !== i.amount_due_cents
+                          ? `, reste ${formatEuros(i.balance_cents)}`
+                          : ""}
                       </div>
                     </li>
                   ))}
@@ -232,7 +239,9 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
           {writable && (pending || status === "expired") ? (
             <section className="card space-y-3 p-4">
               <h2 className="text-sm font-semibold">Réponse du client</h2>
-              <p className="text-xs text-muted">Le client peut accepter en ligne via le lien. Si sa réponse vous arrive autrement, enregistrez-la ici.</p>
+              <p className="text-xs text-muted">
+                Le client peut accepter en ligne via le lien. Si sa réponse vous arrive autrement, enregistrez-la ici.
+              </p>
               <ManualResponse quoteId={id} version={draft.currentVersion} />
             </section>
           ) : null}
@@ -269,6 +278,32 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                   <Icon name="copy" size={16} /> Dupliquer
                 </button>
               </form>
+              {customers.length > 1 ? (
+                <details className="text-sm">
+                  <summary className="btn-ghost w-full cursor-pointer justify-start">
+                    <Icon name="users" size={16} /> Dupliquer pour un autre client
+                  </summary>
+                  <form action={duplicateQuoteAction} className="mt-2 space-y-2 px-1">
+                    <input type="hidden" name="id" value={id} />
+                    <label className="label" htmlFor="dup-customer">
+                      Client
+                    </label>
+                    <select id="dup-customer" name="customerId" className="field" required defaultValue="">
+                      <option value="" disabled>
+                        Choisir un client
+                      </option>
+                      {customers
+                        .filter((c) => c.id !== draft.customerId)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                    <button className="btn-secondary w-full">Créer le devis</button>
+                  </form>
+                </details>
+              ) : null}
               {["ready", "sent", "viewed", "refused", "expired"].includes(status) ? (
                 <form action={duplicateQuoteAction}>
                   <input type="hidden" name="id" value={id} />
@@ -332,11 +367,22 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                   </div>
                   <div className="text-xs text-muted">
                     {fmtDate(e.created_at, true)}
-                    {e.actor_type === "client" ? " - par le client" : e.actor_type === "system" ? " - automatique" : e.actor_name ? ` - ${e.actor_name}` : ""}
+                    {e.actor_type === "client"
+                      ? " - par le client"
+                      : e.actor_type === "system"
+                        ? " - automatique"
+                        : e.actor_name
+                          ? ` - ${e.actor_name}`
+                          : ""}
                   </div>
                   {typeof e.data.proof === "string" ? <div className="text-xs text-muted">Preuve : {e.data.proof}</div> : null}
                   {typeof e.data.reason === "string" && e.data.reason ? <div className="text-xs text-muted">Motif : {e.data.reason}</div> : null}
-                  {typeof e.data.name === "string" ? <div className="text-xs text-muted">Nom saisi : {e.data.name}{e.ip ? `, adresse IP ${e.ip}` : ""}</div> : null}
+                  {typeof e.data.name === "string" ? (
+                    <div className="text-xs text-muted">
+                      Nom saisi : {e.data.name}
+                      {e.ip ? `, adresse IP ${e.ip}` : ""}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ol>
@@ -350,7 +396,9 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                   <li key={m.id}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate">{m.to_address}</span>
-                      <span className={`text-xs ${m.status === "sent" ? "text-success" : "text-danger"}`}>{m.status === "sent" ? "Envoyé" : "Échec"}</span>
+                      <span className={`text-xs ${m.status === "sent" ? "text-success" : "text-danger"}`}>
+                        {m.status === "sent" ? "Envoyé" : "Échec"}
+                      </span>
                     </div>
                     <div className="text-xs text-muted">
                       {m.kind === "reminder" ? "Relance - " : ""}

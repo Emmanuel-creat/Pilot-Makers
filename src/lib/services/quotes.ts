@@ -1181,16 +1181,21 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
 /* Autres actions                                                      */
 /* ------------------------------------------------------------------ */
 
-export async function duplicateQuote(ctx: Ctx, quoteId: string, opts: { replace?: boolean } = {}) {
+export async function duplicateQuote(ctx: Ctx, quoteId: string, opts: { replace?: boolean; customerId?: string } = {}) {
   requireWritable(ctx);
   const src = await getDraft(ctx, quoteId);
-  const newId = await createQuote(ctx, { customerId: src.customerId });
+  // Vers un autre client : même contenu, mais le lieu des travaux est celui du nouveau client.
+  const otherCustomer = !opts.replace && opts.customerId && opts.customerId !== src.customerId ? opts.customerId : null;
+  if (otherCustomer && !isUuid(otherCustomer)) throw badRequest("Client invalide");
+  const newId = await createQuote(ctx, { customerId: otherCustomer ?? src.customerId });
   const sections = src.sections.map((s) => ({ ...s, id: randomUUID(), lines: s.lines.map((l) => ({ ...l, id: randomUUID() })) }));
   const fresh = await getDraft(ctx, newId);
   await saveDraft(
     ctx,
     newId,
-    { ...src, title: src.title + (opts.replace ? "" : " (copie)"), sections },
+    otherCustomer
+      ? { ...src, customerId: otherCustomer, site: fresh.site, sections }
+      : { ...src, title: src.title + (opts.replace ? "" : " (copie)"), sections },
     fresh.draftRevision,
   );
   if (opts.replace) {

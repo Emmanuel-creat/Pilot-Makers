@@ -420,7 +420,7 @@ export async function deleteTemplateAction(fd: FormData) {
 }
 
 export async function duplicateQuoteAction(fd: FormData) {
-  const id = await withCtx((ctx) => duplicateQuote(ctx, s(fd, "id"), { replace: s(fd, "replace") === "1" }));
+  const id = await withCtx((ctx) => duplicateQuote(ctx, s(fd, "id"), { replace: s(fd, "replace") === "1", customerId: s(fd, "customerId") || undefined }));
   redirect(`/app/devis/${id}`);
 }
 

@@ -199,6 +199,26 @@ describe("cycle de vie d'un devis", () => {
     await expect(deleteDraft(ctx, id)).rejects.toMatchObject({ status: 409 });
   });
 
+  it("duplique un devis pour un autre client avec son lieu de travaux", async () => {
+    const { id } = await draftWith([line()]);
+    const other = await makeCustomer(ctx, {
+      first_name: "Paul",
+      last_name: "Girard",
+      billing_line1: "9 rue Nationale",
+      billing_city: "Tours",
+      billing_postal_code: "37000",
+    });
+    const copy = await duplicateQuote(ctx, id, { customerId: other });
+    const d = await getDraft(ctx, copy);
+    const src = await getDraft(ctx, id);
+    expect(d.customerId).toBe(other);
+    expect(d.title).toBe(src.title);
+    expect(d.sections[0].lines[0].label).toBe(src.sections[0].lines[0].label);
+    expect(JSON.stringify(d.site)).toContain("Tours");
+    await expect(duplicateQuote(ctx, id, { customerId: "pas-un-id" })).rejects.toMatchObject({ status: 400 });
+    await deleteDraft(ctx, copy);
+  });
+
   it("liste et filtre les devis", async () => {
     const all = await listQuotes(ctx, {});
     expect(all.total).toBeGreaterThan(3);

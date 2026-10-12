@@ -1,11 +1,13 @@
 import { getDb } from "@/lib/db";
 import { errorResponse } from "@/lib/server/session";
 import { safeEqual } from "@/lib/security";
+import { resetDemo } from "@/lib/seed";
 import { purgeDeletedAccounts } from "@/lib/services/accounts";
 import { runBillingMaintenance } from "@/lib/services/billing";
 import { expireQuotes } from "@/lib/services/quotes";
 
-/** Maintenance quotidienne : expirations, renouvellements, suppressions de comptes arrivées à échéance. */
+/** Maintenance quotidienne : expirations, renouvellements, suppressions de comptes arrivées à échéance,
+ * remise à zéro de la démonstration si DEMO_RESET=1. */
 export async function POST(req: Request) {
   try {
     const secret = process.env.CRON_SECRET ?? "";
@@ -16,6 +18,8 @@ export async function POST(req: Request) {
       expired: await expireQuotes(db),
       billing: await runBillingMaintenance(db),
       accounts: await purgeDeletedAccounts(db),
+      // Instance de démonstration publique uniquement : le compte de démonstration repart de zéro chaque nuit.
+      demo: process.env.DEMO_RESET === "1" ? await resetDemo(db) : null,
     });
   } catch (e) {
     return errorResponse(e);

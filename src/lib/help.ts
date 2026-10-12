@@ -3,6 +3,8 @@
  * Chaque guide décrit un geste précis, étape par étape, avec les mots de l'interface.
  */
 
+import { EDITOR_SHORTCUTS, shortcutText } from "./shortcuts";
+
 export interface HelpArticle {
   slug: string;
   category: HelpCategory;
@@ -51,8 +53,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
       "Vérifiez les points signalés en bas de page : les erreurs bloquantes empêchent l'émission, les avertissements sont des rappels.",
       "Cliquez sur « Émettre », cochez la case de vérification et confirmez. Le devis reçoit son numéro et un PDF qui ne changera plus.",
     ],
-    notes: ["Le brouillon est enregistré automatiquement à chaque modification.", "Ctrl+Z annule la dernière modification, Ctrl+Maj+Z la rétablit."],
+    notes: [
+      "Le brouillon est enregistré automatiquement à chaque modification.",
+      "Les raccourcis clavier de l'éditeur sont décrits dans le guide « Raccourcis clavier de l'éditeur ».",
+    ],
     link: { href: "/app/devis/nouveau", label: "Créer un devis" },
+  },
+  {
+    slug: "raccourcis-clavier",
+    category: "devis",
+    title: "Raccourcis clavier de l'éditeur",
+    summary: "Annuler, rétablir, enregistrer et ouvrir le catalogue sans quitter le clavier.",
+    steps: EDITOR_SHORTCUTS.map((sc) => `${shortcutText(sc.keys)} : ${sc.label.charAt(0).toLowerCase()}${sc.label.slice(1)}.`),
+    notes: ["Sur Mac, Cmd remplace Ctrl.", "Le bouton en forme de clavier, en haut de l'éditeur, affiche la même liste."],
   },
   {
     slug: "modifier-un-devis-envoye",

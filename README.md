@@ -64,7 +64,7 @@ Les tests couvrent les calculs (arrondis, remises, TVA multiples, franchise, lim
 À appeler régulièrement avec l'en-tête `Authorization: Bearer <CRON_SECRET>` :
 
 - `POST /api/cron/reminders` : relances des devis envoyés (toutes les heures) ;
-- `POST /api/cron/maintenance` : fin d'essai, échéances d'abonnement, purge des comptes supprimés (une fois par jour).
+- `POST /api/cron/maintenance` : fin d'essai, échéances d'abonnement, purge des comptes supprimés (une fois par jour). Sur l'instance de démonstration publique, `DEMO_RESET=1` remet aussi le compte de démonstration à zéro à chaque passage.
 
 ## Hébergement
 

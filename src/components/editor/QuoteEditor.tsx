@@ -13,6 +13,7 @@ import type { CatalogItem } from "@/lib/services/catalog";
 import { checkCompliance, type ComplianceInput } from "@/lib/services/compliance";
 import { CONTRACT_PLACES, consumerTerms, type ContractPlace } from "@/lib/services/consumer";
 import type { DraftLine, DraftSection, QuoteDraft } from "@/lib/services/quote-types";
+import { EDITOR_SHORTCUTS, shortcutText } from "@/lib/shortcuts";
 import { apiFetch, ApiError, uid } from "./api";
 import { AssistantPanel } from "./AssistantPanel";
 import { CatalogPicker } from "./CatalogPicker";
@@ -296,8 +297,11 @@ export function QuoteEditor({
   };
   const undoRef = useRef(undo);
   const redoRef = useRef(redo);
+  const flushRef = useRef(flush);
   undoRef.current = undo;
   redoRef.current = redo;
+  flushRef.current = flush;
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
@@ -308,6 +312,16 @@ export function QuoteEditor({
       } else if ((k === "z" && e.shiftKey) || k === "y") {
         e.preventDefault();
         redoRef.current();
+      } else if (k === "s") {
+        e.preventDefault();
+        void flushRef.current();
+      } else if (k === "k") {
+        e.preventDefault();
+        const sections = latest.current.sections;
+        if (sections.length) setPicker(sections[sections.length - 1].id);
+      } else if (k === "?" || (k === "/" && e.shiftKey)) {
+        e.preventDefault();
+        setShortcutsOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -498,6 +512,15 @@ export function QuoteEditor({
                 <Icon name="redo" />
               </button>
             </div>
+            <button
+              type="button"
+              className="btn-ghost hidden min-h-9 px-2 md:inline-flex"
+              onClick={() => setShortcutsOpen(true)}
+              aria-label="Raccourcis clavier"
+              title="Raccourcis clavier (Ctrl+Maj+?)"
+            >
+              <Icon name="keyboard" />
+            </button>
             <button
               type="button"
               className="btn-ghost hidden min-h-9 md:inline-flex"
@@ -1052,6 +1075,19 @@ export function QuoteEditor({
           if (picker) addLines(picker, fromCatalog(items));
         }}
       />
+      <Modal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} title="Raccourcis clavier">
+        <dl className="space-y-2 text-sm">
+          {EDITOR_SHORTCUTS.map((sc) => (
+            <div key={sc.label} className="flex items-center justify-between gap-4">
+              <dt className="text-muted">{sc.label}</dt>
+              <dd className="shrink-0">
+                <kbd className="rounded border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-xs">{shortcutText(sc.keys)}</kbd>
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 text-xs text-muted">Sur Mac, Cmd remplace Ctrl.</p>
+      </Modal>
       <Modal open={newCustomer} onClose={() => setNewCustomer(false)} title="Nouveau client" wide>
         <CustomerForm
           compact
