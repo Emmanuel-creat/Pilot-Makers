@@ -72,6 +72,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
             late_penalty_text: org.late_penalty_text,
             reminders_enabled: Boolean(invoice_reminder_settings?.enabled),
             reminder_days: (invoice_reminder_settings?.days ?? [3, 15, 30]).join(", "),
+            reminders_adaptive: invoice_reminder_settings?.adaptive !== false,
           }}
         />
       ) : tab === "tarifs" ? (

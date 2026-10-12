@@ -67,7 +67,7 @@ export interface Organization {
   credit_prefix: string;
   invoice_due_days: number;
   late_penalty_text: string;
-  invoice_reminder_settings: { enabled?: boolean; days?: number[] };
+  invoice_reminder_settings: { enabled?: boolean; days?: number[]; adaptive?: boolean };
   pricing: Record<string, unknown>;
   status: string;
   suspended_reason: string | null;

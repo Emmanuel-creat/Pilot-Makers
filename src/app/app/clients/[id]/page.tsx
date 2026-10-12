@@ -6,7 +6,8 @@ import { formatEuros } from "@/lib/calc/format";
 import { num } from "@/lib/db";
 import { requirePageCtx } from "@/lib/server/session";
 import { customerDisplayName, getCustomer } from "@/lib/services/customers";
-import { customerBalance, listInvoices } from "@/lib/services/invoices";
+import { customerBalance, customerPaymentProfile, listInvoices } from "@/lib/services/invoices";
+import { PAYER_PROFILES } from "@/lib/services/dunning";
 import { InvoiceBadge } from "@/components/InvoiceBadge";
 import type { QuoteStatus } from "@/lib/services/quote-types";
 import { archiveCustomerAction } from "@/app/actions";
@@ -27,6 +28,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const rate = decided ? Math.round((quotes.filter((q) => q.status === "accepted").length / decided) * 100) : null;
   const invoices = await listInvoices(ctx, { customerId: id });
   const balance = customerBalance(invoices);
+  const payer = await customerPaymentProfile(ctx, id);
   const sites = await ctx.db.query<{ line1: string; postal_code: string; city: string; n: unknown }>(
     `SELECT site_line1 AS line1, site_postal_code AS postal_code, site_city AS city, count(*) AS n FROM quotes
      WHERE customer_id=$1 AND org_id=$2 AND site_line1 <> '' GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 LIMIT 20`,
@@ -93,6 +95,13 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                 {balance.overdueCents > 0 ? <div className="text-xs text-danger">dont {formatEuros(balance.overdueCents)} en retard</div> : null}
               </div>
             </div>
+            {invoices.length ? (
+              <p className="mt-3 border-t border-line pt-3 text-xs text-muted">
+                Habitude de paiement : <span className="font-medium text-ink">{PAYER_PROFILES[payer.profile]}</span>
+                {payer.invoices ? `, retard moyen de ${payer.averageDelay} jour${payer.averageDelay > 1 ? "s" : ""} sur ${payer.invoices} facture${payer.invoices > 1 ? "s" : ""} soldée${payer.invoices > 1 ? "s" : ""}` : ""}
+                . Les relances automatiques en tiennent compte.
+              </p>
+            ) : null}
           </section>
           {c.notes ? (
             <section className="card p-4">

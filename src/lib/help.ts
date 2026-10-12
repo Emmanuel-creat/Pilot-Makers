@@ -251,7 +251,9 @@ export const HELP_ARTICLES: HelpArticle[] = [
       "Sur la fiche de la facture, saisissez le montant, la date et le moyen de paiement, puis « Enregistrer le paiement ».",
       "Un paiement partiel laisse la facture « Partiellement payée » avec le reste dû.",
       "Les relances des factures échues se règlent dans « Mon entreprise », onglet « Factures ».",
+      "Avec « Adapter le rythme et le ton à chaque client », un bon payeur est relancé quelques jours plus tard, un client souvent en retard ou un gros montant plus tôt, et le ton monte d'une relance à l'autre.",
     ],
+    notes: ["L'habitude de paiement de chaque client figure sur sa fiche, calculée à partir de ses factures déjà soldées."],
   },
   {
     slug: "export-comptable",

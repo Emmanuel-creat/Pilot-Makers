@@ -596,6 +596,7 @@ export async function saveInvoiceSettingsAction(_: ActionState, fd: FormData): P
         late_penalty_text: s(fd, "late_penalty_text"),
         reminders_enabled: fd.get("reminders_enabled") === "on",
         reminder_days: s(fd, "reminder_days"),
+        reminders_adaptive: fd.get("reminders_adaptive") === "on",
       }),
     );
     revalidatePath("/app/entreprise");

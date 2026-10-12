@@ -25,6 +25,7 @@ import { appUrl, renderTemplate, sendMail } from "./mail";
 import type { Organization } from "./organization";
 import { acceptedCalc, withChosenOptions } from "./options";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
+import { adaptedSteps, payerProfile, REMINDER_TEMPLATES, reminderTone } from "./dunning";
 import { nextInstallment, SCHEDULE_MAX, scheduleText, splitSchedule, type Schedule } from "./schedule";
 import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
 import type { DraftLine, DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
@@ -1047,14 +1048,41 @@ export const INVOICE_REMINDER_TEMPLATE =
  * Relances des factures échues : selon les délais choisis par l'entreprise
  * (par défaut 3, 15 puis 30 jours après l'échéance), une relance par palier.
  */
+/** Retards de paiement (en jours après l'échéance) des factures soldées, par client. */
+async function paymentDelays(db: Queryable, orgId: string, customerId?: string) {
+  const rows = await db.query<{ customer_id: string; delay: unknown }>(
+    `SELECT i.customer_id, (max(p.paid_on) - i.due_date) AS delay
+     FROM invoices i JOIN invoice_payments p ON p.invoice_id = i.id AND p.canceled_at IS NULL
+     WHERE i.org_id=$1 AND i.kind <> 'credit_note' AND i.customer_id IS NOT NULL AND ($2::uuid IS NULL OR i.customer_id=$2)
+       AND i.paid_cents > 0 AND i.paid_cents >= i.amount_due_cents - i.credited_cents
+     GROUP BY i.id, i.customer_id, i.due_date`,
+    [orgId, customerId ?? null],
+  );
+  const map = new Map<string, number[]>();
+  for (const r of rows) map.set(r.customer_id, [...(map.get(r.customer_id) ?? []), num(r.delay)]);
+  return map;
+}
+
+/** Habitude de paiement d'un client, d'après ses factures déjà soldées. */
+export async function customerPaymentProfile(ctx: Ctx, customerId: string) {
+  return payerProfile((await paymentDelays(ctx.db, ctx.orgId, customerId)).get(customerId) ?? []);
+}
+
 export async function runInvoiceReminders(db: Database, now = new Date()) {
   const today = parisDate(now);
-  const orgs = await db.query<{ id: string; trade_name: string; invoice_reminder_settings: { enabled?: boolean; days?: number[] } }>(
+  const orgs = await db.query<{
+    id: string;
+    trade_name: string;
+    invoice_reminder_settings: { enabled?: boolean; days?: number[]; adaptive?: boolean };
+  }>(
     "SELECT id, trade_name, invoice_reminder_settings FROM organizations WHERE status='active' AND (invoice_reminder_settings->>'enabled')::boolean IS TRUE",
   );
   let sent = 0;
   for (const org of orgs) {
     const days = (org.invoice_reminder_settings.days ?? [3, 15, 30]).filter((d) => Number.isInteger(d) && d >= 0).sort((a, b) => a - b);
+    // Relances adaptées (par défaut) : rythme et ton selon le montant et l'habitude de paiement du client.
+    const adaptive = org.invoice_reminder_settings.adaptive !== false;
+    const delays = adaptive ? await paymentDelays(db, org.id) : new Map<string, number[]>();
     const rows = await db.query<Record<string, unknown>>(
       "SELECT * FROM invoices WHERE org_id=$1 AND kind <> 'credit_note' AND (due_date < $2 OR schedule IS NOT NULL) AND amount_due_cents > paid_cents + credited_cents",
       [org.id, today],
@@ -1066,26 +1094,35 @@ export async function runInvoiceReminders(db: Database, now = new Date()) {
       if (inv.schedule && !next?.overdue) continue;
       const done = next ? (inv.schedule?.reminders?.[next.index] ?? 0) : inv.reminder_count;
       const dueDate = next ? next.dueDate : inv.due_date;
-      const step = days.at(done);
+      const profile = payerProfile((inv.customer_id && delays.get(inv.customer_id)) || []).profile;
+      const steps = adaptive ? adaptedSteps(days, next ? next.owedCents : inv.balance_cents, profile) : days;
+      const step = steps.at(done);
       if (step === undefined) continue;
       if (parisDate(addDays(new Date(dueDate + "T12:00:00Z"), step)) > today) continue;
       const snap = r.snapshot as InvoiceSnapshot;
       const to = snap.customer.email;
       if (!to) continue;
-      const body = renderTemplate(INVOICE_REMINDER_TEMPLATE, {
+      const vars = {
         type: kindName(inv.kind),
         numero: inv.number,
         montant: formatEuros(inv.amount_due_cents),
         echeance: next ? `${frDate(dueDate)} (échéance ${next.index + 1} de l'échéancier convenu)` : frDate(inv.due_date),
         reste: formatEuros(next ? next.owedCents : inv.balance_cents),
         entreprise: org.trade_name,
-      });
+        penalites:
+          snap.customer.type !== "particulier"
+            ? ", avec les pénalités de retard et l'indemnité forfaitaire de 40 euros pour frais de recouvrement"
+            : ", avec les pénalités de retard prévues",
+      };
+      const tone = adaptive ? REMINDER_TEMPLATES[reminderTone(done, steps.length, profile)] : null;
+      const body = renderTemplate(tone ? tone.body : INVOICE_REMINDER_TEMPLATE, vars);
+      const subject = tone ? renderTemplate(tone.subject, vars) : `Rappel : ${kindName(inv.kind)} ${inv.number} à régler`;
       const mail = await sendMail(db, {
         orgId: org.id,
         quoteId: inv.quote_id,
         kind: "invoice_reminder",
         to,
-        subject: `Rappel : ${kindName(inv.kind)} ${inv.number} à régler`,
+        subject,
         body,
         attachmentInvoiceId: inv.id,
         invoiceId: inv.id,
@@ -1115,6 +1152,7 @@ export async function saveInvoiceSettings(
     late_penalty_text?: string;
     reminders_enabled?: boolean;
     reminder_days?: string;
+    reminders_adaptive?: boolean;
   },
 ) {
   requireWritable(ctx);
@@ -1139,6 +1177,7 @@ export async function saveInvoiceSettings(
   const reminders = {
     enabled: input.reminders_enabled ?? Boolean(cur.invoice_reminder_settings?.enabled),
     days: days?.length ? days : (cur.invoice_reminder_settings?.days ?? [3, 15, 30]),
+    adaptive: input.reminders_adaptive ?? cur.invoice_reminder_settings?.adaptive !== false,
   };
   await ctx.db.query(
     `UPDATE organizations SET invoice_prefix=coalesce($2, invoice_prefix), credit_prefix=coalesce($3, credit_prefix),

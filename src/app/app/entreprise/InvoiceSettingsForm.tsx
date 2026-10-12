@@ -6,7 +6,7 @@ export function InvoiceSettingsForm({
   initial,
   canEdit,
 }: {
-  initial: { invoice_prefix: string; credit_prefix: string; invoice_due_days: number; late_penalty_text: string; reminders_enabled: boolean; reminder_days: string };
+  initial: { invoice_prefix: string; credit_prefix: string; invoice_due_days: number; late_penalty_text: string; reminders_enabled: boolean; reminder_days: string; reminders_adaptive: boolean };
   canEdit: boolean;
 }) {
   return (
@@ -52,6 +52,17 @@ export function InvoiceSettingsForm({
               <input id="inv-rem" name="reminder_days" className="field" defaultValue={initial.reminder_days} />
               <p className="mt-1 text-xs text-muted">Une relance par palier, avec la facture jointe. Ex. : 3, 15, 30.</p>
             </div>
+            <label className="mt-3 flex items-start gap-2 text-sm">
+              <input type="checkbox" name="reminders_adaptive" className="mt-0.5" defaultChecked={initial.reminders_adaptive} />
+              <span>
+                Adapter le rythme et le ton à chaque client
+                <span className="block text-xs text-muted">
+                  Un client qui paie à l'heure a quelques jours de plus ; un client souvent en retard ou un montant de plus de 5 000 € est relancé
+                  plus tôt ; un montant de moins de 200 € reçoit une relance de moins. Le ton passe du simple rappel au dernier rappel avant
+                  recouvrement.
+                </span>
+              </span>
+            </label>
           </div>
           <div className="flex justify-end">
             <Submit>Enregistrer</Submit>
