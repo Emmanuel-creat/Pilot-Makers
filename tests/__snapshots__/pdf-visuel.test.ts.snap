@@ -1,0 +1,43 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`rendu des PDF de devis > rend une facture avec ses blocs propres 1`] = `
+{
+  "pages": 1,
+  "sha256": "21235877ef16b6efca05acb13131f5a6a9f57012f884b156e676b00b5fcf5d85",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : aperçu de brouillon 1`] = `
+{
+  "pages": 3,
+  "sha256": "54be57ce800c10ac109b86b0e7934712c00e03fdcfb6cb3b364e88dc957b3bdc",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : classique 1`] = `
+{
+  "pages": 3,
+  "sha256": "a39dc0ba1f0d1889a0b045106de0285e17789dd67e56fc5887a40b1caace66d5",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : moderne 1`] = `
+{
+  "pages": 3,
+  "sha256": "c904bc19bae4f0433a4c147a0e46c3a03d1f69e8592febe6eb9b424e8a155327",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : sans rétractation ni TVA réduite 1`] = `
+{
+  "pages": 2,
+  "sha256": "5c05aafdd2e76a8cefbaf4642285ed905fc0448c264567b60926442e7c2269e7",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : sobre 1`] = `
+{
+  "pages": 3,
+  "sha256": "2bf5af419ec76a597b926eb5cdb48c18a0f4e9bc95f9a382a4c0fdf87bb4615e",
+}
+`;

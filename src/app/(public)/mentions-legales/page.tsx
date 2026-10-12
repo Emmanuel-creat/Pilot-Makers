@@ -31,8 +31,8 @@ export default function Page() {
       </p>
       <h2>Tarifs indicatifs</h2>
       <p>
-        Les prix des bibliothèques de prestations sont des valeurs de départ à remplacer par les tarifs de chaque entreprise. Ils ne constituent
-        ni des prix de marché, ni une recommandation tarifaire.
+        Les prix des bibliothèques de prestations sont des valeurs de départ à remplacer par les tarifs de chaque entreprise. Ils ne constituent ni
+        des prix de marché, ni une recommandation tarifaire.
       </p>
       <h2>Médiation de la consommation</h2>
       <p>Le service s'adresse aux professionnels. Les litiges relèvent des conditions d'utilisation.</p>

@@ -119,6 +119,7 @@ export function errorResponse(e: unknown) {
     return NextResponse.json({ error: e.message, code: e.code, details: e.details ?? null }, { status: e.status });
   }
   console.error(e);
+  void import("@/lib/monitoring").then((m) => m.reportError(e, { kind: "api.internal" }));
   return NextResponse.json({ error: "Erreur interne. Réessayez dans un instant.", code: "internal" }, { status: 500 });
 }
 

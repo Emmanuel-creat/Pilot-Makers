@@ -1,0 +1,268 @@
+/**
+ * Centre d'aide : guides courts, consultables sans compte (/aide) et depuis l'application.
+ * Chaque guide décrit un geste précis, étape par étape, avec les mots de l'interface.
+ */
+
+export interface HelpArticle {
+  slug: string;
+  category: HelpCategory;
+  title: string;
+  summary: string;
+  steps: string[];
+  notes?: string[];
+  /** Page de l'application à ouvrir pour faire le geste */
+  link?: { href: string; label: string };
+}
+
+export const HELP_CATEGORIES = {
+  demarrer: { label: "Bien démarrer", icon: "play" },
+  devis: { label: "Devis", icon: "quote" },
+  catalogue: { label: "Catalogue et assistant", icon: "box" },
+  clients: { label: "Envoi et réponse du client", icon: "send" },
+  factures: { label: "Factures et paiements", icon: "euro" },
+  regles: { label: "Règles et mentions", icon: "shield" },
+  compte: { label: "Compte et sécurité", icon: "lock" },
+} as const;
+export type HelpCategory = keyof typeof HELP_CATEGORIES;
+
+export const HELP_ARTICLES: HelpArticle[] = [
+  {
+    slug: "premiers-pas",
+    category: "demarrer",
+    title: "Préparer son compte en quatre étapes",
+    summary: "Identité de l'entreprise, assurance, catalogue, premier devis : ce qu'il faut renseigner avant d'émettre.",
+    steps: [
+      "Ouvrez « Mon entreprise » et complétez le nom, le SIRET et l'adresse : ces mentions sont obligatoires sur un devis.",
+      "Dans l'onglet « Assurance », indiquez l'assureur, le numéro de contrat et la zone couverte si votre métier relève de la décennale.",
+      "Ouvrez « Catalogue » puis « Bibliothèques » et ajoutez celle de votre métier. Remplacez ensuite les tarifs indicatifs par les vôtres.",
+      "Créez votre premier devis depuis « Devis » puis « Créer un devis ».",
+    ],
+    notes: ["La page « Bienvenue » montre les étapes restantes et se met à jour toute seule."],
+    link: { href: "/app/bienvenue", label: "Ouvrir la page Bienvenue" },
+  },
+  {
+    slug: "creer-un-devis",
+    category: "devis",
+    title: "Créer et émettre un devis",
+    summary: "Du devis vide jusqu'au numéro définitif et au PDF figé.",
+    steps: [
+      "Dans « Devis », cliquez sur « Créer un devis », choisissez le client et donnez un objet aux travaux.",
+      "Ajoutez des prestations avec « Catalogue », « Ligne libre » ou l'assistant. Regroupez-les en sections si le chantier comporte plusieurs lots.",
+      "Vérifiez les points signalés en bas de page : les erreurs bloquantes empêchent l'émission, les avertissements sont des rappels.",
+      "Cliquez sur « Émettre », cochez la case de vérification et confirmez. Le devis reçoit son numéro et un PDF qui ne changera plus.",
+    ],
+    notes: ["Le brouillon est enregistré automatiquement à chaque modification.", "Ctrl+Z annule la dernière modification, Ctrl+Maj+Z la rétablit."],
+    link: { href: "/app/devis/nouveau", label: "Créer un devis" },
+  },
+  {
+    slug: "modifier-un-devis-envoye",
+    category: "devis",
+    title: "Modifier un devis déjà envoyé",
+    summary: "Une version émise n'est jamais modifiée : la correction crée une nouvelle version.",
+    steps: [
+      "Ouvrez le devis et cliquez sur « Modifier (nouvelle version) ».",
+      "Faites vos corrections puis émettez de nouveau : le devis garde son numéro et passe en version 2.",
+      "Envoyez la nouvelle version. L'ancien lien de consultation ne permet plus d'accepter.",
+    ],
+    notes: ["« Comparer » sur la fiche du devis montre les lignes ajoutées, retirées ou modifiées entre deux versions."],
+  },
+  {
+    slug: "modeles-de-devis",
+    category: "devis",
+    title: "Réutiliser un devis comme modèle",
+    summary: "Enregistrez un devis type et partez-en pour les chantiers similaires.",
+    steps: [
+      "Dans l'éditeur, cliquez sur « Modèle » et nommez-le.",
+      "Pour un nouveau devis, choisissez ce modèle dans la liste de la page « Créer un devis ».",
+      "Gérez vos modèles depuis « Modèles de devis ».",
+    ],
+    link: { href: "/app/modeles", label: "Voir mes modèles" },
+  },
+  {
+    slug: "catalogue-et-bibliotheques",
+    category: "catalogue",
+    title: "Construire son catalogue",
+    summary: "Bibliothèques par métier, import CSV, mise à jour groupée des prix.",
+    steps: [
+      "Ajoutez la bibliothèque de votre métier depuis « Catalogue » puis « Bibliothèques ». 15 métiers sont disponibles.",
+      "Ouvrez chaque prestation pour mettre votre prix de vente et votre coût d'achat : le coût n'apparaît jamais sur le devis du client.",
+      "Pour reprendre un fichier existant, utilisez « Importer » avec un fichier CSV ; un aperçu signale chaque ligne refusée.",
+      "Pour une hausse générale, sélectionnez des prestations et appliquez un pourcentage.",
+    ],
+    link: { href: "/app/catalogue/bibliotheques", label: "Ouvrir les bibliothèques" },
+  },
+  {
+    slug: "ouvrages",
+    category: "catalogue",
+    title: "Composer un ouvrage",
+    summary: "Un ouvrage regroupe plusieurs prestations ; son prix suit celui de ses composants.",
+    steps: [
+      "Ouvrez une prestation du catalogue et ajoutez des composants dans la section « Composition ».",
+      "Indiquez la quantité de chaque composant pour une unité d'ouvrage.",
+      "Le prix et le coût de l'ouvrage sont recalculés à chaque changement de prix d'un composant.",
+    ],
+  },
+  {
+    slug: "assistant-de-preparation",
+    category: "catalogue",
+    title: "Préparer un devis avec l'assistant",
+    summary: "Décrivez le chantier avec vos mots : l'assistant propose des lignes, vous validez.",
+    steps: [
+      "Dans l'éditeur, cliquez sur « Assistant » et décrivez les travaux, avec les surfaces et les quantités connues.",
+      "L'assistant reconnaît le métier, réutilise d'abord votre catalogue et explique pourquoi chaque ligne est proposée.",
+      "Décochez ce qui ne convient pas, puis ajoutez les lignes au devis.",
+      "Vérifiez chaque quantité marquée « estimée » et posez au client les questions listées.",
+    ],
+    notes: [
+      "Rien n'est ajouté sans votre clic, et le taux de TVA n'est jamais choisi à votre place.",
+      "Les e-mails et numéros de téléphone sont masqués avant l'analyse.",
+    ],
+  },
+  {
+    slug: "envoyer-un-devis",
+    category: "clients",
+    title: "Envoyer un devis et suivre la réponse",
+    summary: "E-mail avec PDF, lien sécurisé, consultation et relances.",
+    steps: [
+      "Sur la fiche du devis émis, cliquez sur « Envoyer par e-mail ». Le message contient un lien de consultation et le PDF.",
+      "Vous voyez quand le client ouvre le devis : le statut passe à « Consulté ».",
+      "Sans réponse, les relances automatiques partent selon vos réglages dans « Mon entreprise ».",
+      "Vous pouvez aussi créer un lien de consultation et le transmettre par SMS.",
+    ],
+  },
+  {
+    slug: "acceptation-en-ligne",
+    category: "clients",
+    title: "Acceptation en ligne et preuves conservées",
+    summary: "Ce que le client voit, ce qui est enregistré, et la valeur de cet accord.",
+    steps: [
+      "Le client ouvre le lien, lit le devis et clique sur « Accepter le devis ».",
+      "Il saisit son nom, coche « Bon pour accord » et, si le devis comporte un taux réduit de TVA, l'attestation correspondante.",
+      "La date, la version, l'empreinte du PDF, le nom saisi, l'adresse IP et le navigateur sont conservés.",
+    ],
+    notes: [
+      "Cet accord est daté et tracé, mais ce n'est pas une signature électronique qualifiée.",
+      "Un devis signé sur papier s'enregistre avec « Accepté » sur la fiche du devis, en indiquant la preuve dont vous disposez.",
+    ],
+  },
+  {
+    slug: "factures-acompte-et-solde",
+    category: "factures",
+    title: "Facturer un acompte puis le solde",
+    summary: "Depuis un devis accepté, sans ressaisie.",
+    steps: [
+      "Ouvrez le devis accepté. Dans le panneau « Facturation », indiquez le pourcentage et cliquez sur « Facturer l'acompte ».",
+      "À la fin du chantier, cliquez sur « Facturer le solde » : les acomptes déjà facturés sont déduits automatiquement.",
+      "Envoyez chaque facture par e-mail depuis sa fiche.",
+    ],
+    notes: ["Une facture émise ne se modifie jamais. Pour la corriger, émettez un avoir total ou partiel."],
+    link: { href: "/app/factures", label: "Voir les factures" },
+  },
+  {
+    slug: "encaissements-et-relances",
+    category: "factures",
+    title: "Enregistrer un paiement et relancer",
+    summary: "Suivre ce qui reste à encaisser.",
+    steps: [
+      "Sur la fiche de la facture, saisissez le montant, la date et le moyen de paiement, puis « Enregistrer le paiement ».",
+      "Un paiement partiel laisse la facture « Partiellement payée » avec le reste dû.",
+      "Les relances des factures échues se règlent dans « Mon entreprise », onglet « Factures ».",
+    ],
+  },
+  {
+    slug: "export-comptable",
+    category: "factures",
+    title: "Transmettre les écritures au comptable (FEC)",
+    summary: "Un fichier des écritures comptables, prêt à importer.",
+    steps: [
+      "Ouvrez « Factures » et choisissez la période dans le bloc « Export comptable ».",
+      "Téléchargez le fichier et transmettez-le à votre expert-comptable.",
+    ],
+    notes: ["Seuls les propriétaires et administrateurs du compte peuvent exporter."],
+  },
+  {
+    slug: "tva-reduite",
+    category: "regles",
+    title: "Taux réduits de TVA et attestation du client",
+    summary: "10 % et 5,5 % pour les travaux dans un logement de plus de deux ans, sous conditions.",
+    steps: [
+      "Choisissez le taux sur chaque ligne : le logiciel le propose mais ne le décide jamais.",
+      "Quand un taux réduit est présent, le PDF comporte l'attestation du client et l'acceptation en ligne demande de la cocher.",
+      "Conservez le devis accepté : il porte la preuve de l'attestation.",
+    ],
+    notes: ["Les conditions exactes dépendent du logement et de la nature des travaux : faites-les valider par votre conseil en cas de doute."],
+  },
+  {
+    slug: "droit-de-retractation",
+    category: "regles",
+    title: "Délai de rétractation de 14 jours",
+    summary: "Pour un devis signé chez un particulier, hors de vos locaux.",
+    steps: [
+      "Dans l'éditeur, le champ « Lieu de signature du contrat » est réglé sur « Automatique » : un client particulier bénéficie du délai.",
+      "Le PDF comporte alors la mention du délai et un formulaire de rétractation détachable.",
+      "Aucun acompte ne peut être encaissé avant sept jours : l'éditeur vous le rappelle si vous en demandez un.",
+      "Le client peut demander en ligne que les travaux commencent avant la fin du délai.",
+    ],
+  },
+  {
+    slug: "mentions-obligatoires",
+    category: "regles",
+    title: "Les contrôles avant émission",
+    summary: "Ce que le logiciel vérifie, et ce qu'il ne peut pas vérifier pour vous.",
+    steps: [
+      "Identité et adresse de l'entreprise, client, lieu des travaux, objet, validité et conditions de paiement sont bloquants.",
+      "Assurance, taux horaire, frais de déplacement, estimations restantes et taux réduits font l'objet d'avertissements.",
+    ],
+    notes: ["Ces contrôles aident mais ne remplacent pas un avis juridique adapté à votre métier."],
+  },
+  {
+    slug: "double-authentification",
+    category: "compte",
+    title: "Activer la double authentification",
+    summary: "Un code à six chiffres en plus du mot de passe.",
+    steps: [
+      "Ouvrez « Mon compte » puis la section « Double authentification ».",
+      "Scannez le code avec une application d'authentification, puis saisissez le code affiché pour confirmer.",
+      "Conservez les codes de secours dans un endroit sûr : chacun permet une connexion si vous perdez votre téléphone.",
+    ],
+    link: { href: "/app/compte", label: "Ouvrir mon compte" },
+  },
+  {
+    slug: "equipe-et-roles",
+    category: "compte",
+    title: "Inviter un collaborateur",
+    summary: "Propriétaire, administrateur ou membre : qui peut faire quoi.",
+    steps: [
+      "Ouvrez « Équipe » et invitez la personne par e-mail en choisissant son rôle.",
+      "Un membre prépare et envoie des devis ; un administrateur gère aussi l'entreprise, le catalogue et les exports.",
+    ],
+  },
+  {
+    slug: "exporter-ses-donnees",
+    category: "compte",
+    title: "Exporter ou supprimer ses données",
+    summary: "Vos données vous appartiennent, abonnement actif ou non.",
+    steps: [
+      "Ouvrez « Mon compte » et cliquez sur « Exporter toutes mes données » : vous obtenez un fichier complet.",
+      "La suppression du compte se demande depuis la même page ; elle devient définitive 30 jours après votre confirmation par e-mail.",
+    ],
+  },
+];
+
+const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+/** Recherche simple : tous les mots saisis doivent figurer dans le titre, le résumé ou les étapes. */
+export function searchHelp(query: string): HelpArticle[] {
+  const words = normalize(query)
+    .split(/\s+/)
+    .filter((w) => w.length > 1);
+  if (!words.length) return HELP_ARTICLES;
+  return HELP_ARTICLES.filter((a) => {
+    const text = normalize([a.title, a.summary, ...a.steps, ...(a.notes ?? [])].join(" "));
+    return words.every((w) => text.includes(w));
+  });
+}
+
+export function helpArticle(slug: string): HelpArticle | undefined {
+  return HELP_ARTICLES.find((a) => a.slug === slug);
+}

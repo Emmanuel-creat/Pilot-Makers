@@ -13,6 +13,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <Link href="/#tarifs" className="btn-ghost hidden sm:inline-flex">
               Tarifs
             </Link>
+            <Link href="/aide" className="btn-ghost hidden sm:inline-flex">
+              Aide
+            </Link>
             <Link href="/connexion" className="btn-ghost">
               Connexion
             </Link>
@@ -26,6 +29,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted">
           <span>Pilot-Makers, BAILLY emmanuel</span>
+          <Link href="/aide" className="hover:text-ink">
+            Centre d'aide
+          </Link>
           <Link href="/cgu" className="hover:text-ink">
             Conditions d'utilisation
           </Link>

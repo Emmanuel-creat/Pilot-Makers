@@ -399,7 +399,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions): Pr
       w.y = ly - 6;
       w.page.drawLine({ start: { x: M.left, y: w.y + 2 }, end: { x: A4.w - M.right, y: w.y + 2 }, thickness: 0.4, color: LIGHT });
     }
-    if (showSections && cs) {
+    if (showSections && cs && section.lines.some((l) => l.kind === "item")) {
       w.ensure(16);
       w.y -= 13;
       w.textRight(`Sous-total ${section.title || "section"} : ${formatEuros(cs.subtotalCents)} HT`, cols.total - 4, w.y, 8.5, f.bold, GREY);

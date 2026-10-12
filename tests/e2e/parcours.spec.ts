@@ -42,6 +42,16 @@ test("les pages légales sont accessibles sans compte", async ({ page }) => {
   }
 });
 
+test("le centre d'aide trouve un guide et l'affiche", async ({ page }) => {
+  await page.goto("/aide");
+  await page.getByLabel("Rechercher dans l'aide").fill("rétractation");
+  await page.getByRole("button", { name: "Rechercher" }).click();
+  await page.getByRole("link", { name: /Délai de rétractation/ }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Délai de rétractation de 14 jours");
+  const health = await page.request.get("/api/health");
+  expect((await health.json()).status).toBe("ok");
+});
+
 test("les pages principales s'affichent", async ({ page }) => {
   await login(page);
   for (const [path, title] of [

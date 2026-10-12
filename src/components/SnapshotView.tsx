@@ -167,7 +167,7 @@ export function SnapshotView({
                   </tr>
                 );
               })}
-              {sec.title && s.sections.length > 1 ? (
+              {sec.title && s.sections.length > 1 && sec.lines.some((l) => l.kind === "item") ? (
                 <tr>
                   <td colSpan={exempt ? 3 : 4} className="px-5 py-1.5 text-right text-muted sm:px-8">
                     Sous-total {sec.title}

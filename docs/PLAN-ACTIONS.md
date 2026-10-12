@@ -10,6 +10,8 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] 0.4 Données de démonstration (entreprise, clients, catalogue, devis)
 - [x] 0.5 Tests automatisés (Vitest) et intégration continue GitHub Actions
 - [x] 0.8 Tests du parcours complet dans un vrai navigateur (Playwright), exécutés en intégration continue
+- [x] 0.9 Contrôle de l'apparence des PDF (empreintes de référence) et aperçus en image publiés par l'intégration continue (`npm run pdf:apercus`)
+- [x] 0.10 Surveillance : erreurs journalisées, alertes regroupées vers un canal d'équipe (ALERT_WEBHOOK_URL), sonde `/api/health` détaillée avec HEALTH_TOKEN
 - [x] 0.6 Contrôle des textes : aucun tiret cadratin, aucun emoji dans le dépôt
 - [x] 0.7 Icônes dessinées en SVG, sans bibliothèque d'emojis
 
@@ -127,6 +129,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] M.3 Coûts de l'assistant et des e-mails par compte
 - [x] M.4 Suspension documentée d'un compte
 - [x] M.5 Accès support aux données métier : justifié, limité dans le temps, journalisé
+- [x] M.6 Centre d'aide public : 18 guides pas à pas, recherche, liens vers les écrans
 
 ## Conformité
 - [x] N.1 Contrôle des mentions obligatoires avant émission (erreurs bloquantes et avertissements)
@@ -153,3 +156,4 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 Numéros de la feuille de route complète (360 actions).
 - Vague 1 (12/10/2026) : 22, 23, 24, 25, 29, 31, 59, 60, 61, 62, 123 (prêt, en attente d'une clé), 143 à 149, 215, 297.
 - Vague 2 (12/10/2026) : 41, 42, 43, 44, 86, 87, 106.
+- Vague 3 (12/10/2026) : 10, 11, 298, 313 ; 311 et 312 (grille tarifaire, essai sans carte) existaient déjà.

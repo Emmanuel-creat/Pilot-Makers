@@ -12,8 +12,8 @@ export default function Page() {
   return (
     <LegalPage title="Cookies" updated="12 octobre 2026">
       <p>
-        Pilot-Makers n'utilise que des cookies strictement nécessaires au fonctionnement du service. Aucun cookie publicitaire, de mesure
-        d'audience ou de réseau social n'est déposé : aucun consentement n'est donc demandé.
+        Pilot-Makers n'utilise que des cookies strictement nécessaires au fonctionnement du service. Aucun cookie publicitaire, de mesure d'audience
+        ou de réseau social n'est déposé : aucun consentement n'est donc demandé.
       </p>
       <h2>Liste des cookies</h2>
       <div className="overflow-x-auto">

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { ActionForm } from "@/components/forms/ActionForm";
+import { Icon } from "@/components/Icon";
 import { Submit } from "@/components/forms/Submit";
 import { PageHeader, Section, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
@@ -10,7 +12,7 @@ export const metadata = { title: "Assistance" };
 const FAQ = [
   ["Comment modifier un devis déjà envoyé ?", "Ouvrez le devis puis « Modifier (nouvelle version) ». La version envoyée reste conservée telle quelle ; le client reçoit la nouvelle version quand vous l'émettez et l'envoyez."],
   ["Le client n'a pas reçu l'e-mail.", "Vérifiez l'adresse dans « E-mails envoyés ». Vous pouvez aussi créer un lien de consultation depuis la fiche du devis et le transmettre par SMS."],
-  ["Comment choisir le taux de TVA ?", "Le logiciel ne choisit jamais le taux à votre place. Les taux réduits dépendent de la nature des travaux et du logement : vérifiez les conditions et conservez l'attestation du client."],
+  ["Comment choisir le taux de TVA ?", "Le logiciel ne choisit jamais le taux à votre place. Les taux réduits dépendent de la nature des travaux et du logement. Quand un taux réduit est présent, l'attestation du client figure sur le devis et il la coche en acceptant en ligne."],
   ["Mes données sont-elles exportables ?", "Oui, à tout moment depuis « Mon compte », y compris si votre abonnement est arrêté."],
   ["L'acceptation en ligne vaut-elle signature ?", "Elle constitue un accord daté et tracé (nom, date, adresse IP, empreinte du document), mais pas une signature électronique qualifiée."],
 ];
@@ -20,7 +22,14 @@ export default async function SupportPage() {
   const [tickets, releases] = await Promise.all([listTickets(ctx), listReleases(ctx.db)]);
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader title="Assistance" />
+      <PageHeader
+        title="Assistance"
+        actions={
+          <Link href="/aide" className="btn-secondary">
+            <Icon name="help" size={16} /> Centre d'aide
+          </Link>
+        }
+      />
       <Section title="Questions fréquentes">
         <div className="divide-y divide-line">
           {FAQ.map(([q, a]) => (
