@@ -269,6 +269,22 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </section>
           ) : null}
 
+          <section className="card p-4 text-sm">
+            <h2 className="mb-1 font-medium">Formats structurés</h2>
+            <p className="mb-3 text-xs text-muted">Pour la facturation électronique et les logiciels comptables (norme EN 16931).</p>
+            <div className="flex flex-wrap gap-2">
+              <a href={`/api/invoices/${id}/export?format=facturx`} className="btn-secondary">
+                <Icon name="download" size={16} /> Factur-X
+              </a>
+              <a href={`/api/invoices/${id}/export?format=cii`} className="btn-secondary">
+                <Icon name="download" size={16} /> XML CII
+              </a>
+              <a href={`/api/invoices/${id}/export?format=ubl`} className="btn-secondary">
+                <Icon name="download" size={16} /> XML UBL
+              </a>
+            </div>
+          </section>
+
           <section className="card p-4 text-xs text-muted">
             <div className="mb-1 font-medium text-ink">Intégrité</div>
             Empreinte SHA-256 du PDF : <span className="break-all font-mono">{inv.pdf_sha256}</span>

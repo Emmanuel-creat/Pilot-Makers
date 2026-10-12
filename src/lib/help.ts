@@ -247,6 +247,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Un devis signé n'est pas encore encaissé : les trois montants sont présentés séparément."],
   },
   {
+    slug: "factures-electroniques",
+    category: "factures",
+    title: "Factures aux formats électroniques (Factur-X, UBL)",
+    summary: "Télécharger une facture lisible par les logiciels comptables et les plateformes de facturation électronique.",
+    steps: [
+      "Ouvrez une facture ou un avoir émis.",
+      "Dans « Formats structurés », choisissez Factur-X (le PDF habituel avec ses données jointes), XML CII ou XML UBL.",
+      "Déposez le fichier sur votre plateforme de facturation électronique ou transmettez-le à votre comptable.",
+    ],
+    notes: [
+      "Les fichiers suivent la norme européenne EN 16931 et reprennent exactement les montants du PDF archivé, qui reste inchangé.",
+      "Acompte, avoir, autoliquidation et franchise de TVA sont codés selon la norme. La retenue de garantie figure en note.",
+      "La conformité définitive se vérifie avec la plateforme de facturation électronique que vous choisirez.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

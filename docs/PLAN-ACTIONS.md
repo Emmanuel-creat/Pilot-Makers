@@ -180,3 +180,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 17 (12/10/2026) : 245, 246.
 - Vague 18 (12/10/2026) : 217, 219.
 - Vague 19 (12/10/2026) : 406, 407, 408, 409, 410, 411.
+- Vague 20 (12/10/2026) : 199 (Factur-X EN 16931, XML CII et UBL ; copie PDF non strictement PDF/A-3, à valider avec la plateforme retenue).
