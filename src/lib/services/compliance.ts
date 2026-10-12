@@ -10,6 +10,7 @@ import type { CalcResult } from "@/lib/calc/engine";
 import { formatPercent } from "@/lib/calc/format";
 import { isContractPlace, withdrawalApplies } from "./consumer";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionMention } from "./btp";
+import { frequentOmissions } from "./omissions";
 
 export const COMPLIANCE_RULES_VERSION = "2026-10-v1";
 
@@ -184,6 +185,7 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
       );
     }
   }
+  for (const o of frequentOmissions(i.lines, { travelFee: i.org.travel_fee })) warn("omission_" + o.code, o.message);
   if (i.calc.margin.linesWithoutCost > 0 && items.length > 0) {
     warn("no_cost", `${i.calc.margin.linesWithoutCost} ligne(s) sans coût interne : la marge prévisionnelle est incomplète`);
   }

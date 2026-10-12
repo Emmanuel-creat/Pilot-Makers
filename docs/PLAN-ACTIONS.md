@@ -169,3 +169,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 6 (12/10/2026) : 181, 183, 200, 201 ; 180 (sessions actives) et 204 (indemnité de 40 euros) existaient déjà.
 - Vague 7 (12/10/2026) : 226, 289, 312.
 - Vague 8 (12/10/2026) : 216 (options au choix du client, facturées selon son choix), 227.
+- Vague 9 (12/10/2026) : 244, 264 (étiquettes ; familles et sous-familles existaient), 267.

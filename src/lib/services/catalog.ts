@@ -48,6 +48,9 @@ export interface CatalogItem {
   source_note: string;
   kind: "simple" | "ouvrage";
   composition_text: string;
+  /** Étiquettes libres (en minuscules) */
+  tags: string[];
+  last_used_at: Date | null;
   updated_at: Date;
   updated_by_name?: string | null;
 }
@@ -60,6 +63,8 @@ export function mapItem(r: Record<string, unknown>): CatalogItem {
     unit_price4: num(r.unit_price4),
     vat_bp: num(r.vat_bp),
     usage_count: num(r.usage_count),
+    tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
+    last_used_at: (r.last_used_at as Date | null) ?? null,
     duration_minutes: numOrNull(r.duration_minutes),
     price_valid_until: r.price_valid_until ? toIsoDate(r.price_valid_until) : null,
   };
@@ -113,7 +118,20 @@ export const itemSchema = z.object({
     .transform((v) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null)),
   active: z.boolean().default(true),
   favorite: z.boolean().default(false),
+  /** Étiquettes : liste ou texte séparé par des virgules */
+  tags: z.union([z.string(), z.array(z.string())]).optional().transform((v) => (v === undefined ? undefined : normalizeTags(v))),
 });
+
+/** Étiquettes nettoyées : minuscules, sans doublon, 12 au plus de 30 caractères. */
+export function normalizeTags(v: string | string[]): string[] {
+  const list = Array.isArray(v) ? v : v.split(/[,;|]/);
+  const out: string[] = [];
+  for (const t of list) {
+    const tag = t.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 30);
+    if (tag && !out.includes(tag)) out.push(tag);
+  }
+  return out.slice(0, 12);
+}
 
 export type ItemInput = z.input<typeof itemSchema>;
 
@@ -148,8 +166,8 @@ export async function createItem(ctx: Ctx, raw: unknown, q: Queryable = ctx.db, 
   const row = await one<{ id: string }>(
     q,
     `INSERT INTO catalog_items (org_id, reference, name, description, category, subcategory, unit, unit_cost4, hourly_cost4,
-       unit_price4, vat_bp, supplier, duration_minutes, price_valid_until, active, favorite, source, source_note, updated_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
+       unit_price4, vat_bp, supplier, duration_minutes, price_valid_until, active, favorite, source, source_note, updated_by, tags)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id`,
     [
       ctx.orgId,
       reference,
@@ -170,6 +188,7 @@ export async function createItem(ctx: Ctx, raw: unknown, q: Queryable = ctx.db, 
       extra.source ?? "user",
       extra.sourceNote ?? "",
       ctx.userId,
+      d.tags ?? [],
     ],
   );
   return row!.id;
@@ -200,7 +219,7 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
     await tx.query(
       `UPDATE catalog_items SET reference=$3, name=$4, description=$5, category=$6, subcategory=$7, unit=$8, unit_cost4=$9,
          hourly_cost4=$10, unit_price4=$11, vat_bp=$12, supplier=$13, duration_minutes=$14, price_valid_until=$15, active=$16,
-         favorite=$17, updated_by=$18, updated_at=now()
+         favorite=$17, updated_by=$18, tags=coalesce($19, tags), updated_at=now()
        WHERE id=$1 AND org_id=$2`,
       [
         id,
@@ -221,6 +240,7 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
         d.active,
         d.favorite,
         ctx.userId,
+        d.tags ?? null,
       ],
     );
     if (before.unit_price4 !== d.unit_price || before.unit_cost4 !== d.unit_cost) {
@@ -278,6 +298,7 @@ export function itemToInput(it: CatalogItem): ItemInput {
     price_valid_until: it.price_valid_until,
     active: it.active,
     favorite: it.favorite,
+    tags: it.tags,
   };
 }
 
@@ -292,7 +313,15 @@ export async function setItemFlags(ctx: Ctx, id: string, flags: { active?: boole
 
 export async function searchItems(
   ctx: Ctx,
-  opts: { q?: string; category?: string; includeArchived?: boolean; favorites?: boolean; sort?: "name" | "usage" | "recent"; limit?: number } = {},
+  opts: {
+    q?: string;
+    category?: string;
+    tag?: string;
+    includeArchived?: boolean;
+    favorites?: boolean;
+    sort?: "name" | "usage" | "recent" | "used";
+    limit?: number;
+  } = {},
 ) {
   const params: unknown[] = [ctx.orgId];
   const where = ["c.org_id=$1"];
@@ -302,8 +331,18 @@ export async function searchItems(
     params.push(opts.category);
     where.push(`c.category=$${params.length}`);
   }
+  if (opts.tag) {
+    params.push(opts.tag.trim().toLowerCase());
+    where.push(`$${params.length} = ANY(c.tags)`);
+  }
   const order =
-    opts.sort === "usage" ? "c.favorite DESC, c.usage_count DESC, c.name" : opts.sort === "recent" ? "c.updated_at DESC" : "c.category, c.subcategory, c.name";
+    opts.sort === "usage"
+      ? "c.favorite DESC, c.usage_count DESC, c.name"
+      : opts.sort === "recent"
+        ? "c.updated_at DESC"
+        : opts.sort === "used"
+          ? "c.last_used_at DESC NULLS LAST, c.name"
+          : "c.category, c.subcategory, c.name";
   const limit = Math.min(opts.limit ?? 500, 2000);
   // Avec une recherche, le tri par pertinence tolérante aux fautes se fait sur tout le catalogue actif.
   const q = opts.q?.trim() ?? "";
@@ -315,7 +354,7 @@ export async function searchItems(
   );
   const items = rows.map(mapItem);
   if (!q) return items;
-  return fuzzyFilter(items, q, (it) => `${it.name} ${it.reference} ${it.subcategory} ${it.supplier} ${it.description}`).slice(0, limit);
+  return fuzzyFilter(items, q, (it) => `${it.name} ${it.reference} ${it.subcategory} ${it.supplier} ${it.tags.join(" ")} ${it.description}`).slice(0, limit);
 }
 
 /** Mise à jour groupée : variation en pourcentage du prix de vente (ex. "3" ou "-2,5"). */
@@ -371,6 +410,7 @@ const CSV_COLUMNS = [
   "duration_minutes",
   "price_valid_until",
   "active",
+  "tags",
 ] as const;
 
 export async function catalogCsv(ctx: Ctx): Promise<string> {
@@ -379,7 +419,9 @@ export async function catalogCsv(ctx: Ctx): Promise<string> {
     [...CSV_COLUMNS],
     items.map((it) => {
       const i = itemToInput(it);
-      return CSV_COLUMNS.map((c) => (c === "active" ? (it.active ? "oui" : "non") : String((i as Record<string, unknown>)[c] ?? "")));
+      return CSV_COLUMNS.map((c) =>
+        c === "active" ? (it.active ? "oui" : "non") : c === "tags" ? it.tags.join("|") : String((i as Record<string, unknown>)[c] ?? ""),
+      );
     }),
   );
 }
@@ -446,5 +488,14 @@ export async function installLibrary(ctx: Ctx, trade: LibraryTrade) {
 
 export async function incrementUsage(q: Queryable, orgId: string, ids: string[]) {
   if (ids.length === 0) return;
-  await q.query("UPDATE catalog_items SET usage_count = usage_count + 1 WHERE org_id=$1 AND id = ANY($2::uuid[])", [orgId, ids]);
+  await q.query("UPDATE catalog_items SET usage_count = usage_count + 1, last_used_at = now() WHERE org_id=$1 AND id = ANY($2::uuid[])", [orgId, ids]);
+}
+
+/** Toutes les étiquettes utilisées dans le catalogue, avec leur nombre de prestations. */
+export async function listCatalogTags(ctx: Ctx): Promise<{ tag: string; count: number }[]> {
+  const rows = await ctx.db.query<{ tag: string; n: unknown }>(
+    "SELECT t AS tag, count(*) AS n FROM catalog_items, unnest(tags) AS t WHERE org_id=$1 AND active GROUP BY t ORDER BY 2 DESC, 1",
+    [ctx.orgId],
+  );
+  return rows.map((r) => ({ tag: r.tag, count: num(r.n) }));
 }

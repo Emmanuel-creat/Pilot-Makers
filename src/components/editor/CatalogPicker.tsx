@@ -22,6 +22,8 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
   const [items, setItems] = useState<CatalogItem[] | null>(null);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
+  const [view, setView] = useState<"all" | "favorites" | "recent">("all");
+  const [tag, setTag] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState("");
 
@@ -32,15 +34,17 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
       .catch((e) => setError(e.message));
   }, [open, items]);
 
-  const filtered = useMemo(
-    () =>
-      fuzzyFilter(
-        (items ?? []).filter((it) => !cat || it.category === cat),
-        q,
-        (it) => `${it.name} ${it.reference} ${it.subcategory} ${it.description}`,
-      ),
-    [items, q, cat],
-  );
+  const tags = useMemo(() => [...new Set((items ?? []).flatMap((it) => it.tags ?? []))].sort((a, b) => a.localeCompare(b, "fr")), [items]);
+  const filtered = useMemo(() => {
+    let base = (items ?? []).filter((it) => (!cat || it.category === cat) && (!tag || (it.tags ?? []).includes(tag)));
+    if (view === "favorites") base = base.filter((it) => it.favorite);
+    if (view === "recent")
+      base = base
+        .filter((it) => it.last_used_at)
+        .sort((a, b) => String(b.last_used_at).localeCompare(String(a.last_used_at)))
+        .slice(0, 30);
+    return fuzzyFilter(base, q, (it) => `${it.name} ${it.reference} ${it.subcategory} ${(it.tags ?? []).join(" ")} ${it.description}`);
+  }, [items, q, cat, tag, view]);
 
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const confirm = () => {
@@ -64,6 +68,35 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
           ))}
         </select>
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm" role="group" aria-label="Affichage">
+        {(
+          [
+            ["all", "Tout"],
+            ["favorites", "Favoris"],
+            ["recent", "Utilisés récemment"],
+          ] as const
+        ).map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={view === k}
+            onClick={() => setView(k)}
+            className={`rounded-full border px-3 py-1 ${view === k ? "border-accent bg-accent-soft text-accent" : "border-line hover:bg-surface-2"}`}
+          >
+            {label}
+          </button>
+        ))}
+        {tags.length ? (
+          <select value={tag} onChange={(e) => setTag(e.target.value)} className="field ml-auto w-auto! py-1" aria-label="Étiquette">
+            <option value="">Toutes les étiquettes</option>
+            {tags.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        ) : null}
+      </div>
       {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       <ul className="mt-3 max-h-[50vh] divide-y divide-line overflow-y-auto rounded-md border border-line">
         {items === null ? <li className="p-4 text-sm text-muted">Chargement...</li> : null}
@@ -82,6 +115,15 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
                 <span className="block truncate text-xs text-muted">
                   {it.reference} {it.description ? " - " + it.description : ""}
                 </span>
+                {it.tags?.length ? (
+                  <span className="mt-0.5 flex flex-wrap gap-1">
+                    {it.tags.map((t) => (
+                      <span key={t} className="rounded bg-surface-2 px-1.5 text-[11px] text-muted">
+                        {t}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
                 {it.source === "library" ? <span className="text-xs text-warning">Tarif indicatif de la bibliothèque, à adapter</span> : null}
               </span>
               <span className="tabular shrink-0 text-right text-sm">

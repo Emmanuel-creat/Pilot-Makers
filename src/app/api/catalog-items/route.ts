@@ -6,9 +6,10 @@ export const GET = api(async ({ req, ctx }) => {
   const items = await searchItems(ctx, {
     q: u.searchParams.get("q") ?? "",
     category: u.searchParams.get("category") ?? undefined,
+    tag: u.searchParams.get("tag") ?? undefined,
     includeArchived: u.searchParams.get("archived") === "1",
     favorites: u.searchParams.get("favorites") === "1",
-    sort: (u.searchParams.get("sort") as "name" | "usage" | "recent") ?? "name",
+    sort: (u.searchParams.get("sort") as "name" | "usage" | "recent" | "used") ?? "name",
     limit: Number(u.searchParams.get("limit") ?? 500),
   });
   return { items };

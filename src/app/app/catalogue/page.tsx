@@ -2,22 +2,24 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Empty, PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
-import { CATEGORIES, searchItems } from "@/lib/services/catalog";
+import { CATEGORIES, listCatalogTags, searchItems } from "@/lib/services/catalog";
 import { CatalogTable } from "./CatalogTable";
 
 export const metadata = { title: "Catalogue" };
 
-export default async function CatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; cat?: string; fav?: string; archives?: string; tri?: string }> }) {
+export default async function CatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; cat?: string; fav?: string; archives?: string; tri?: string; tag?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
   const rows = await searchItems(ctx, {
     q: sp.q,
     category: sp.cat || undefined,
+    tag: sp.tag || undefined,
     favorites: sp.fav === "1",
     includeArchived: sp.archives === "1",
-    sort: (sp.tri as "name" | "usage" | "recent") || "name",
+    sort: (sp.tri as "name" | "usage" | "recent" | "used") || "name",
     limit: 2000,
   });
+  const tags = await listCatalogTags(ctx);
   const showCosts = ctx.role !== "member" || !!ctx.entitlements.plan.features.margin;
   return (
     <>
@@ -41,7 +43,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           </>
         }
       />
-      <form className="mb-4 grid gap-2 sm:grid-cols-[1fr_180px_160px_auto_auto]">
+      <form className={`mb-4 grid gap-2 ${tags.length ? "sm:grid-cols-[1fr_180px_160px_160px_auto_auto]" : "sm:grid-cols-[1fr_180px_160px_auto_auto]"}`}>
         <div className="relative">
           <Icon name="search" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
           <input name="q" defaultValue={sp.q} placeholder="Nom, référence, fournisseur" className="field pl-9" aria-label="Rechercher" />
@@ -58,7 +60,18 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
           <option value="name">Par catégorie</option>
           <option value="usage">Les plus utilisées</option>
           <option value="recent">Modifiées récemment</option>
+          <option value="used">Utilisées récemment</option>
         </select>
+        {tags.length ? (
+          <select name="tag" defaultValue={sp.tag ?? ""} className="field" aria-label="Étiquette">
+            <option value="">Toutes étiquettes</option>
+            {tags.map((t) => (
+              <option key={t.tag} value={t.tag}>
+                {t.tag} ({t.count})
+              </option>
+            ))}
+          </select>
+        ) : null}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="fav" value="1" defaultChecked={sp.fav === "1"} className="h-4 w-4" /> Favoris
         </label>

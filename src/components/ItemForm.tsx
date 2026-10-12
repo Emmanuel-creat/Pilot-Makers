@@ -20,6 +20,8 @@ export interface ItemFormValue {
   price_valid_until: string | null;
   active: boolean;
   favorite: boolean;
+  /** Étiquettes séparées par des virgules */
+  tags: string;
 }
 
 export const EMPTY_ITEM: ItemFormValue = {
@@ -38,6 +40,7 @@ export const EMPTY_ITEM: ItemFormValue = {
   price_valid_until: null,
   active: true,
   favorite: false,
+  tags: "",
 };
 
 const CATS: Record<string, string> = {
@@ -198,6 +201,10 @@ export function ItemForm({
           ) : null}
         </div>
       ) : null}
+      <div>
+        {text("tags", "Étiquettes", { placeholder: "Ex. : salle de bain, extérieur, rénovation", maxLength: 400 })}
+        <p className="mt-1 text-xs text-muted">Séparées par des virgules. Elles servent à filtrer le catalogue et à retrouver une prestation.</p>
+      </div>
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2">
           <input type="checkbox" className="h-4 w-4" checked={v.favorite} onChange={(e) => set("favorite", e.target.checked)} /> Favori

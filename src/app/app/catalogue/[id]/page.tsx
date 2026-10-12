@@ -66,6 +66,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
               price_valid_until: input.price_valid_until ?? null,
               active: input.active ?? true,
               favorite: input.favorite ?? false,
+              tags: it.tags.join(", "),
             }}
           />
           <div className="mt-6 border-t border-line pt-5">
