@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import type { Database, Queryable } from "@/lib/db";
 import { one } from "@/lib/db";
+import { deviceName } from "@/lib/device";
 import { badRequest, conflict, forbidden, HttpError, tooMany, unauthorized } from "@/lib/http";
 import { randomToken, sha256 } from "@/lib/security";
 import { computeEntitlements, createInitialSubscription } from "./billing";
@@ -175,7 +176,9 @@ export async function beginLogin(
 }
 
 async function checkCredentials(db: Database, emailInput: string, password: string, meta: RequestMeta): Promise<string> {
-  const email = String(emailInput ?? "").trim().toLowerCase();
+  const email = String(emailInput ?? "")
+    .trim()
+    .toLowerCase();
   const since = new Date(Date.now() - WINDOW_MIN * 60_000);
   const fails = await one<{ by_email: unknown; by_ip: unknown }>(
     db,
@@ -186,11 +189,9 @@ async function checkCredentials(db: Database, emailInput: string, password: stri
   if (Number(fails?.by_email) >= MAX_FAILS_PER_EMAIL || Number(fails?.by_ip) >= MAX_FAILS_PER_IP) {
     throw tooMany(`Trop de tentatives. Réessayez dans ${WINDOW_MIN} minutes ou réinitialisez votre mot de passe.`);
   }
-  const user = await one<{ id: string; password_hash: string; status: string }>(
-    db,
-    "SELECT id, password_hash, status FROM users WHERE email=$1",
-    [email],
-  );
+  const user = await one<{ id: string; password_hash: string; status: string }>(db, "SELECT id, password_hash, status FROM users WHERE email=$1", [
+    email,
+  ]);
   // Comparaison effectuée même si le compte n'existe pas, pour ne pas révéler son existence par le temps de réponse.
   const ok = await bcrypt.compare(String(password ?? ""), user?.password_hash ?? (await dummyHash()));
   await db.query("INSERT INTO login_attempts (email, ip, success) VALUES ($1,$2,$3)", [email, meta.ip, ok && !!user]);
@@ -201,16 +202,29 @@ async function checkCredentials(db: Database, emailInput: string, password: stri
 }
 
 export async function createSession(db: Queryable, userId: string, meta: RequestMeta) {
-  const membership = await one<{ org_id: string }>(
-    db,
-    "SELECT org_id FROM memberships WHERE user_id=$1 ORDER BY created_at LIMIT 1",
-    [userId],
-  );
+  const membership = await one<{ org_id: string }>(db, "SELECT org_id FROM memberships WHERE user_id=$1 ORDER BY created_at LIMIT 1", [userId]);
   const token = randomToken();
-  await db.query(
-    "INSERT INTO sessions (user_id, org_id, token_hash, user_agent, ip, expires_at) VALUES ($1,$2,$3,$4,$5,$6)",
-    [userId, membership?.org_id ?? null, sha256(token), meta.userAgent.slice(0, 300), meta.ip, new Date(Date.now() + SESSION_DAYS * 24 * HOUR)],
-  );
+  // Alerte de connexion depuis un appareil jamais vu (navigateur et système), sauf pour la toute première session.
+  const known = await db.query<{ user_agent: string }>("SELECT DISTINCT user_agent FROM sessions WHERE user_id=$1", [userId]);
+  const device = deviceName(meta.userAgent);
+  if (known.length && !known.some((k) => deviceName(k.user_agent) === device)) {
+    const u = await one<{ email: string; name: string }>(db, "SELECT email, name FROM users WHERE id=$1", [userId]);
+    if (u)
+      await sendMail(db, {
+        kind: "new_device",
+        to: u.email,
+        subject: "Nouvelle connexion à votre compte Pilot-Makers",
+        body: `Bonjour ${u.name},\n\nUne connexion à votre compte vient d'avoir lieu depuis un nouvel appareil : ${device}${meta.ip ? `, adresse ${meta.ip}` : ""}, le ${new Date().toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}.\n\nSi c'est vous, il n'y a rien à faire. Sinon, changez votre mot de passe et déconnectez cet appareil depuis « Mon compte » :\n${appUrl("/app/compte")}`,
+      });
+  }
+  await db.query("INSERT INTO sessions (user_id, org_id, token_hash, user_agent, ip, expires_at) VALUES ($1,$2,$3,$4,$5,$6)", [
+    userId,
+    membership?.org_id ?? null,
+    sha256(token),
+    meta.userAgent.slice(0, 300),
+    meta.ip,
+    new Date(Date.now() + SESSION_DAYS * 24 * HOUR),
+  ]);
   await audit(db, { orgId: membership?.org_id, userId, action: "session.create", ip: meta.ip });
   return token;
 }
@@ -284,7 +298,9 @@ export async function buildContext(
 }
 
 export async function requestPasswordReset(db: Database, emailInput: string) {
-  const email = String(emailInput ?? "").trim().toLowerCase();
+  const email = String(emailInput ?? "")
+    .trim()
+    .toLowerCase();
   const user = await one<{ id: string; name: string }>(db, "SELECT id, name FROM users WHERE email=$1 AND status <> 'deleted'", [email]);
   // Réponse identique que le compte existe ou non.
   if (!user) return;
@@ -304,7 +320,10 @@ export async function resetPassword(db: Database, token: string, password: strin
   const hash = await hashPassword(parsed.data);
   await db.transaction(async (tx) => {
     const userId = await consumeEmailToken(tx, token, "reset");
-    await tx.query("UPDATE users SET password_hash=$2, email_verified_at=coalesce(email_verified_at, now()), updated_at=now() WHERE id=$1", [userId, hash]);
+    await tx.query("UPDATE users SET password_hash=$2, email_verified_at=coalesce(email_verified_at, now()), updated_at=now() WHERE id=$1", [
+      userId,
+      hash,
+    ]);
     // Toutes les sessions existantes sont fermées après un changement de mot de passe.
     await tx.query("UPDATE sessions SET revoked_at=now() WHERE user_id=$1 AND revoked_at IS NULL", [userId]);
     await audit(tx, { userId, action: "account.reset_password" });
@@ -317,10 +336,7 @@ export async function changePassword(ctx: Ctx, current: string, next: string) {
   const parsed = passwordSchema.safeParse(next);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
   await ctx.db.query("UPDATE users SET password_hash=$2, updated_at=now() WHERE id=$1", [ctx.userId, await hashPassword(parsed.data)]);
-  await ctx.db.query("UPDATE sessions SET revoked_at=now() WHERE user_id=$1 AND id <> $2 AND revoked_at IS NULL", [
-    ctx.userId,
-    ctx.sessionId,
-  ]);
+  await ctx.db.query("UPDATE sessions SET revoked_at=now() WHERE user_id=$1 AND id <> $2 AND revoked_at IS NULL", [ctx.userId, ctx.sessionId]);
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "account.change_password", ip: ctx.ip });
 }
 
@@ -388,10 +404,9 @@ export async function cancelAccountDeletion(ctx: Ctx) {
 
 /** Tâche périodique : anonymise les comptes dont le délai est écoulé. */
 export async function purgeDeletedAccounts(db: Database, now = new Date()) {
-  const due = await db.query<{ id: string }>(
-    "SELECT id FROM users WHERE status='deletion_pending' AND deletion_requested_at < $1",
-    [new Date(now.getTime() - DELETION_DELAY_DAYS * 24 * HOUR)],
-  );
+  const due = await db.query<{ id: string }>("SELECT id FROM users WHERE status='deletion_pending' AND deletion_requested_at < $1", [
+    new Date(now.getTime() - DELETION_DELAY_DAYS * 24 * HOUR),
+  ]);
   for (const u of due) {
     await db.transaction(async (tx) => {
       // Les entreprises dont l'utilisateur est le seul membre sont supprimées avec leurs données,
@@ -405,10 +420,10 @@ export async function purgeDeletedAccounts(db: Database, now = new Date()) {
       for (const o of orgs) if (Number(o.n) <= 1) await tx.query("DELETE FROM organizations WHERE id=$1", [o.org_id]);
       await tx.query("DELETE FROM memberships WHERE user_id=$1", [u.id]);
       await tx.query("DELETE FROM sessions WHERE user_id=$1", [u.id]);
-      await tx.query(
-        "UPDATE users SET status='deleted', email=$2, name='', password_hash='!', updated_at=now() WHERE id=$1",
-        [u.id, `supprime-${u.id}@invalid`],
-      );
+      await tx.query("UPDATE users SET status='deleted', email=$2, name='', password_hash='!', updated_at=now() WHERE id=$1", [
+        u.id,
+        `supprime-${u.id}@invalid`,
+      ]);
       await audit(tx, { userId: u.id, action: "account.purged" });
     });
   }

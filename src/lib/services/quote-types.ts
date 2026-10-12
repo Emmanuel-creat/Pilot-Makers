@@ -62,6 +62,10 @@ export interface QuoteDraft {
   template: string;
   internalNotes: string;
   contractPlace: ContractPlace;
+  /** Sous-traitance : TVA autoliquidée par l'entreprise cliente */
+  reverseCharge: boolean;
+  /** Retenue de garantie en pourcentage du TTC (5 au plus), vide si aucune */
+  retentionPercent: string;
   sections: DraftSection[];
   draftRevision: number;
   currentVersion: number;
@@ -131,6 +135,8 @@ export interface QuoteSnapshot {
     estimatedDuration: string;
     estimatedStart: string;
     globalDiscount: string;
+    reverseCharge?: boolean;
+    retentionPercent?: string;
   };
   sections: DraftSection[];
   calc: CalcResult;

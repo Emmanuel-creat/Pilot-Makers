@@ -19,7 +19,7 @@ export function SnapshotView({
 }) {
   const lines = new Map(s.calc.sections.flatMap((sec) => sec.lines.map((l) => [l.id, l] as const)));
   const subtotals = new Map(s.calc.sections.map((sec) => [sec.id, sec.subtotalCents]));
-  const exempt = s.org.vat_regime === "franchise";
+  const exempt = s.org.vat_regime === "franchise" || s.quote.reverseCharge === true;
   return (
     <article className="card overflow-hidden">
       <header className="grid gap-6 border-b border-line p-5 sm:grid-cols-2 sm:p-8" style={{ borderTop: `4px solid ${s.accentColor || "#1f6feb"}` }}>
@@ -219,7 +219,11 @@ export function SnapshotView({
             <dd className="tabular">{formatEuros(s.calc.totalHtCents)}</dd>
           </div>
           {exempt ? (
-            <p className="text-xs text-muted">TVA non applicable, article 293 B du CGI</p>
+            <p className="text-xs text-muted">
+              {s.org.vat_regime === "franchise"
+                ? "TVA non applicable, article 293 B du CGI"
+                : "TVA autoliquidée par le client, article 283-2 nonies du CGI"}
+            </p>
           ) : (
             s.calc.vatGroups.map((g) => (
               <div key={g.vatBp} className="flex justify-between text-muted">

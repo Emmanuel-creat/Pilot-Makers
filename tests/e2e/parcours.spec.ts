@@ -36,10 +36,14 @@ test("les pages légales sont accessibles sans compte", async ({ page }) => {
     ["/confidentialite", "Politique de confidentialité"],
     ["/mentions-legales", "Mentions légales"],
     ["/cookies", "Cookies"],
+    ["/securite", "Signaler une faille"],
   ] as const) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(title);
   }
+  const txt = await page.request.get("/.well-known/security.txt");
+  expect(txt.ok()).toBe(true);
+  expect(await txt.text()).toContain("Policy:");
 });
 
 test("le centre d'aide trouve un guide et l'affiche", async ({ page }) => {

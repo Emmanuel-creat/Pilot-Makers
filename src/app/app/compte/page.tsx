@@ -2,6 +2,7 @@ import { Icon } from "@/components/Icon";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
 import { Notice, PageHeader, Section, fmtDate } from "@/components/ui";
+import { deviceName } from "@/lib/device";
 import { requirePageCtx } from "@/lib/server/session";
 import { listSessions } from "@/lib/services/accounts";
 import {
@@ -19,12 +20,6 @@ import { pendingTwoFactorSetup, twoFactorState } from "@/lib/services/two-factor
 import { CodesForm } from "./TwoFactor";
 
 export const metadata = { title: "Mon compte" };
-
-function deviceName(ua: string) {
-  const os = /iPhone|iPad/.test(ua) ? "iPhone ou iPad" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows" : /Mac OS/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : "Appareil";
-  const nav = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "navigateur";
-  return `${nav} sur ${os}`;
-}
 
 const codeField = (id: string) => (
   <div>
@@ -80,7 +75,16 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 Fuseau horaire
               </label>
               <select id="p-tz" name="timezone" className="field" defaultValue={u.timezone}>
-                {["Europe/Paris", "America/Martinique", "America/Guadeloupe", "Indian/Reunion", "America/Cayenne", "Indian/Mayotte", "Pacific/Noumea", "Pacific/Tahiti"].map((t) => (
+                {[
+                  "Europe/Paris",
+                  "America/Martinique",
+                  "America/Guadeloupe",
+                  "Indian/Reunion",
+                  "America/Cayenne",
+                  "Indian/Mayotte",
+                  "Pacific/Noumea",
+                  "Pacific/Tahiti",
+                ].map((t) => (
                   <option key={t}>{t}</option>
                 ))}
               </select>
@@ -137,7 +141,8 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               <ol className="list-decimal space-y-1 pl-5 text-sm">
                 <li>Ouvrez votre application d'authentification et scannez le QR code.</li>
                 <li>
-                  Sans appareil photo, saisissez la clé : <code className="break-all font-mono text-xs">{pending.secret.replace(/(.{4})/g, "$1 ").trim()}</code>
+                  Sans appareil photo, saisissez la clé :{" "}
+                  <code className="break-all font-mono text-xs">{pending.secret.replace(/(.{4})/g, "$1 ").trim()}</code>
                 </li>
                 <li>Recopiez le code à 6 chiffres affiché.</li>
               </ol>
@@ -145,7 +150,15 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
                 <label className="label" htmlFor="tf-first">
                   Code à 6 chiffres
                 </label>
-                <input id="tf-first" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={7} className="field max-w-40 font-mono" required />
+                <input
+                  id="tf-first"
+                  name="code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={7}
+                  className="field max-w-40 font-mono"
+                  required
+                />
               </div>
               <Submit>Activer</Submit>
             </CodesForm>
@@ -216,7 +229,10 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         </a>
       </Section>
       {u.status !== "deletion_pending" ? (
-        <Section title="Supprimer mon compte" description="Un e-mail de confirmation est envoyé. La suppression devient définitive 30 jours après la confirmation.">
+        <Section
+          title="Supprimer mon compte"
+          description="Un e-mail de confirmation est envoyé. La suppression devient définitive 30 jours après la confirmation."
+        >
           <ActionForm action={requestDeletionAction} className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <label className="label" htmlFor="del-pw">

@@ -424,7 +424,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     w.text(unit, cols.qty + 26, y, 8.5);
     draw(formatUnitPrice(r.unitPrice4, false), cols.pu);
     draw(r.discountBp ? formatPercent(r.discountBp, false) + "%" : "", cols.disc);
-    draw(s.org.vat_regime === "franchise" ? "-" : formatPercent(r.vatBp, false) + "%", cols.vat);
+    draw(s.org.vat_regime === "franchise" || s.quote.reverseCharge ? "-" : formatPercent(r.vatBp, false) + "%", cols.vat);
     draw(formatEuros(r.netCents, false), cols.total - 4, f.bold);
   }
 
@@ -438,6 +438,8 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   totalRows.push(["Total HT", formatEuros(c.totalHtCents), true]);
   if (s.org.vat_regime === "franchise") {
     totalRows.push(["TVA", "Non applicable", false]);
+  } else if (s.quote.reverseCharge) {
+    totalRows.push(["TVA", "Autoliquidation", false]);
   } else {
     for (const g of c.vatGroups) {
       totalRows.push([`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`, formatEuros(g.vatCents), false]);

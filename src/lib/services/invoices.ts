@@ -22,7 +22,8 @@ import { audit, logError, requireWritable } from "./context";
 import type { Customer } from "./customers";
 import { appUrl, renderTemplate, sendMail } from "./mail";
 import type { Organization } from "./organization";
-import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent } from "./quotes";
+import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
+import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
 import type { DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
 
 export const INVOICE_KINDS = { deposit: "Facture d'acompte", final: "Facture", credit_note: "Avoir" } as const;
@@ -57,6 +58,8 @@ export interface InvoiceSnapshot extends QuoteSnapshot {
     quoteIssueDate: string | null;
     creditedNumber: string | null;
     deductions: Deduction[];
+    /** Retenue de garantie déduite de la facture de solde */
+    retention?: { bp: number; cents: number };
     amountDueCents: number;
     bank: { holder: string; iban: string; bic: string };
     latePenalty: string;
@@ -108,7 +111,10 @@ function isoDate(v: unknown): string {
   return String(v).slice(0, 10);
 }
 
-export function invoiceStatus(r: { kind: string; amount_due_cents: number; paid_cents: number; credited_cents: number; due_date: string }, today = parisDate(new Date())): InvoiceStatus {
+export function invoiceStatus(
+  r: { kind: string; amount_due_cents: number; paid_cents: number; credited_cents: number; due_date: string },
+  today = parisDate(new Date()),
+): InvoiceStatus {
   if (r.kind === "credit_note") return "credit";
   if (r.credited_cents >= r.amount_due_cents) return "canceled";
   const balance = r.amount_due_cents - r.paid_cents - r.credited_cents;
@@ -156,7 +162,9 @@ export async function listInvoices(ctx: Ctx, f: { status?: string; q?: string; q
   }
   if (f.q?.trim()) {
     params.push(`%${f.q.trim().toLowerCase()}%`);
-    where.push(`(lower(i.number) LIKE $${params.length} OR lower(i.snapshot->'customer'->>'name') LIKE $${params.length} OR lower(i.title) LIKE $${params.length})`);
+    where.push(
+      `(lower(i.number) LIKE $${params.length} OR lower(i.snapshot->'customer'->>'name') LIKE $${params.length} OR lower(i.title) LIKE $${params.length})`,
+    );
   }
   params.push(Math.min(f.limit ?? 500, 2000));
   const rows = await ctx.db.query(
@@ -169,7 +177,10 @@ export async function listInvoices(ctx: Ctx, f: { status?: string; q?: string; q
 }
 
 export async function getInvoice(ctx: Ctx, id: string, q: Queryable = ctx.db) {
-  const r = await one(q, `SELECT ${LIST_COLUMNS}, i.snapshot FROM invoices i LEFT JOIN quotes q ON q.id=i.quote_id WHERE i.id=$1 AND i.org_id=$2`, [id, ctx.orgId]);
+  const r = await one(q, `SELECT ${LIST_COLUMNS}, i.snapshot FROM invoices i LEFT JOIN quotes q ON q.id=i.quote_id WHERE i.id=$1 AND i.org_id=$2`, [
+    id,
+    ctx.orgId,
+  ]);
   if (!r) throw notFound("Facture introuvable");
   return { ...mapInvoice(r), snapshot: r.snapshot as InvoiceSnapshot };
 }
@@ -235,7 +246,14 @@ async function acceptedQuote(q: Queryable, ctx: Ctx, quoteId: string): Promise<A
   if (!r) throw notFound("Devis introuvable");
   if (r.status !== "accepted" || !r.accepted_version) throw conflict("Seul un devis accepté peut être facturé");
   const v = await getVersion(q, ctx.orgId, quoteId, num(r.accepted_version));
-  return { id: r.id, number: r.number ?? v.number, customer_id: r.customer_id, accepted_version: num(r.accepted_version), snapshot: v.snapshot, versionId: v.id };
+  return {
+    id: r.id,
+    number: r.number ?? v.number,
+    customer_id: r.customer_id,
+    accepted_version: num(r.accepted_version),
+    snapshot: v.snapshot,
+    versionId: v.id,
+  };
 }
 
 async function customerRow(q: Queryable, ctx: Ctx, id: string | null, fallback: QuoteSnapshot["customer"]): Promise<Customer> {
@@ -274,6 +292,10 @@ interface IssueArgs {
   creditedInvoice: { id: string; number: string } | null;
   dueInDays: number;
   extraMentions?: string[];
+  /** Sous-traitance : facture sans TVA, autoliquidée par le client */
+  reverseCharge?: boolean;
+  /** Retenue de garantie à déduire, en points de base du TTC */
+  retentionBp?: number;
 }
 
 function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean, dueDate: string): string[] {
@@ -281,15 +303,22 @@ function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean,
   if (a.quote) m.push(`Selon devis n° ${a.quote.number} du ${frDate(a.quote.snapshot.issueDate)}, accepté par le client.`);
   if (a.creditedInvoice) m.push(`Avoir sur la facture n° ${a.creditedInvoice.number}.`);
   if (org.vat_regime === "franchise") m.push("TVA non applicable, article 293 B du Code général des impôts.");
+  else if (a.reverseCharge) m.push(REVERSE_CHARGE_MENTION);
+  if (a.retentionBp && a.kind === "final") m.push(retentionMention(a.retentionBp));
   if (a.kind !== "credit_note") {
     m.push(a.dueInDays === 0 ? "Paiement à réception de la facture." : `Date d'échéance : ${frDate(dueDate)}.`);
     m.push("Pas d'escompte pour paiement anticipé.");
     if (org.late_penalty_text.trim()) m.push(org.late_penalty_text.trim());
-    if (professional) m.push("Indemnité forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 euros (article L441-10 du Code de commerce).");
+    if (professional)
+      m.push("Indemnité forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 euros (article L441-10 du Code de commerce).");
   }
   if (org.insurance_name.trim() && org.insurance_decennale) {
     m.push(
-      [`Assurance décennale : ${org.insurance_name.trim()}`, org.insurance_policy.trim() ? `contrat n° ${org.insurance_policy.trim()}` : "", org.insurance_area.trim() ? `couverture : ${org.insurance_area.trim()}` : ""]
+      [
+        `Assurance décennale : ${org.insurance_name.trim()}`,
+        org.insurance_policy.trim() ? `contrat n° ${org.insurance_policy.trim()}` : "",
+        org.insurance_area.trim() ? `couverture : ${org.insurance_area.trim()}` : "",
+      ]
         .filter(Boolean)
         .join(", ") + ".",
     );
@@ -305,9 +334,17 @@ export function invoicePdfOptions(s: InvoiceSnapshot): PdfDocOptions {
   for (const d of inv.deductions) {
     afterTotals.push([`Acompte ${d.number} du ${frDate(d.issueDate)} (dont TVA ${formatEuros(d.vatCents)})`, "-" + formatEuros(d.ttcCents), false]);
   }
-  if (inv.deductions.length) afterTotals.push([inv.kind === "credit_note" ? "Net à rembourser ou à déduire" : "Net à payer", formatEuros(inv.amountDueCents), true]);
+  if (inv.retention?.cents) afterTotals.push([retentionLabel(inv.retention.bp), "-" + formatEuros(inv.retention.cents), false]);
+  if (inv.deductions.length || inv.retention?.cents)
+    afterTotals.push([inv.kind === "credit_note" ? "Net à rembourser ou à déduire" : "Net à payer", formatEuros(inv.amountDueCents), true]);
   const bank = inv.bank.iban
-    ? [`Titulaire : ${inv.bank.holder || s.org.legal_name || s.org.trade_name}`, `IBAN : ${inv.bank.iban}`, inv.bank.bic ? `BIC : ${inv.bank.bic}` : ""].filter(Boolean).join("\n")
+    ? [
+        `Titulaire : ${inv.bank.holder || s.org.legal_name || s.org.trade_name}`,
+        `IBAN : ${inv.bank.iban}`,
+        inv.bank.bic ? `BIC : ${inv.bank.bic}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
     : "";
   return {
     title,
@@ -348,12 +385,20 @@ async function nextNumber(q: Queryable, orgId: string, kind: InvoiceKind, now: D
 
 async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ id: string; number: string }> {
   const org = await orgRow(tx, ctx.orgId);
-  const vatExempt = org.vat_regime === "franchise";
+  const vatExempt = quoteVatExempt(org, a);
   const calc: CalcResult = computeQuote(draftToCalcInput({ sections: a.sections, globalDiscount: a.globalDiscount }, vatExempt));
-  if (!calc.ok) throw badRequest("Montants invalides : " + calc.issues.filter((i) => i.blocking).map((i) => i.message).join(" ; "));
+  if (!calc.ok)
+    throw badRequest(
+      "Montants invalides : " +
+        calc.issues
+          .filter((i) => i.blocking)
+          .map((i) => i.message)
+          .join(" ; "),
+    );
   if (calc.totalTtcCents <= 0) throw badRequest("Le montant de la facture doit être positif");
   const deducted = a.deductions.reduce((s, d) => s + d.ttcCents, 0);
-  const amountDue = calc.totalTtcCents - deducted;
+  const retention = a.retentionBp ? { bp: a.retentionBp, cents: retentionCents(calc.totalTtcCents, a.retentionBp) } : undefined;
+  const amountDue = calc.totalTtcCents - deducted - (retention?.cents ?? 0);
   if (amountDue < 0) throw badRequest("Les acomptes déduits dépassent le montant de la facture");
   const now = new Date();
   const number = await nextNumber(tx, ctx.orgId, a.kind, now);
@@ -378,6 +423,8 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
     template: a.quote?.snapshot.template ?? org.quote_template,
     internalNotes: "",
     contractPlace: "etablissement",
+    reverseCharge: a.reverseCharge === true,
+    retentionPercent: "",
     sections: a.sections,
     draftRevision: 0,
     currentVersion: 0,
@@ -402,6 +449,7 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
       quoteIssueDate: a.quote?.snapshot.issueDate ?? null,
       creditedNumber: a.creditedInvoice?.number ?? null,
       deductions: a.deductions,
+      ...(retention ? { retention } : {}),
       amountDueCents: amountDue,
       bank: { holder: org.bank_holder, iban: org.bank_iban, bic: org.bank_bic },
       latePenalty: org.late_penalty_text,
@@ -443,8 +491,20 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
       ctx.userId,
     ],
   );
-  if (a.quote) await addEvent(tx, ctx, a.quote.id, a.quote.accepted_version, `invoice.${a.kind}`, { invoice_id: row!.id, number, total_ttc_cents: calc.totalTtcCents });
-  await audit(tx, { orgId: ctx.orgId, userId: ctx.userId, action: `invoice.issue.${a.kind}`, target: row!.id, data: { number, total_ttc_cents: calc.totalTtcCents, pdf_sha256: pdfHash }, ip: ctx.ip });
+  if (a.quote)
+    await addEvent(tx, ctx, a.quote.id, a.quote.accepted_version, `invoice.${a.kind}`, {
+      invoice_id: row!.id,
+      number,
+      total_ttc_cents: calc.totalTtcCents,
+    });
+  await audit(tx, {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    action: `invoice.issue.${a.kind}`,
+    target: row!.id,
+    data: { number, total_ttc_cents: calc.totalTtcCents, pdf_sha256: pdfHash },
+    ip: ctx.ip,
+  });
   return { id: row!.id, number };
 }
 
@@ -480,7 +540,12 @@ function deductionOf(d: InvoiceRow): Deduction {
 export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { percent: string }) {
   let bp: bigint;
   try {
-    bp = parseScaled(String(input.percent ?? "").replace("%", "").trim(), 2);
+    bp = parseScaled(
+      String(input.percent ?? "")
+        .replace("%", "")
+        .trim(),
+      2,
+    );
   } catch {
     throw badRequest("Pourcentage d'acompte invalide");
   }
@@ -500,7 +565,10 @@ export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { p
         catalogItemId: null,
         nature: "forfait" as const,
         label: `Acompte de ${pct} sur le devis ${quote.number} du ${frDate(s.issueDate)}${groups.length > 1 ? ` (travaux à TVA ${formatPercent(g.vatBp)})` : ""}`,
-        description: groups.length > 1 ? `Base des travaux à ce taux : ${formatEuros(g.baseCents)} HT` : `Montant total des travaux : ${formatEuros(s.calc.totalHtCents)} HT`,
+        description:
+          groups.length > 1
+            ? `Base des travaux à ce taux : ${formatEuros(g.baseCents)} HT`
+            : `Montant total des travaux : ${formatEuros(s.calc.totalHtCents)} HT`,
         quantity: "1",
         unit: "forfait",
         unitPrice: centsToInput(amount),
@@ -512,9 +580,13 @@ export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { p
       };
     });
     const previous = (await activeDeposits(tx, ctx.orgId, quoteId)).reduce((sum, d) => sum + d.total_ttc_cents - d.credited_cents, 0);
-    const preview = computeQuote(draftToCalcInput({ sections: [{ id: randomUUID(), title: "", description: "", lines }], globalDiscount: "" }, s.org.vat_regime === "franchise"));
+    const preview = computeQuote(
+      draftToCalcInput({ sections: [{ id: randomUUID(), title: "", description: "", lines }], globalDiscount: "" }, quoteVatExempt(s.org, s.quote)),
+    );
     if (previous + preview.totalTtcCents > s.calc.totalTtcCents) {
-      throw badRequest(`Les acomptes dépasseraient le montant du devis (déjà facturé : ${formatEuros(previous)} TTC sur ${formatEuros(s.calc.totalTtcCents)})`);
+      throw badRequest(
+        `Les acomptes dépasseraient le montant du devis (déjà facturé : ${formatEuros(previous)} TTC sur ${formatEuros(s.calc.totalTtcCents)})`,
+      );
     }
     const customer = await customerRow(tx, ctx, quote.customer_id, s.customer);
     return issueInvoiceTx(tx, ctx, {
@@ -529,6 +601,7 @@ export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { p
       deductions: [],
       creditedInvoice: null,
       dueInDays: 0,
+      reverseCharge: s.quote.reverseCharge,
     });
   });
 }
@@ -537,7 +610,9 @@ export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { p
 export async function createFinalInvoice(ctx: Ctx, quoteId: string) {
   return withIssue(ctx, async (tx) => {
     const quote = await acceptedQuote(tx, ctx, quoteId);
-    const existingFinal = await one(tx, "SELECT number FROM invoices WHERE quote_id=$1 AND kind='final' AND credited_cents < amount_due_cents", [quoteId]);
+    const existingFinal = await one(tx, "SELECT number FROM invoices WHERE quote_id=$1 AND kind='final' AND credited_cents < amount_due_cents", [
+      quoteId,
+    ]);
     if (existingFinal) throw conflict("La facture de solde de ce devis existe déjà");
     const s = quote.snapshot;
     const org = await orgRow(tx, ctx.orgId);
@@ -556,6 +631,8 @@ export async function createFinalInvoice(ctx: Ctx, quoteId: string) {
       deductions,
       creditedInvoice: null,
       dueInDays: num(org.invoice_due_days) || 30,
+      reverseCharge: s.quote.reverseCharge,
+      retentionBp: retentionBp(s.quote.retentionPercent) || 0,
     });
   });
 }
@@ -611,7 +688,7 @@ export async function createCreditNote(ctx: Ctx, invoiceId: string, raw: unknown
               unitPrice: input.amountHt,
               unitCost: "",
               discountPercent: "",
-              vatPercent: snap.org.vat_regime === "franchise" ? "0" : input.vatPercent,
+              vatPercent: quoteVatExempt(snap.org, snap.quote) ? "0" : input.vatPercent,
               estimated: false,
               estimateNote: "",
             },
@@ -619,8 +696,9 @@ export async function createCreditNote(ctx: Ctx, invoiceId: string, raw: unknown
         },
       ];
     }
-    const preview = computeQuote(draftToCalcInput({ sections, globalDiscount }, snap.org.vat_regime === "franchise"));
-    const creditAmount = preview.totalTtcCents - deductions.reduce((s, d) => s + d.ttcCents, 0);
+    const preview = computeQuote(draftToCalcInput({ sections, globalDiscount }, quoteVatExempt(snap.org, snap.quote)));
+    const retained = input.mode === "full" ? (snap.invoice.retention?.cents ?? 0) : 0;
+    const creditAmount = preview.totalTtcCents - deductions.reduce((s, d) => s + d.ttcCents, 0) - retained;
     if (input.mode === "partial" && creditAmount > remaining) {
       throw badRequest(`L'avoir dépasse le montant restant de la facture (${formatEuros(remaining)} TTC)`);
     }
@@ -628,7 +706,9 @@ export async function createCreditNote(ctx: Ctx, invoiceId: string, raw: unknown
       kind: "credit_note",
       quote: null,
       customer,
-      title: `Avoir sur ${inv.number}` + (input.mode === "full" && input.reason ? ` : ${input.reason}` : input.mode === "partial" ? ` : ${input.label}` : ""),
+      title:
+        `Avoir sur ${inv.number}` +
+        (input.mode === "full" && input.reason ? ` : ${input.reason}` : input.mode === "partial" ? ` : ${input.label}` : ""),
       site: snap.quote.site,
       sections,
       globalDiscount,
@@ -637,6 +717,8 @@ export async function createCreditNote(ctx: Ctx, invoiceId: string, raw: unknown
       creditedInvoice: { id: inv.id, number: inv.number },
       dueInDays: 0,
       extraMentions: input.mode === "full" && input.reason ? [`Motif : ${input.reason}.`] : [],
+      reverseCharge: snap.quote.reverseCharge,
+      retentionBp: input.mode === "full" ? snap.invoice.retention?.bp : undefined,
     });
     await tx.query("UPDATE invoices SET quote_id=$2 WHERE id=$1", [r.id, inv.quote_id]);
     await tx.query("UPDATE invoices SET credited_cents = credited_cents + $2 WHERE id=$1", [inv.id, creditAmount]);
@@ -687,7 +769,14 @@ export async function recordPayment(ctx: Ctx, invoiceId: string, raw: unknown) {
       [ctx.orgId, invoiceId, cents, p.paidOn, p.method, p.reference, ctx.userId],
     );
     await refreshPaid(tx, invoiceId);
-    await audit(tx, { orgId: ctx.orgId, userId: ctx.userId, action: "invoice.payment", target: invoiceId, data: { amount_cents: cents, method: p.method }, ip: ctx.ip });
+    await audit(tx, {
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      action: "invoice.payment",
+      target: invoiceId,
+      data: { amount_cents: cents, method: p.method },
+      ip: ctx.ip,
+    });
     return row!.id;
   });
 }
@@ -702,7 +791,14 @@ export async function cancelPayment(ctx: Ctx, paymentId: string) {
     );
     if (!p) throw notFound("Paiement introuvable");
     await refreshPaid(tx, p.invoice_id);
-    await audit(tx, { orgId: ctx.orgId, userId: ctx.userId, action: "invoice.payment_cancel", target: p.invoice_id, data: { payment: paymentId }, ip: ctx.ip });
+    await audit(tx, {
+      orgId: ctx.orgId,
+      userId: ctx.userId,
+      action: "invoice.payment_cancel",
+      target: p.invoice_id,
+      data: { payment: paymentId },
+      ip: ctx.ip,
+    });
   });
 }
 
@@ -726,7 +822,10 @@ export function defaultInvoiceMessage(inv: InvoiceRow, org: Pick<Organization, "
 }
 
 const sendSchema = z.object({
-  to: z.string().trim().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Adresse e-mail invalide"),
+  to: z
+    .string()
+    .trim()
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Adresse e-mail invalide"),
   subject: z.string().trim().min(1).max(300),
   body: z.string().trim().min(1).max(10000),
 });
@@ -747,7 +846,14 @@ export async function sendInvoice(ctx: Ctx, invoiceId: string, raw: unknown) {
     invoiceId: inv.id,
   });
   if (mail.status === "sent") await ctx.db.query("UPDATE invoices SET sent_at=coalesce(sent_at, now()) WHERE id=$1", [inv.id]);
-  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "invoice.send", target: inv.id, data: { to: parsed.data.to, status: mail.status }, ip: ctx.ip });
+  await audit(ctx.db, {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    action: "invoice.send",
+    target: inv.id,
+    data: { to: parsed.data.to, status: mail.status },
+    ip: ctx.ip,
+  });
   return mail;
 }
 
@@ -813,7 +919,14 @@ export async function runInvoiceReminders(db: Database, now = new Date()) {
 
 export async function saveInvoiceSettings(
   ctx: Ctx,
-  input: { invoice_prefix?: string; credit_prefix?: string; invoice_due_days?: string | number; late_penalty_text?: string; reminders_enabled?: boolean; reminder_days?: string },
+  input: {
+    invoice_prefix?: string;
+    credit_prefix?: string;
+    invoice_due_days?: string | number;
+    late_penalty_text?: string;
+    reminders_enabled?: boolean;
+    reminder_days?: string;
+  },
 ) {
   requireWritable(ctx);
   const prefix = (v: string | undefined, label: string) => {
@@ -823,8 +936,16 @@ export async function saveInvoiceSettings(
     return t;
   };
   const due = input.invoice_due_days === undefined ? undefined : Number(input.invoice_due_days);
-  if (due !== undefined && (!Number.isInteger(due) || due < 0 || due > 60)) throw badRequest("Le délai de paiement est limité à 60 jours (article L441-10 du Code de commerce)");
-  const days = input.reminder_days === undefined ? undefined : input.reminder_days.split(/[^\d]+/).filter(Boolean).map(Number).slice(0, 6);
+  if (due !== undefined && (!Number.isInteger(due) || due < 0 || due > 60))
+    throw badRequest("Le délai de paiement est limité à 60 jours (article L441-10 du Code de commerce)");
+  const days =
+    input.reminder_days === undefined
+      ? undefined
+      : input.reminder_days
+          .split(/[^\d]+/)
+          .filter(Boolean)
+          .map(Number)
+          .slice(0, 6);
   const cur = await orgRow(ctx.db, ctx.orgId);
   const reminders = {
     enabled: input.reminders_enabled ?? Boolean(cur.invoice_reminder_settings?.enabled),
@@ -834,7 +955,14 @@ export async function saveInvoiceSettings(
     `UPDATE organizations SET invoice_prefix=coalesce($2, invoice_prefix), credit_prefix=coalesce($3, credit_prefix),
        invoice_due_days=coalesce($4, invoice_due_days), late_penalty_text=coalesce($5, late_penalty_text), invoice_reminder_settings=$6, updated_at=now()
      WHERE id=$1`,
-    [ctx.orgId, prefix(input.invoice_prefix, "Préfixe des factures") ?? null, prefix(input.credit_prefix, "Préfixe des avoirs") ?? null, due ?? null, input.late_penalty_text?.trim() ?? null, JSON.stringify(reminders)],
+    [
+      ctx.orgId,
+      prefix(input.invoice_prefix, "Préfixe des factures") ?? null,
+      prefix(input.credit_prefix, "Préfixe des avoirs") ?? null,
+      due ?? null,
+      input.late_penalty_text?.trim() ?? null,
+      JSON.stringify(reminders),
+    ],
   );
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "org.invoice_settings", ip: ctx.ip });
 }

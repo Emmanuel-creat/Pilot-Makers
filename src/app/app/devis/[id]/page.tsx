@@ -60,6 +60,7 @@ export default async function QuotePage({
           email: customer.email,
           phone: customer.phone,
           siren: customer.siren,
+          vat_number: customer.vat_number,
         }
       : null;
     return (

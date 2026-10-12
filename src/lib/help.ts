@@ -206,6 +206,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Les conditions exactes dépendent du logement et de la nature des travaux : faites-les valider par votre conseil en cas de doute."],
   },
   {
+    slug: "sous-traitance-et-retenue-de-garantie",
+    category: "regles",
+    title: "Sous-traitance : autoliquidation et retenue de garantie",
+    summary: "Facturer hors TVA une entreprise du bâtiment qui vous sous-traite des travaux, et appliquer la retenue de 5 %.",
+    steps: [
+      "Choisissez un client professionnel : les options de sous-traitance apparaissent dans les conditions du devis.",
+      "Cochez « Travaux en sous-traitance » : le devis et ses factures sont établis sans TVA, avec la mention de l'article 283-2 nonies du CGI.",
+      "Si le donneur d'ordre applique une retenue de garantie, choisissez « 5 % du TTC » : elle est annoncée sur le devis et déduite de la facture de solde.",
+    ],
+    notes: [
+      "Le numéro de TVA de l'entreprise cliente doit figurer dans sa fiche.",
+      "L'autoliquidation n'est pas possible en franchise en base de TVA ni pour un client particulier.",
+    ],
+  },
+  {
     slug: "droit-de-retractation",
     category: "regles",
     title: "Délai de rétractation de 14 jours",

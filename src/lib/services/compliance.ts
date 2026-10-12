@@ -9,6 +9,7 @@
 import type { CalcResult } from "@/lib/calc/engine";
 import { formatPercent } from "@/lib/calc/format";
 import { isContractPlace, withdrawalApplies } from "./consumer";
+import { REVERSE_CHARGE_MENTION, retentionBp, retentionMention } from "./btp";
 
 export const COMPLIANCE_RULES_VERSION = "2026-10-v1";
 
@@ -50,6 +51,7 @@ export interface ComplianceInput {
     billing_postal_code: string;
     billing_city: string;
     siren: string;
+    vat_number?: string;
   };
   quote: {
     title: string;
@@ -61,6 +63,8 @@ export interface ComplianceInput {
     payment_terms: string;
     deposit_percent?: string;
     contract_place?: string;
+    reverse_charge?: boolean;
+    retention_percent?: string;
   };
   lines: { kind: string; nature: string; label: string; estimated: boolean; vat_percent: string }[];
   calc: CalcResult;
@@ -105,7 +109,10 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
       block("customer_address", "Adresse du client incomplète", "customer");
     }
     if (i.customer.type === "particulier" && !(i.org.mediator_name ?? "").trim()) {
-      warn("mediator", "Client particulier : indiquez votre médiateur de la consommation dans le profil entreprise (article L616-1 du Code de la consommation)");
+      warn(
+        "mediator",
+        "Client particulier : indiquez votre médiateur de la consommation dans le profil entreprise (article L616-1 du Code de la consommation)",
+      );
     }
     if (i.customer.type === "entreprise" && !i.customer.siren.trim()) {
       warn("customer_siren", "Client professionnel sans SIREN");
@@ -121,7 +128,12 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
 
   // Lignes et calculs
   for (const issue of i.calc.issues) {
-    out.push({ code: "calc_" + issue.code, message: issue.message, blocking: issue.blocking, field: issue.lineId ? "line:" + issue.lineId : undefined });
+    out.push({
+      code: "calc_" + issue.code,
+      message: issue.message,
+      blocking: issue.blocking,
+      field: issue.lineId ? "line:" + issue.lineId : undefined,
+    });
   }
   const items = i.lines.filter((l) => l.kind === "item");
   if (items.some((l) => l.nature === "main_oeuvre") && !i.org.hourly_rate.trim()) {
@@ -134,7 +146,24 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
   if (estimated.length) {
     warn("estimated", `${estimated.length} ligne(s) avec quantité ou prix estimé(e) : vérifiez avant d'émettre`);
   }
-  if (i.org.vat_regime === "normal") {
+  // Sous-traitance : autoliquidation de la TVA
+  if (i.quote.reverse_charge) {
+    if (i.org.vat_regime === "franchise") {
+      block("reverse_charge_franchise", "Autoliquidation impossible en franchise en base de TVA : décochez la sous-traitance", "reverse_charge");
+    } else if (i.customer && i.customer.type === "particulier") {
+      block(
+        "reverse_charge_customer",
+        "Autoliquidation réservée à un donneur d'ordre professionnel : le client est un particulier",
+        "reverse_charge",
+      );
+    } else if (i.customer && !i.customer.vat_number?.trim()) {
+      warn("reverse_charge_vat_number", "Autoliquidation : indiquez le numéro de TVA de l'entreprise cliente dans sa fiche", "customer");
+    }
+  }
+  if (retentionBp(i.quote.retention_percent) === null) {
+    block("retention", "Retenue de garantie : 5 % du montant TTC au plus", "retention_percent");
+  }
+  if (i.org.vat_regime === "normal" && !i.quote.reverse_charge) {
     const reduced = new Set(i.calc.vatGroups.filter((g) => g.vatBp > 0 && g.vatBp < 2000).map((g) => g.vatBp));
     for (const bp of reduced) {
       warn(
@@ -162,10 +191,13 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
 }
 
 /** Mentions imprimées sur le devis selon le contexte. */
-export function buildMentions(i: Pick<ComplianceInput, "org" | "customer"> & { validUntil: string; depositPercent: string }): string[] {
+export function buildMentions(
+  i: Pick<ComplianceInput, "org" | "customer"> & { validUntil: string; depositPercent: string; reverseCharge?: boolean; retentionPercent?: string },
+): string[] {
   const m: string[] = [];
   m.push(`Devis valable jusqu'au ${i.validUntil}.`);
   if (i.org.vat_regime === "franchise") m.push("TVA non applicable, article 293 B du Code général des impôts.");
+  else if (i.reverseCharge) m.push(REVERSE_CHARGE_MENTION);
   if (i.org.hourly_rate.trim()) m.push(`Taux horaire de main-d'œuvre : ${i.org.hourly_rate.trim()}.`);
   if (i.org.travel_fee.trim()) m.push(`Frais de déplacement : ${i.org.travel_fee.trim()}.`);
   if (i.org.insurance_name.trim()) {
@@ -180,6 +212,8 @@ export function buildMentions(i: Pick<ComplianceInput, "org" | "customer"> & { v
   if (i.depositPercent.trim() && i.depositPercent.trim() !== "0") {
     m.push(`Un acompte de ${i.depositPercent.trim().replace(".", ",")} % du montant TTC est demandé à la signature.`);
   }
+  const retention = retentionBp(i.retentionPercent);
+  if (retention) m.push(retentionMention(retention));
   if (i.customer?.type === "particulier" && (i.org.mediator_name ?? "").trim()) {
     const site = (i.org.mediator_url ?? "").trim();
     m.push(

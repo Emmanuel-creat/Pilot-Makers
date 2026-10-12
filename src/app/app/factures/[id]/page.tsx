@@ -2,12 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { InvoiceBadge } from "@/components/InvoiceBadge";
+import { retentionLabel } from "@/lib/services/btp";
 import { SnapshotView } from "@/components/SnapshotView";
 import { Notice, fmtDate } from "@/components/ui";
 import { formatEuros, formatPercent, centsToInput } from "@/lib/calc/format";
 import { HttpError } from "@/lib/http";
 import { requirePageCtx } from "@/lib/server/session";
-import { defaultInvoiceMessage, getInvoice, INVOICE_KINDS, invoiceEmails, listInvoices, listPayments, PAYMENT_METHODS } from "@/lib/services/invoices";
+import {
+  defaultInvoiceMessage,
+  getInvoice,
+  INVOICE_KINDS,
+  invoiceEmails,
+  listInvoices,
+  listPayments,
+  PAYMENT_METHODS,
+} from "@/lib/services/invoices";
 import { getOrganization } from "@/lib/services/organization";
 import { parisDate, frDate } from "@/lib/services/quotes";
 import { cancelPaymentAction } from "@/app/actions";
@@ -35,8 +44,14 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const writable = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const isCredit = inv.kind === "credit_note";
   const msg = defaultInvoiceMessage(inv, org);
-  const afterTotals: [string, string, boolean][] = s.invoice.deductions.map((d) => [`Acompte ${d.number} du ${frDate(d.issueDate)}`, "-" + formatEuros(d.ttcCents), false]);
-  if (s.invoice.deductions.length) afterTotals.push([isCredit ? "Net à rembourser ou à déduire" : "Net à payer", formatEuros(inv.amount_due_cents), true]);
+  const afterTotals: [string, string, boolean][] = s.invoice.deductions.map((d) => [
+    `Acompte ${d.number} du ${frDate(d.issueDate)}`,
+    "-" + formatEuros(d.ttcCents),
+    false,
+  ]);
+  if (s.invoice.retention?.cents) afterTotals.push([retentionLabel(s.invoice.retention.bp), "-" + formatEuros(s.invoice.retention.cents), false]);
+  if (s.invoice.deductions.length || s.invoice.retention?.cents)
+    afterTotals.push([isCredit ? "Net à rembourser ou à déduire" : "Net à payer", formatEuros(inv.amount_due_cents), true]);
   const vatOptions = [...new Set(s.calc.vatGroups.map((g) => formatPercent(g.vatBp, false)))];
   const quoteLink = inv.quote_id ? (await listInvoices(ctx, { quoteId: inv.quote_id })).length : 0;
 
@@ -89,7 +104,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             s={s}
             heading={{
               title: `${INVOICE_KINDS[inv.kind]} ${inv.number}`,
-              lines: [`Émise le ${frDate(inv.issue_date)}`, isCredit ? "" : `Échéance le ${frDate(inv.due_date)}`, s.invoice.creditedNumber ? `Sur la facture ${s.invoice.creditedNumber}` : ""],
+              lines: [
+                `Émise le ${frDate(inv.issue_date)}`,
+                isCredit ? "" : `Échéance le ${frDate(inv.due_date)}`,
+                s.invoice.creditedNumber ? `Sur la facture ${s.invoice.creditedNumber}` : "",
+              ],
             }}
             afterTotals={afterTotals}
           />
@@ -159,7 +178,12 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 <p className="text-xs text-muted">Aucun paiement enregistré.</p>
               )}
               {writable && inv.balance_cents > 0 ? (
-                <PaymentForm invoiceId={id} balance={centsToInput(inv.balance_cents)} today={parisDate(new Date())} methods={Object.entries(PAYMENT_METHODS)} />
+                <PaymentForm
+                  invoiceId={id}
+                  balance={centsToInput(inv.balance_cents)}
+                  today={parisDate(new Date())}
+                  methods={Object.entries(PAYMENT_METHODS)}
+                />
               ) : null}
             </section>
           ) : null}

@@ -14,6 +14,7 @@ import { renderQuotePdf, pdfTotals } from "@/lib/pdf/quote-pdf";
 import { canonicalJson, randomToken, sha256 } from "@/lib/security";
 import { assertCanIssue } from "./billing";
 import { incrementUsage } from "./catalog";
+import { retentionBp } from "./btp";
 import { consumerTerms, isContractPlace, reducedVatAttestation } from "./consumer";
 import { buildMentions, checkCompliance, COMPLIANCE_RULES_VERSION, type ComplianceIssue } from "./compliance";
 import type { Ctx } from "./context";
@@ -80,10 +81,17 @@ export const draftSchema = z.object({
   template: str(20),
   internalNotes: str(4000),
   contractPlace: z.enum(["auto", "hors_etablissement", "etablissement"]).default("auto"),
+  reverseCharge: z.boolean().default(false),
+  retentionPercent: str(10).refine((v) => retentionBp(v) !== null, "Retenue de garantie : 5 % au plus"),
   sections: z.array(sectionSchema).max(50),
 });
 
 export type DraftInput = z.input<typeof draftSchema>;
+
+/** TVA non facturée : franchise en base de l'entreprise, ou autoliquidation en sous-traitance. */
+export function quoteVatExempt(org: Pick<Organization, "vat_regime">, d: { reverseCharge?: boolean }): boolean {
+  return org.vat_regime === "franchise" || d.reverseCharge === true;
+}
 
 /* ------------------------------------------------------------------ */
 /* Lecture                                                             */
@@ -98,10 +106,10 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
     "SELECT id, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
     [quoteId, orgId],
   );
-  const lines = await q.query<Record<string, unknown>>(
-    "SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
-    [quoteId, orgId],
-  );
+  const lines = await q.query<Record<string, unknown>>("SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position", [
+    quoteId,
+    orgId,
+  ]);
   return secs.map((s) => ({
     id: s.id,
     title: s.title,
@@ -165,6 +173,8 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     template: String(r.template),
     internalNotes: String(r.internal_notes),
     contractPlace: isContractPlace(r.contract_place) ? r.contract_place : ("auto" as const),
+    reverseCharge: r.reverse_charge === true,
+    retentionPercent: String(r.retention_percent ?? ""),
     sections: await loadSections(q, id, ctx.orgId),
     draftRevision: num(r.draft_revision),
     currentVersion: num(r.current_version),
@@ -405,14 +415,14 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
       const c = await one(tx, "SELECT 1 FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]);
       if (!c) throw notFound("Client introuvable");
     }
-    const calc = computeQuote(draftToCalcInput({ sections: d.sections, globalDiscount: d.globalDiscount }, org.vat_regime === "franchise"));
+    const calc = computeQuote(draftToCalcInput({ sections: d.sections, globalDiscount: d.globalDiscount }, quoteVatExempt(org, d)));
     const status: QuoteStatus = calc.ok ? "draft" : "incomplete";
     await writeSections(tx, id, ctx.orgId, d.sections);
     await tx.query(
       `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
          validity_days=$10, payment_terms=$11, special_conditions=$12, deposit_percent=$13, estimated_duration=$14,
          estimated_start=$15, global_discount=$16, template=$17, internal_notes=$18, status=$19,
-         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, contract_place=$23, draft_revision=draft_revision+1, updated_at=now()
+         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, contract_place=$23, reverse_charge=$24, retention_percent=$25, draft_revision=draft_revision+1, updated_at=now()
        WHERE id=$1 AND org_id=$2`,
       [
         id,
@@ -438,6 +448,8 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
         calc.totalTtcCents,
         calc.margin.marginCents,
         d.contractPlace,
+        d.reverseCharge,
+        d.retentionPercent,
       ],
     );
     if (d.customerId) await tx.query("UPDATE customers SET last_activity_at=now() WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]);
@@ -450,10 +462,8 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
   const draft = await getDraft(ctx, id);
   const d = raw ? draftSchema.parse(raw) : draft;
   const org = await orgRow(ctx.db, ctx.orgId);
-  const calc = computeQuote(draftToCalcInput(d, org.vat_regime === "franchise"));
-  const customer = d.customerId
-    ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId])
-    : null;
+  const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
+  const customer = d.customerId ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null;
   const issues = checkCompliance(complianceInput(org, customer, d, calc));
   return { calc, issues, canIssue: !issues.some((i) => i.blocking) };
 }
@@ -461,7 +471,19 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
 function complianceInput(
   org: Organization,
   customer: Customer | null,
-  d: Pick<QuoteDraft, "title" | "description" | "site" | "validityDays" | "paymentTerms" | "sections" | "depositPercent" | "contractPlace">,
+  d: Pick<
+    QuoteDraft,
+    | "title"
+    | "description"
+    | "site"
+    | "validityDays"
+    | "paymentTerms"
+    | "sections"
+    | "depositPercent"
+    | "contractPlace"
+    | "reverseCharge"
+    | "retentionPercent"
+  >,
   calc: CalcResult,
 ) {
   return {
@@ -474,6 +496,7 @@ function complianceInput(
           billing_postal_code: customer.billing_postal_code,
           billing_city: customer.billing_city,
           siren: customer.siren,
+          vat_number: customer.vat_number,
         }
       : null,
     quote: {
@@ -486,6 +509,8 @@ function complianceInput(
       payment_terms: d.paymentTerms,
       deposit_percent: d.depositPercent,
       contract_place: d.contractPlace,
+      reverse_charge: d.reverseCharge,
+      retention_percent: d.retentionPercent,
     },
     lines: d.sections.flatMap((s) =>
       s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
@@ -514,7 +539,7 @@ export function frDate(isoDate: string) {
 
 /** Vérifie qu'un snapshot est cohérent : les totaux enregistrés sont ceux que le moteur recalcule. */
 export function verifySnapshot(s: QuoteSnapshot): { ok: boolean; reason?: string } {
-  const re = computeQuote(draftToCalcInput({ sections: s.sections, globalDiscount: s.quote.globalDiscount }, s.org.vat_regime === "franchise"));
+  const re = computeQuote(draftToCalcInput({ sections: s.sections, globalDiscount: s.quote.globalDiscount }, quoteVatExempt(s.org, s.quote)));
   if (canonicalJson(re) !== canonicalJson(s.calc)) return { ok: false, reason: "Les totaux enregistrés ne correspondent pas au recalcul" };
   const t = pdfTotals(s);
   if (t.totalTtc !== formatEuros(re.totalTtcCents) || t.totalHt !== formatEuros(re.totalHtCents)) {
@@ -578,8 +603,7 @@ export function buildSnapshot(args: {
       id: customer.id,
       type: customer.type,
       name: customerDisplayName(customer),
-      contact:
-        customer.type !== "particulier" ? [customer.civility, customer.first_name, customer.last_name].filter(Boolean).join(" ") : "",
+      contact: customer.type !== "particulier" ? [customer.civility, customer.first_name, customer.last_name].filter(Boolean).join(" ") : "",
       billing_line1: customer.billing_line1,
       billing_line2: customer.billing_line2,
       billing_postal_code: customer.billing_postal_code,
@@ -600,6 +624,8 @@ export function buildSnapshot(args: {
       estimatedDuration: d.estimatedDuration,
       estimatedStart: d.estimatedStart,
       globalDiscount: d.globalDiscount,
+      reverseCharge: d.reverseCharge,
+      retentionPercent: d.retentionPercent,
     },
     sections: d.sections,
     calc,
@@ -608,6 +634,8 @@ export function buildSnapshot(args: {
       customer: { type: customer.type, name: "", billing_line1: "", billing_postal_code: "", billing_city: "", siren: "" },
       validUntil: frDate(validUntil),
       depositPercent: d.depositPercent,
+      reverseCharge: d.reverseCharge,
+      retentionPercent: d.retentionPercent,
     }),
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
     consumer: consumerTerms(d.contractPlace, customer.type, calc, org.vat_regime),
@@ -642,11 +670,9 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     }
     const d = await getDraft(ctx, id, tx);
     const org = await orgRow(tx, ctx.orgId);
-    const customer = d.customerId
-      ? await one<Customer>(tx, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId])
-      : null;
+    const customer = d.customerId ? await one<Customer>(tx, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null;
     // Recalcul côté serveur : les totaux envoyés par le navigateur ne sont jamais utilisés.
-    const calc = computeQuote(draftToCalcInput(d, org.vat_regime === "franchise"));
+    const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
     const issues = checkCompliance(complianceInput(org, customer, d, calc));
     const blocking = issues.filter((i) => i.blocking);
     if (blocking.length || !customer) {
@@ -728,7 +754,7 @@ export async function previewPdf(ctx: Ctx, id: string): Promise<Uint8Array> {
       siren: "",
       vat_number: "",
     } as unknown as Customer);
-  const calc = computeQuote(draftToCalcInput(d, org.vat_regime === "franchise"));
+  const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
   const snapshot = buildSnapshot({
     ctx,
     d,
@@ -767,11 +793,11 @@ export async function listVersions(ctx: Ctx, quoteId: string) {
 }
 
 export async function getVersion(q: Queryable, orgId: string, quoteId: string, version: number) {
-  const r = await one<Record<string, unknown>>(
-    q,
-    "SELECT * FROM quote_versions WHERE quote_id=$1 AND org_id=$2 AND version=$3",
-    [quoteId, orgId, version],
-  );
+  const r = await one<Record<string, unknown>>(q, "SELECT * FROM quote_versions WHERE quote_id=$1 AND org_id=$2 AND version=$3", [
+    quoteId,
+    orgId,
+    version,
+  ]);
   if (!r) throw notFound("Version introuvable");
   return {
     id: String(r.id),
@@ -891,7 +917,9 @@ export async function compareVersions(ctx: Ctx, quoteId: string, a: number, b: n
       lines.push({ status: "added", label: l.label, changes: [] });
       continue;
     }
-    const changes = keys.filter((k) => String(old[k]) !== String(l[k])).map((k) => `${names[k]} : ${String(old[k]) || "(vide)"} devient ${String(l[k]) || "(vide)"}`);
+    const changes = keys
+      .filter((k) => String(old[k]) !== String(l[k]))
+      .map((k) => `${names[k]} : ${String(old[k]) || "(vide)"} devient ${String(l[k]) || "(vide)"}`);
     if (changes.length) lines.push({ status: "changed", label: l.label, changes });
   }
   for (const [id, l] of la) if (!lb.has(id)) lines.push({ status: "removed", label: l.label, changes: [] });
@@ -923,7 +951,11 @@ export async function revokeShareLinks(ctx: Ctx, quoteId: string) {
 }
 
 export const sendSchema = z.object({
-  to: z.string().trim().toLowerCase().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Adresse e-mail invalide"),
+  to: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Adresse e-mail invalide"),
   subject: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(10000),
   idempotencyKey: z.string().max(100).optional(),
@@ -1019,11 +1051,15 @@ export async function getShareLink(ctx: Ctx, quoteId: string) {
 }
 
 export async function resolveShareToken(q: Queryable, token: string) {
-  const link = await one<{ id: string; org_id: string; quote_id: string; version: unknown; expires_at: Date; revoked_at: Date | null; first_viewed_at: Date | null }>(
-    q,
-    "SELECT * FROM share_links WHERE token_hash=$1",
-    [sha256(String(token))],
-  );
+  const link = await one<{
+    id: string;
+    org_id: string;
+    quote_id: string;
+    version: unknown;
+    expires_at: Date;
+    revoked_at: Date | null;
+    first_viewed_at: Date | null;
+  }>(q, "SELECT * FROM share_links WHERE token_hash=$1", [sha256(String(token))]);
   if (!link || link.expires_at < new Date()) return null;
   const quote = await one<Record<string, unknown>>(q, "SELECT * FROM quotes WHERE id=$1 AND org_id=$2", [link.quote_id, link.org_id]);
   if (!quote) return null;
@@ -1074,12 +1110,7 @@ export const responseSchema = z.object({
 });
 
 /** Réponse du client depuis le lien : rattachée à la version exacte qu'il a consultée. */
-export async function respondFromLink(
-  db: Ctx["db"],
-  token: string,
-  raw: unknown,
-  meta: { ip: string; userAgent: string },
-) {
+export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown, meta: { ip: string; userAgent: string }) {
   const parsed = responseSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
   const input = parsed.data;
@@ -1102,10 +1133,11 @@ export async function respondFromLink(
     if (accepted && consumer?.reducedVatBp.length && !input.vatAttestation) {
       throw badRequest("Cochez l'attestation sur le taux réduit de TVA pour accepter");
     }
-    await tx.query(
-      `UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, updated_at=now() WHERE id=$1`,
-      [r.link.quote_id, accepted ? "accepted" : "refused", accepted ? r.version.version : null],
-    );
+    await tx.query(`UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, updated_at=now() WHERE id=$1`, [
+      r.link.quote_id,
+      accepted ? "accepted" : "refused",
+      accepted ? r.version.version : null,
+    ]);
     // Éléments de preuve conservés : version, empreinte du PDF, nom saisi, date, adresse IP, navigateur.
     await tx.query(
       `INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data, ip, user_agent)
@@ -1235,7 +1267,16 @@ export async function deleteDraft(ctx: Ctx, quoteId: string) {
 
 export async function quoteEvents(ctx: Ctx, quoteId: string) {
   await getQuoteRow(ctx.db, ctx, quoteId);
-  return ctx.db.query<{ id: string; type: string; version: number | null; actor_type: string; data: Record<string, unknown>; ip: string; created_at: Date; actor_name: string | null }>(
+  return ctx.db.query<{
+    id: string;
+    type: string;
+    version: number | null;
+    actor_type: string;
+    data: Record<string, unknown>;
+    ip: string;
+    created_at: Date;
+    actor_name: string | null;
+  }>(
     `SELECT e.id, e.type, e.version, e.actor_type, e.data, e.ip, e.created_at, u.name AS actor_name
      FROM document_events e LEFT JOIN users u ON u.id = e.actor_id
      WHERE e.quote_id=$1 AND e.org_id=$2 ORDER BY e.created_at DESC, e.id`,
@@ -1268,10 +1309,11 @@ export async function expireQuotes(q: Queryable, orgId?: string) {
     [today, orgId ?? null],
   );
   for (const r of rows) {
-    await q.query(
-      "INSERT INTO document_events (org_id, quote_id, version, type, actor_type) VALUES ($1,$2,$3,'expired','system')",
-      [r.org_id, r.id, num(r.current_version)],
-    );
+    await q.query("INSERT INTO document_events (org_id, quote_id, version, type, actor_type) VALUES ($1,$2,$3,'expired','system')", [
+      r.org_id,
+      r.id,
+      num(r.current_version),
+    ]);
   }
   return rows.length;
 }

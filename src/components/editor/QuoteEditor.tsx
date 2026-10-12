@@ -39,6 +39,7 @@ export interface EditorCustomer {
   email: string;
   phone: string;
   siren: string;
+  vat_number?: string;
 }
 
 type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
@@ -90,6 +91,8 @@ function payload(d: QuoteDraft) {
     template: d.template,
     internalNotes: d.internalNotes,
     contractPlace: d.contractPlace,
+    reverseCharge: d.reverseCharge,
+    retentionPercent: d.retentionPercent,
     sections: d.sections,
   };
 }
@@ -131,7 +134,8 @@ export function QuoteEditor({
   const inFlight = useRef<Promise<void> | null>(null);
   const latest = useRef(d);
   latest.current = d;
-  const vatExempt = org.vat_regime === "franchise";
+  const franchise = org.vat_regime === "franchise";
+  const vatExempt = franchise || d.reverseCharge;
 
   /* Calculs et contrôles en direct (même moteur que le serveur) */
   const calc = useMemo(() => computeQuote(draftToCalcInput(d, vatExempt)), [d, vatExempt]);
@@ -147,6 +151,7 @@ export function QuoteEditor({
               billing_postal_code: customer.billing_postal_code,
               billing_city: customer.billing_city,
               siren: customer.siren,
+              vat_number: customer.vat_number,
             }
           : null,
         quote: {
@@ -159,6 +164,8 @@ export function QuoteEditor({
           payment_terms: d.paymentTerms,
           deposit_percent: d.depositPercent,
           contract_place: d.contractPlace,
+          reverse_charge: d.reverseCharge,
+          retention_percent: d.retentionPercent,
         },
         lines: d.sections.flatMap((s) =>
           s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
@@ -409,7 +416,7 @@ export function QuoteEditor({
         unit: it.unit,
         unitPrice: price4ToInput(it.unit_price4),
         unitCost: it.unit_cost4 === null ? "" : price4ToInput(it.unit_cost4),
-        vatPercent: vatExempt ? "0" : bpToInput(it.vat_bp),
+        vatPercent: franchise ? "0" : bpToInput(it.vat_bp),
         estimated: it.source === "library",
         estimateNote: it.source === "library" ? "tarif indicatif de la bibliothèque, à adapter" : "",
       }),
@@ -784,14 +791,14 @@ export function QuoteEditor({
                     <button
                       type="button"
                       className="btn-ghost min-h-9 text-sm"
-                      onClick={() => addLines(s.id, [blankLine({ vatPercent: vatExempt ? "0" : defaultVat })])}
+                      onClick={() => addLines(s.id, [blankLine({ vatPercent: franchise ? "0" : defaultVat })])}
                     >
                       <Icon name="plus" size={16} /> Ligne libre
                     </button>
                     <button
                       type="button"
                       className="btn-ghost min-h-9 text-sm"
-                      onClick={() => addLines(s.id, [blankLine({ kind: "pending", quantity: "", vatPercent: vatExempt ? "0" : defaultVat })])}
+                      onClick={() => addLines(s.id, [blankLine({ kind: "pending", quantity: "", vatPercent: franchise ? "0" : defaultVat })])}
                     >
                       <Icon name="clock" size={16} /> À compléter
                     </button>
@@ -924,6 +931,36 @@ export function QuoteEditor({
                 </p>
               </div>
             </div>
+            {customer && customer.type !== "particulier" ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <span className="label">Sous-traitance</span>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4"
+                      checked={d.reverseCharge}
+                      disabled={franchise}
+                      onChange={(e) => set("reverseCharge", e.target.checked)}
+                    />
+                    <span>
+                      Travaux en sous-traitance : TVA autoliquidée par le client
+                      <span className="block text-xs text-muted">Le devis et les factures sont établis hors TVA, avec la mention légale.</span>
+                    </span>
+                  </label>
+                </div>
+                <div>
+                  <label className="label" htmlFor="q-retention">
+                    Retenue de garantie
+                  </label>
+                  <select id="q-retention" className="field" value={d.retentionPercent} onChange={(e) => set("retentionPercent", e.target.value)}>
+                    <option value="">Aucune</option>
+                    <option value="5">5 % du TTC</option>
+                  </select>
+                  <p className="mt-1 text-xs text-muted">Déduite de la facture de solde, libérée un an après la réception.</p>
+                </div>
+              </div>
+            ) : null}
             <div>
               <label className="label" htmlFor="q-payment">
                 Conditions de paiement
@@ -954,7 +991,7 @@ export function QuoteEditor({
         {/* Panneau latéral */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <section className="card p-4">
-            <Totals calc={calc} vatExempt={vatExempt} />
+            <Totals calc={calc} vatExempt={vatExempt} reverseCharge={!franchise && d.reverseCharge} />
             {showMargin ? (
               <div className="mt-3 rounded-md bg-surface-2 p-3 text-sm">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
@@ -1154,7 +1191,15 @@ function SaveIndicator({ state, error }: { state: SaveState; error: string }) {
   );
 }
 
-export function Totals({ calc, vatExempt }: { calc: ReturnType<typeof computeQuote>; vatExempt: boolean }) {
+export function Totals({
+  calc,
+  vatExempt,
+  reverseCharge = false,
+}: {
+  calc: ReturnType<typeof computeQuote>;
+  vatExempt: boolean;
+  reverseCharge?: boolean;
+}) {
   return (
     <dl className="space-y-1.5 text-sm">
       {calc.lineDiscountCents ? <Row label="Total avant remises" value={formatEuros(calc.grossCents)} muted /> : null}
@@ -1167,7 +1212,9 @@ export function Totals({ calc, vatExempt }: { calc: ReturnType<typeof computeQuo
       ) : null}
       <Row label="Total HT" value={formatEuros(calc.totalHtCents)} strong />
       {vatExempt ? (
-        <p className="text-xs text-muted">TVA non applicable, article 293 B du CGI</p>
+        <p className="text-xs text-muted">
+          {reverseCharge ? "TVA autoliquidée par le client, article 283-2 nonies du CGI" : "TVA non applicable, article 293 B du CGI"}
+        </p>
       ) : (
         calc.vatGroups.map((g) => (
           <Row key={g.vatBp} label={`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`} value={formatEuros(g.vatCents)} muted />
