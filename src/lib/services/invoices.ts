@@ -318,7 +318,12 @@ interface IssueArgs {
 
 function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean, dueDate: string): string[] {
   const m: string[] = [];
-  if (a.quote) m.push(`Selon devis n° ${a.quote.number} du ${frDate(a.quote.snapshot.issueDate)}, accepté par le client.`);
+  const amendment = a.quote?.snapshot.quote.amendment;
+  if (a.quote)
+    m.push(
+      `Selon devis n° ${a.quote.number} du ${frDate(a.quote.snapshot.issueDate)}, accepté par le client` +
+        (amendment ? `, avenant n° ${amendment.index} au devis n° ${amendment.parentNumber}.` : "."),
+    );
   if (a.creditedInvoice) m.push(`Avoir sur la facture n° ${a.creditedInvoice.number}.`);
   if (org.vat_regime === "franchise") m.push("TVA non applicable, article 293 B du Code général des impôts.");
   else if (a.reverseCharge) m.push(REVERSE_CHARGE_MENTION);

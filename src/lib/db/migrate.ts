@@ -12,6 +12,7 @@ import { sql as m010 } from "./migrations/010_catalogue_etiquettes";
 import { sql as m011 } from "./migrations/011_demandes";
 import { sql as m012 } from "./migrations/012_situations";
 import { sql as m013 } from "./migrations/013_echeanciers";
+import { sql as m014 } from "./migrations/014_avenants";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -28,6 +29,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "011_demandes", sql: m011 },
   { id: "012_situations", sql: m012 },
   { id: "013_echeanciers", sql: m013 },
+  { id: "014_avenants", sql: m014 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

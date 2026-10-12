@@ -48,6 +48,14 @@ export interface DraftSection {
   lines: DraftLine[];
 }
 
+export interface QuoteAmendment {
+  parentId: string;
+  index: number;
+  parentNumber: string;
+  /** Date d'acceptation du devis initial (AAAA-MM-JJ) */
+  parentAcceptedOn: string;
+}
+
 export interface QuoteDraft {
   id: string;
   number: string | null;
@@ -70,6 +78,8 @@ export interface QuoteDraft {
   reverseCharge: boolean;
   /** Retenue de garantie en pourcentage du TTC (5 au plus), vide si aucune */
   retentionPercent: string;
+  /** Avenant : devis accepté qu'il complète, absent pour un devis ordinaire */
+  amendment?: QuoteAmendment;
   sections: DraftSection[];
   draftRevision: number;
   currentVersion: number;
@@ -141,6 +151,7 @@ export interface QuoteSnapshot {
     globalDiscount: string;
     reverseCharge?: boolean;
     retentionPercent?: string;
+    amendment?: Omit<QuoteAmendment, "parentId">;
   };
   sections: DraftSection[];
   calc: CalcResult;

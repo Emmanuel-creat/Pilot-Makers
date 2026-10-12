@@ -284,11 +284,13 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   // Bloc titre à droite
   let rightY = w.y;
   const rx = A4.w - M.right;
-  w.textRight(opts?.title ?? "DEVIS", rx, rightY - 20, 22, f.bold, accent);
+  const amendment = s.quote.amendment;
+  w.textRight(opts?.title ?? (amendment ? `AVENANT N° ${amendment.index}` : "DEVIS"), rx, rightY - 20, 22, f.bold, accent);
   rightY -= 36;
   const meta = (
     opts?.meta ?? [
       `N° ${s.number}${s.version > 1 ? ` (version ${s.version})` : ""}`,
+      amendment ? `Au devis n° ${amendment.parentNumber}` : "",
       `Date : ${fmtDate(s.issueDate)}`,
       `Valable jusqu'au : ${fmtDate(s.validUntil)}`,
       s.author ? `Établi par : ${s.author}` : "",

@@ -11,9 +11,9 @@ import { requirePageCtx } from "@/lib/server/session";
 import { EVENT_LABELS } from "@/lib/services/dashboard";
 import { customerDisplayName, getCustomer, searchCustomers } from "@/lib/services/customers";
 import { getOrganization } from "@/lib/services/organization";
-import { EDITABLE_STATUSES, PENDING_STATUSES } from "@/lib/services/quote-types";
-import { getDraft, getQuoteRow, getVersion, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
-import { archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
+import { EDITABLE_STATUSES, PENDING_STATUSES, QUOTE_STATUSES } from "@/lib/services/quote-types";
+import { getDraft, getQuoteRow, getVersion, listAmendments, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
+import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
 import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
@@ -122,6 +122,8 @@ export default async function QuotePage({
     [id, ctx.orgId],
   );
   const activeLinks = num(links[0]?.n);
+  const amendments = await listAmendments(ctx, id);
+  const acceptedAmendments = amendments.filter((a) => a.status === "accepted");
   const pending = PENDING_STATUSES.includes(draft.status);
   const status = draft.status;
   const validUntil = row.valid_until ? String(row.valid_until instanceof Date ? row.valid_until.toISOString() : row.valid_until).slice(0, 10) : null;
@@ -137,6 +139,14 @@ export default async function QuotePage({
             <h1 className="text-2xl font-semibold tracking-tight">{draft.number ?? "Brouillon"}</h1>
             <StatusBadge status={status} />
           </div>
+          {draft.amendment ? (
+            <p className="mt-1 text-sm">
+              Avenant n° {draft.amendment.index} au devis{" "}
+              <Link href={`/app/devis/${draft.amendment.parentId}`} className="link">
+                {draft.amendment.parentNumber}
+              </Link>
+            </p>
+          ) : null}
           <p className="mt-1 text-sm text-muted">
             {draft.title || "Sans objet"}
             {customer ? (
@@ -166,7 +176,7 @@ export default async function QuotePage({
       {editable && !writable ? <Notice tone="warning">Ce brouillon est en lecture seule : {ctx.entitlements.notice}</Notice> : null}
       {status === "accepted" ? (
         <Notice tone="success" title={`Version ${draft.acceptedVersion} acceptée`}>
-          Ce devis est figé. Pour des travaux supplémentaires, dupliquez-le pour créer un nouveau devis (avenant).{" "}
+          Ce devis est figé. Pour des travaux supplémentaires ou modifiés, créez un avenant : il reprend le client, le chantier et les conditions.{" "}
           <a href={`/api/quotes/${id}/pdf?signe=1`} className="link" target="_blank" rel="noreferrer">
             Exemplaire accepté (PDF)
           </a>
@@ -210,6 +220,46 @@ export default async function QuotePage({
               </div>
             ) : null}
           </section>
+
+          {amendments.length || (status === "accepted" && !draft.amendment && writable) ? (
+            <section className="card space-y-3 p-4 text-sm">
+              <h2 className="font-semibold">Avenants</h2>
+              {amendments.length ? (
+                <ul className="divide-y divide-line">
+                  {amendments.map((a) => (
+                    <li key={a.id} className="flex items-start justify-between gap-2 py-2">
+                      <div className="min-w-0">
+                        <Link href={`/app/devis/${a.id}`} className="link font-medium">
+                          Avenant n° {a.index}
+                          {a.number ? ` (${a.number})` : ""}
+                        </Link>
+                        <div className="text-xs text-muted">{QUOTE_STATUSES[a.status]}</div>
+                      </div>
+                      <span className="tabular shrink-0">{formatEuros(a.ttcCents)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted">Aucun avenant pour l'instant.</p>
+              )}
+              {acceptedAmendments.length ? (
+                <div className="flex justify-between border-t border-line pt-2">
+                  <span className="text-muted">Total avec avenants acceptés</span>
+                  <span className="tabular font-semibold">
+                    {formatEuros(num(row.total_ttc_cents) + acceptedAmendments.reduce((t, a) => t + a.ttcCents, 0))}
+                  </span>
+                </div>
+              ) : null}
+              {status === "accepted" && writable ? (
+                <form action={amendQuoteAction}>
+                  <input type="hidden" name="id" value={id} />
+                  <button className="btn-secondary w-full">
+                    <Icon name="plus" size={16} /> Créer un avenant
+                  </button>
+                </form>
+              ) : null}
+            </section>
+          ) : null}
 
           {status === "accepted" || invoices.length ? (
             <section className="card space-y-3 p-4">

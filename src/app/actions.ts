@@ -27,7 +27,7 @@ import { bulkAdjustPrices, duplicateItem, installLibrary, setItemFlags } from "@
 import type { Ctx } from "@/lib/services/context";
 import { setCustomerArchived } from "@/lib/services/customers";
 import { updateOrganization } from "@/lib/services/organization";
-import { cancelQuote, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
+import { cancelQuote, createAmendment, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
 import { convertLeadToQuote, createLead, updateLead } from "@/lib/services/leads";
 import { createQuoteFromTemplate, deleteTemplate, renameTemplate } from "@/lib/services/templates";
@@ -425,6 +425,11 @@ export async function deleteTemplateAction(fd: FormData) {
 
 export async function duplicateQuoteAction(fd: FormData) {
   const id = await withCtx((ctx) => duplicateQuote(ctx, s(fd, "id"), { replace: s(fd, "replace") === "1", customerId: s(fd, "customerId") || undefined }));
+  redirect(`/app/devis/${id}`);
+}
+
+export async function amendQuoteAction(fd: FormData) {
+  const id = await withCtx((ctx) => createAmendment(ctx, s(fd, "id")));
   redirect(`/app/devis/${id}`);
 }
 

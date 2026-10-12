@@ -147,7 +147,9 @@ export async function getQuoteRow(q: Queryable, ctx: Pick<Ctx, "orgId">, id: str
   if (!isUuid(id)) throw notFound("Devis introuvable");
   const r = await one<Record<string, unknown>>(
     q,
-    "SELECT q.*, u.name AS author_name FROM quotes q LEFT JOIN users u ON u.id=q.author_id WHERE q.id=$1 AND q.org_id=$2",
+    `SELECT q.*, u.name AS author_name, p.number AS parent_number, p.responded_at AS parent_responded_at
+     FROM quotes q LEFT JOIN users u ON u.id=q.author_id LEFT JOIN quotes p ON p.id=q.amends_quote_id AND p.org_id=q.org_id
+     WHERE q.id=$1 AND q.org_id=$2`,
     [id, ctx.orgId],
   );
   if (!r) throw notFound("Devis introuvable");
@@ -181,6 +183,16 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     contractPlace: isContractPlace(r.contract_place) ? r.contract_place : ("auto" as const),
     reverseCharge: r.reverse_charge === true,
     retentionPercent: String(r.retention_percent ?? ""),
+    ...(r.amends_quote_id
+      ? {
+          amendment: {
+            parentId: String(r.amends_quote_id),
+            index: num(r.amendment_index),
+            parentNumber: String(r.parent_number ?? ""),
+            parentAcceptedOn: r.parent_responded_at ? parisDate(new Date(r.parent_responded_at as string | Date)) : "",
+          },
+        }
+      : {}),
     sections: await loadSections(q, id, ctx.orgId),
     draftRevision: num(r.draft_revision),
     currentVersion: num(r.current_version),
@@ -556,6 +568,13 @@ export function verifySnapshot(s: QuoteSnapshot): { ok: boolean; reason?: string
   return { ok: true };
 }
 
+export function amendmentMention(a: { index: number; parentNumber: string; parentAcceptedOn: string }) {
+  return (
+    `Avenant n° ${a.index} au devis n° ${a.parentNumber}${a.parentAcceptedOn ? ` accepté le ${frDate(a.parentAcceptedOn)}` : ""}. ` +
+    "Il porte sur des travaux supplémentaires ou modifiés ; les conditions du devis initial qu'il ne modifie pas restent applicables."
+  );
+}
+
 /** Construit la photographie figée d'un devis (utilisée à l'émission et pour l'aperçu). */
 export function buildSnapshot(args: {
   ctx: Ctx;
@@ -634,18 +653,24 @@ export function buildSnapshot(args: {
       globalDiscount: d.globalDiscount,
       reverseCharge: d.reverseCharge,
       retentionPercent: d.retentionPercent,
+      ...(d.amendment
+        ? { amendment: { index: d.amendment.index, parentNumber: d.amendment.parentNumber, parentAcceptedOn: d.amendment.parentAcceptedOn } }
+        : {}),
     },
     // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
     sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, ...l }) => l) })),
     calc,
-    mentions: buildMentions({
-      org,
-      customer: { type: customer.type, name: "", billing_line1: "", billing_postal_code: "", billing_city: "", siren: "" },
-      validUntil: frDate(validUntil),
-      depositPercent: d.depositPercent,
-      reverseCharge: d.reverseCharge,
-      retentionPercent: d.retentionPercent,
-    }),
+    mentions: [
+      ...(d.amendment ? [amendmentMention(d.amendment)] : []),
+      ...buildMentions({
+        org,
+        customer: { type: customer.type, name: "", billing_line1: "", billing_postal_code: "", billing_city: "", siren: "" },
+        validUntil: frDate(validUntil),
+        depositPercent: d.depositPercent,
+        reverseCharge: d.reverseCharge,
+        retentionPercent: d.retentionPercent,
+      }),
+    ],
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
     consumer: consumerTerms(d.contractPlace, customer.type, calc, org.vat_regime),
   };
@@ -1298,6 +1323,69 @@ export async function duplicateQuote(ctx: Ctx, quoteId: string, opts: { replace?
   }
   await addEvent(ctx.db, ctx, newId, null, "duplicated", { from: quoteId });
   return newId;
+}
+
+/**
+ * Avenant : nouveau devis rattaché à un devis accepté, pour des travaux supplémentaires
+ * ou modifiés. Il reprend le client, le chantier et les conditions, puis suit son propre
+ * cycle (émission, acceptation, facture). Les avenants d'un avenant se rattachent au devis initial.
+ */
+export async function createAmendment(ctx: Ctx, quoteId: string) {
+  requireWritable(ctx);
+  const src = await getDraft(ctx, quoteId);
+  const rootId = src.amendment?.parentId ?? quoteId;
+  const root = rootId === quoteId ? src : await getDraft(ctx, rootId);
+  if (root.status !== "accepted") throw conflict("Un avenant se rattache à un devis accepté");
+  const index = await ctx.db.transaction(async (tx) => {
+    // Verrou sur le devis initial : deux avenants créés en même temps ne prennent pas le même numéro.
+    await tx.query("SELECT id FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE", [rootId, ctx.orgId]);
+    const r = await one<{ n: unknown }>(tx, "SELECT coalesce(max(amendment_index), 0) + 1 AS n FROM quotes WHERE amends_quote_id=$1 AND org_id=$2", [
+      rootId,
+      ctx.orgId,
+    ]);
+    return num(r?.n);
+  });
+  const newId = await createQuote(ctx, { customerId: root.customerId });
+  await ctx.db.query("UPDATE quotes SET amends_quote_id=$3, amendment_index=$4 WHERE id=$1 AND org_id=$2", [newId, ctx.orgId, rootId, index]);
+  const fresh = await getDraft(ctx, newId);
+  await saveDraft(
+    ctx,
+    newId,
+    {
+      ...fresh,
+      title: `Avenant n° ${index}${root.title ? ` : ${root.title}` : ""}`,
+      site: root.site,
+      paymentTerms: root.paymentTerms,
+      contractPlace: root.contractPlace,
+      reverseCharge: root.reverseCharge,
+      retentionPercent: root.retentionPercent,
+      template: root.template,
+      sections: [{ id: randomUUID(), title: "Travaux supplémentaires", description: "", lines: [] }],
+    },
+    fresh.draftRevision,
+  );
+  await addEvent(ctx.db, ctx, rootId, null, "amendment_created", { amendment: newId, index });
+  await addEvent(ctx.db, ctx, newId, null, "amendment_of", { from: rootId, index });
+  return newId;
+}
+
+/** Avenants d'un devis, dans l'ordre. */
+export async function listAmendments(ctx: Ctx, quoteId: string) {
+  return (
+    await ctx.db.query<Record<string, unknown>>(
+      `SELECT id, number, title, status, amendment_index, total_ht_cents, total_ttc_cents FROM quotes
+       WHERE amends_quote_id=$1 AND org_id=$2 ORDER BY amendment_index`,
+      [quoteId, ctx.orgId],
+    )
+  ).map((r) => ({
+    id: String(r.id),
+    number: (r.number as string | null) ?? null,
+    title: String(r.title),
+    status: r.status as QuoteStatus,
+    index: num(r.amendment_index),
+    htCents: num(r.total_ht_cents),
+    ttcCents: num(r.total_ttc_cents),
+  }));
 }
 
 export async function cancelQuote(ctx: Ctx, quoteId: string, reason: string) {

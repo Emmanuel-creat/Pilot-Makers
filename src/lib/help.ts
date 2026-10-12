@@ -201,6 +201,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["La facture garde sa date d'échéance d'origine : l'échéancier est un accord de règlement qui s'y ajoute."],
   },
   {
+    slug: "avenant-travaux-supplementaires",
+    category: "devis",
+    title: "Avenant pour des travaux supplémentaires",
+    summary: "Ajouter ou modifier des travaux après l'acceptation d'un devis, sans toucher au devis signé.",
+    steps: [
+      "Ouvrez le devis accepté et cliquez sur « Créer un avenant » : le client, le chantier et les conditions sont repris.",
+      "Ajoutez les travaux supplémentaires ou modifiés, puis émettez et envoyez l'avenant comme un devis.",
+      "Le PDF porte le titre « Avenant n° » et rappelle le devis initial ; le client l'accepte en ligne comme un devis.",
+      "Une fois accepté, l'avenant se facture à part ; la fiche du devis initial affiche le total avec avenants acceptés.",
+    ],
+    notes: ["Les avenants sont numérotés dans l'ordre pour chaque devis initial."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

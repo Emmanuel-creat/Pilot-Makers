@@ -178,6 +178,8 @@ export const EVENT_LABELS: Record<string, string> = {
   canceled: "Annulé",
   replaced: "Remplacé par un nouveau devis",
   duplicated: "Créé par duplication",
+  amendment_created: "Avenant créé",
+  amendment_of: "Créé comme avenant",
   "revision.started": "Nouvelle version en préparation",
   "version.superseded": "Version remplacée",
   "link.created": "Lien de consultation créé",
