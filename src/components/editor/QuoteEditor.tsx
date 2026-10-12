@@ -222,15 +222,87 @@ export function QuoteEditor({
     return () => clearTimeout(t);
   }, [toast]);
 
+  const saveAsTemplate = async () => {
+    const name = window.prompt("Nom du modèle (ex. : Salle de bain complète)", d.title);
+    if (!name?.trim()) return;
+    await flush();
+    try {
+      await apiFetch("/api/quote-templates", { method: "POST", json: { quoteId: initial.id, name } });
+      setToast(`Modèle « ${name.trim()} » enregistré`);
+    } catch (e) {
+      setToast(e instanceof ApiError ? e.message : "Enregistrement du modèle impossible");
+    }
+  };
+
   const flush = async () => {
     if (savedSeq.current < changeSeq.current || save === "dirty" || save === "saving") await doSave();
   };
 
-  const update = (fn: (d: QuoteDraft) => QuoteDraft) => {
+  /* Historique pour annuler et rétablir. Les frappes rapprochées forment une seule étape. */
+  const past = useRef<QuoteDraft[]>([]);
+  const future = useRef<QuoteDraft[]>([]);
+  const lastPush = useRef(0);
+  const [, setHistoryTick] = useState(0);
+  const markDirty = () => {
     changeSeq.current++;
-    setD((old) => fn(old));
     setSave((s) => (s === "conflict" ? s : "dirty"));
   };
+  const update = (fn: (d: QuoteDraft) => QuoteDraft) => {
+    const before = latest.current;
+    const next = fn(before);
+    if (next === before) return;
+    const now = Date.now();
+    if (now - lastPush.current > 800 || past.current.length === 0) {
+      past.current = [...past.current.slice(-99), before];
+    }
+    lastPush.current = now;
+    future.current = [];
+    latest.current = next;
+    setD(next);
+    setHistoryTick((t) => t + 1);
+    markDirty();
+  };
+  const undo = () => {
+    const prev = past.current.at(-1);
+    if (!prev) return;
+    past.current = past.current.slice(0, -1);
+    future.current = [latest.current, ...future.current];
+    lastPush.current = 0;
+    latest.current = prev;
+    setD(prev);
+    setHistoryTick((t) => t + 1);
+    markDirty();
+  };
+  const redo = () => {
+    const next = future.current[0];
+    if (!next) return;
+    future.current = future.current.slice(1);
+    past.current = [...past.current, latest.current];
+    lastPush.current = 0;
+    latest.current = next;
+    setD(next);
+    setHistoryTick((t) => t + 1);
+    markDirty();
+  };
+  const undoRef = useRef(undo);
+  const redoRef = useRef(redo);
+  undoRef.current = undo;
+  redoRef.current = redo;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoRef.current();
+      } else if ((k === "z" && e.shiftKey) || k === "y") {
+        e.preventDefault();
+        redoRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const set = <K extends keyof QuoteDraft>(k: K, v: QuoteDraft[K]) => update((o) => ({ ...o, [k]: v }));
   const setSection = (sid: string, fn: (s: DraftSection) => DraftSection) =>
     update((o) => ({ ...o, sections: o.sections.map((s) => (s.id === sid ? fn(s) : s)) }));
@@ -305,7 +377,7 @@ export function QuoteEditor({
         catalogItemId: it.id,
         nature: it.category,
         label: it.name,
-        description: it.description,
+        description: [it.description, it.composition_text].filter(Boolean).join("\n"),
         unit: it.unit,
         unitPrice: price4ToInput(it.unit_price4),
         unitCost: it.unit_cost4 === null ? "" : price4ToInput(it.unit_cost4),
@@ -390,6 +462,31 @@ export function QuoteEditor({
             <SaveIndicator state={save} error={saveError} />
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <button
+                type="button"
+                className="btn-ghost min-h-9 px-2"
+                onClick={undo}
+                disabled={past.current.length === 0}
+                aria-label="Annuler la dernière modification"
+                title="Annuler (Ctrl+Z)"
+              >
+                <Icon name="undo" />
+              </button>
+              <button
+                type="button"
+                className="btn-ghost min-h-9 px-2"
+                onClick={redo}
+                disabled={future.current.length === 0}
+                aria-label="Rétablir la modification annulée"
+                title="Rétablir (Ctrl+Maj+Z)"
+              >
+                <Icon name="redo" />
+              </button>
+            </div>
+            <button type="button" className="btn-ghost hidden min-h-9 md:inline-flex" onClick={saveAsTemplate} title="Enregistrer comme modèle de devis">
+              <Icon name="copy" size={16} /> Modèle
+            </button>
             <button type="button" className="btn-secondary hidden sm:inline-flex" onClick={preview}>
               <Icon name="eye" size={16} /> Aperçu PDF
             </button>

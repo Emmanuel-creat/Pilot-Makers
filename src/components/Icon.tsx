@@ -58,6 +58,8 @@ const PATHS: Record<string, string> = {
   tag: "M3.5 12.5V4h8.5l8.5 8.5-8 8zM8 8.5h.01",
   play: "M8 5.5v13l10-6.5z",
   refresh: "M19.5 8A8 8 0 0 0 5 9M4.5 16A8 8 0 0 0 19 15M19.5 4v4h-4M4.5 20v-4h4",
+  undo: "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
+  redo: "m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13",
 };
 
 export type IconName = keyof typeof PATHS;

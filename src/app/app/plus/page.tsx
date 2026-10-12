@@ -9,6 +9,7 @@ export const metadata = { title: "Plus" };
 export default async function MorePage() {
   const ctx = await requirePageCtx();
   const links = [
+    ["/app/modeles", "Modèles de devis", "copy"],
     ["/app/entreprise", "Entreprise", "building"],
     ["/app/equipe", "Équipe", "team"],
     ["/app/abonnement", "Abonnement", "card"],

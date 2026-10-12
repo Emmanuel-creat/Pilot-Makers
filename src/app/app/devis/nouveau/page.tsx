@@ -3,13 +3,14 @@ import { PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { customerDisplayName, searchCustomers } from "@/lib/services/customers";
 import { newQuoteAction } from "@/app/actions";
+import { listTemplates } from "@/lib/services/templates";
 
 export const metadata = { title: "Nouveau devis" };
 
-export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ client?: string }> }) {
+export default async function NewQuotePage({ searchParams }: { searchParams: Promise<{ client?: string; modele?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const customers = await searchCustomers(ctx, { limit: 500 });
+  const [customers, templates] = await Promise.all([searchCustomers(ctx, { limit: 500 }), listTemplates(ctx)]);
   const assistant = ctx.entitlements.plan.aiQuotaMonth > 0;
   return (
     <div className="mx-auto max-w-2xl">
@@ -30,6 +31,22 @@ export default async function NewQuotePage({ searchParams }: { searchParams: Pro
           </select>
           <p className="mt-1 text-xs text-muted">Vous pourrez aussi créer le client directement dans le devis.</p>
         </div>
+        {templates.length ? (
+          <div>
+            <label className="label" htmlFor="n-template">
+              Partir d'un modèle
+            </label>
+            <select id="n-template" name="templateId" className="field" defaultValue={sp.modele ?? ""}>
+              <option value="">Aucun modèle</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.line_count} ligne{t.line_count > 1 ? "s" : ""})
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted">Les sections, lignes et conditions du modèle sont recopiées dans le nouveau devis.</p>
+          </div>
+        ) : null}
         <div>
           <label className="label" htmlFor="n-title">
             Objet des travaux

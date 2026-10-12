@@ -58,7 +58,18 @@ function marginHint(price: string, cost: string) {
   return { rate: ((p - c) / p) * 100, coef: p / c };
 }
 
-export function ItemForm({ id, initial = EMPTY_ITEM, showCosts }: { id?: string; initial?: ItemFormValue; showCosts: boolean }) {
+export function ItemForm({
+  id,
+  initial = EMPTY_ITEM,
+  showCosts,
+  computed = false,
+}: {
+  id?: string;
+  initial?: ItemFormValue;
+  showCosts: boolean;
+  /** Ouvrage composé : prix et coût viennent des composants */
+  computed?: boolean;
+}) {
   const router = useRouter();
   const [v, setV] = useState(initial);
   const [error, setError] = useState("");
@@ -138,7 +149,12 @@ export function ItemForm({ id, initial = EMPTY_ITEM, showCosts }: { id?: string;
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
-        {text("unit_price", "Prix de vente HT (€)", { inputMode: "decimal", required: true })}
+        {text("unit_price", computed ? "Prix de vente HT (€), calculé" : "Prix de vente HT (€)", {
+          inputMode: "decimal",
+          required: true,
+          readOnly: computed,
+          title: computed ? "Somme des composants de l'ouvrage" : undefined,
+        })}
         <div>
           <label className="label" htmlFor="i-vat">
             TVA par défaut (%)
@@ -158,7 +174,7 @@ export function ItemForm({ id, initial = EMPTY_ITEM, showCosts }: { id?: string;
         <div className="rounded-md bg-surface-2 p-4">
           <p className="mb-3 text-xs font-medium text-muted">Informations internes, jamais visibles par le client</p>
           <div className="grid gap-3 sm:grid-cols-3">
-            {text("unit_cost", "Coût d'achat HT (€)", { inputMode: "decimal" })}
+            {text("unit_cost", computed ? "Coût HT (€), calculé" : "Coût d'achat HT (€)", { inputMode: "decimal", readOnly: computed })}
             {text("hourly_cost", "Coût horaire (€)", { inputMode: "decimal" })}
             <div>
               <label className="label" htmlFor="i-duration">

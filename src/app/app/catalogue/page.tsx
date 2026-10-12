@@ -99,6 +99,7 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             active: r.active,
             usage_count: r.usage_count,
             source: r.source,
+            kind: r.kind,
           }))}
         />
       )}

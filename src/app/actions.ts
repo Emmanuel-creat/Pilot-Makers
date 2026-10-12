@@ -29,6 +29,7 @@ import { setCustomerArchived } from "@/lib/services/customers";
 import { updateOrganization } from "@/lib/services/organization";
 import { cancelQuote, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
+import { createQuoteFromTemplate, deleteTemplate, renameTemplate } from "@/lib/services/templates";
 import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableTwoFactor, regenerateRecoveryCodes } from "@/lib/services/two-factor";
 import { acceptInvite, changeRole, inviteMember, removeMember, switchOrg } from "@/lib/services/team";
 import type { LibraryTrade } from "@/lib/library";
@@ -385,8 +386,28 @@ export async function installLibraryAction(_: ActionState, fd: FormData): Promis
 
 export async function newQuoteAction(fd: FormData) {
   const customerId = s(fd, "customerId") || null;
-  const id = await withCtx((ctx) => createQuote(ctx, { customerId, title: s(fd, "title").slice(0, 300), description: s(fd, "description").slice(0, 8000) }));
-  redirect(`/app/devis/${id}${s(fd, "mode") === "assistant" ? "?assistant=1" : ""}`);
+  const templateId = s(fd, "templateId");
+  const id = await withCtx((ctx) =>
+    templateId
+      ? createQuoteFromTemplate(ctx, templateId, { customerId, title: s(fd, "title").slice(0, 300) })
+      : createQuote(ctx, { customerId, title: s(fd, "title").slice(0, 300), description: s(fd, "description").slice(0, 8000) }),
+  );
+  redirect(`/app/devis/${id}${s(fd, "mode") === "assistant" && !templateId ? "?assistant=1" : ""}`);
+}
+
+export async function renameTemplateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => renameTemplate(ctx, s(fd, "id"), { name: s(fd, "name"), description: s(fd, "description") }));
+    revalidatePath("/app/modeles");
+    return { ok: true, message: "Modèle enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteTemplateAction(fd: FormData) {
+  await withCtx((ctx) => deleteTemplate(ctx, s(fd, "id")));
+  revalidatePath("/app/modeles");
 }
 
 export async function duplicateQuoteAction(fd: FormData) {

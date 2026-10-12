@@ -10,6 +10,7 @@ import { badRequest, conflict, notFound } from "@/lib/http";
 import { LIBRARY, LIBRARY_DATE, LIBRARY_NOTE, type LibraryTrade } from "@/lib/library";
 import type { Ctx } from "./context";
 import { audit, requireWritable } from "./context";
+import { recomputeOuvrage, recomputeParentsOf } from "./ouvrages";
 
 export const CATEGORIES = {
   materiau: "Matériaux",
@@ -44,6 +45,8 @@ export interface CatalogItem {
   usage_count: number;
   source: string;
   source_note: string;
+  kind: "simple" | "ouvrage";
+  composition_text: string;
   updated_at: Date;
   updated_by_name?: string | null;
 }
@@ -225,6 +228,9 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
         [ctx.orgId, id, before.unit_price4, d.unit_price, before.unit_cost4, d.unit_cost, ctx.userId],
       );
     }
+    // Le prix d'un ouvrage vient de ses composants ; ceux qui utilisent cette prestation suivent son nouveau prix.
+    if (before.kind === "ouvrage") await recomputeOuvrage(tx, ctx.orgId, id, ctx.userId);
+    else await recomputeParentsOf(tx, ctx.orgId, [id], ctx.userId);
   });
 }
 
@@ -327,6 +333,7 @@ export async function bulkAdjustPrices(ctx: Ctx, ids: string[], percent: string)
       const cur = await one(tx, "SELECT * FROM catalog_items WHERE id=$1 AND org_id=$2", [id, ctx.orgId]);
       if (!cur) continue;
       const it = mapItem(cur);
+      if (it.kind === "ouvrage") continue;
       const raw = BigInt(it.unit_price4) * (10000n + bp);
       // Arrondi au centime (100 en dix-millièmes), moitié vers le haut.
       const next = Number(((raw / 10000n + 50n) / 100n) * 100n);
@@ -342,6 +349,7 @@ export async function bulkAdjustPrices(ctx: Ctx, ids: string[], percent: string)
       );
       count++;
     }
+    await recomputeParentsOf(tx, ctx.orgId, ids, ctx.userId);
     await audit(tx, { orgId: ctx.orgId, userId: ctx.userId, action: "catalog.bulk_price", data: { count, percent } });
   });
   return { updated: count };

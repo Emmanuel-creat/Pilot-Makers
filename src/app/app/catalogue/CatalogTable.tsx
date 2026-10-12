@@ -20,6 +20,7 @@ export interface Row {
   active: boolean;
   usage_count: number;
   source: string;
+  kind: string;
 }
 
 export function CatalogTable({ rows, showCosts, categories }: { rows: Row[]; showCosts: boolean; categories: Record<string, string> }) {
@@ -88,6 +89,7 @@ export function CatalogTable({ rows, showCosts, categories }: { rows: Row[]; sho
                   </Link>
                   <div className="text-xs text-muted">
                     {r.reference}
+                    {r.kind === "ouvrage" ? <span className="ml-2 rounded bg-accent-soft px-1.5 py-0.5 text-accent">ouvrage</span> : null}
                     {r.source === "library" ? <span className="ml-2 text-warning">tarif indicatif à adapter</span> : null}
                   </div>
                 </td>
