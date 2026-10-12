@@ -17,6 +17,7 @@ import { sql as m015 } from "./migrations/015_tarifs";
 import { sql as m016 } from "./migrations/016_limitation_debit";
 import { sql as m017 } from "./migrations/017_assistant_habitudes";
 import { sql as m018 } from "./migrations/018_chutes";
+import { sql as m019 } from "./migrations/019_objectifs";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -38,6 +39,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "016_limitation_debit", sql: m016 },
   { id: "017_assistant_habitudes", sql: m017 },
   { id: "018_chutes", sql: m018 },
+  { id: "019_objectifs", sql: m019 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

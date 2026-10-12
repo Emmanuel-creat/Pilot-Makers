@@ -62,6 +62,7 @@ test("les pages principales s'affichent", async ({ page }) => {
     ["/app/devis", "Devis"],
     ["/app/clients", "Clients"],
     ["/app/demandes", "Demandes"],
+    ["/app/rapports", "Rapports"],
     ["/app/catalogue", "Catalogue"],
     ["/app/factures", "Factures"],
     ["/app/modeles", "Modèles de devis"],

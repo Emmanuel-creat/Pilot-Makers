@@ -234,6 +234,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "rapports-et-objectifs",
+    category: "devis",
+    title: "Rapports et objectifs mensuels",
+    summary: "Suivre le signé, le facturé et l'encaissé, le taux de signature, les délais et le panier moyen.",
+    steps: [
+      "Ouvrez « Rapports » : les 12 derniers mois sont détaillés mois par mois.",
+      "Fixez vos objectifs du mois (montant signé, devis envoyés) : la progression s'affiche en haut de la page.",
+      "Comparez le taux de signature par type de travaux et par auteur du devis.",
+      "Exportez le rapport au format tableur, ou imprimez-le et enregistrez-le en PDF.",
+    ],
+    notes: ["Un devis signé n'est pas encore encaissé : les trois montants sont présentés séparément."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

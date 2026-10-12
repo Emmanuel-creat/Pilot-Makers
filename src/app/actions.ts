@@ -27,6 +27,7 @@ import { bulkAdjustPrices, duplicateItem, installLibrary, setItemFlags } from "@
 import type { Ctx } from "@/lib/services/context";
 import { setCustomerArchived } from "@/lib/services/customers";
 import { savePricing, updateOrganization } from "@/lib/services/organization";
+import { saveGoals } from "@/lib/services/reports";
 import { cancelQuote, createAmendment, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
 import { convertLeadToQuote, createLead, updateLead } from "@/lib/services/leads";
@@ -565,6 +566,16 @@ export async function releaseAction(_: ActionState, fd: FormData): Promise<Actio
 }
 
 /* Factures ---------------------------------------------------------- */
+
+export async function saveGoalsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => saveGoals(ctx, { signed: s(fd, "signed"), sent: s(fd, "sent") }));
+    revalidatePath("/app/rapports");
+    return { ok: true, message: "Objectifs enregistrés." };
+  } catch (e) {
+    return toState(e);
+  }
+}
 
 export async function savePricingAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
