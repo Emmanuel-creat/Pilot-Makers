@@ -20,6 +20,7 @@ export function draftToCalcInput(d: Pick<QuoteDraft, "sections" | "globalDiscoun
         discountPercent: l.discountPercent,
         vatPercent: l.vatPercent,
         nature: l.nature,
+        ...(l.optional && l.kind === "item" ? { optional: true } : {}),
       })),
     })),
   };

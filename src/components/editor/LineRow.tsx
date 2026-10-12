@@ -65,9 +65,10 @@ export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, 
   }
 
   const pending = line.kind === "pending";
+  const optional = line.kind === "item" && line.optional === true;
   return (
     <div
-      className={`group rounded-md border px-2 py-2 ${pending ? "border-warning/50 bg-warning-soft/40" : "border-line bg-surface"} ${dragOver ? "ring-2 ring-accent" : ""}`}
+      className={`group rounded-md border px-2 py-2 ${pending ? "border-warning/50 bg-warning-soft/40" : optional ? "border-dashed border-accent/50 bg-accent-soft/40" : "border-line bg-surface"} ${dragOver ? "ring-2 ring-accent" : ""}`}
       {...dragHandlers}
     >
       <div className="flex items-start gap-2">
@@ -82,6 +83,7 @@ export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, 
             aria-label="Désignation"
           />
           <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 px-1.5 text-xs text-muted">
+            {optional ? <span className="rounded bg-accent px-1.5 py-0.5 font-medium text-white dark:text-[#0d1520]">Option, hors total</span> : null}
             <select
               value={line.nature}
               onChange={(e) => onChange({ nature: e.target.value as DraftLine["nature"] })}
@@ -189,7 +191,7 @@ export function LineRow({ line, result, issues, showCosts, vatExempt, readOnly, 
             </div>
           ) : null}
         </div>
-        <LineMenu onRemove={onRemove} onDuplicate={onDuplicate} onMove={onMove} readOnly={readOnly} onSaveToCatalog={!line.catalogItemId && line.kind === "item" ? onSaveToCatalog : undefined} onMarkPending={pending ? () => onChange({ kind: "item" }) : undefined} onAddNote={showNote || line.internalNote ? undefined : () => setShowNote(true)} />
+        <LineMenu onRemove={onRemove} onDuplicate={onDuplicate} onMove={onMove} readOnly={readOnly} onSaveToCatalog={!line.catalogItemId && line.kind === "item" ? onSaveToCatalog : undefined} onMarkPending={pending ? () => onChange({ kind: "item" }) : undefined} onAddNote={showNote || line.internalNote ? undefined : () => setShowNote(true)} onToggleOptional={line.kind === "item" ? () => onChange({ optional: !optional }) : undefined} optional={optional} />
       </div>
     </div>
   );
@@ -220,6 +222,8 @@ function LineMenu({
   onSaveToCatalog,
   onMarkPending,
   onAddNote,
+  onToggleOptional,
+  optional = false,
 }: {
   onRemove: () => void;
   onDuplicate: () => void;
@@ -228,6 +232,8 @@ function LineMenu({
   onSaveToCatalog?: () => void;
   onMarkPending?: () => void;
   onAddNote?: () => void;
+  onToggleOptional?: () => void;
+  optional?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   if (readOnly) return null;
@@ -244,6 +250,9 @@ function LineMenu({
           <MenuItem icon="up" label="Monter" onClick={() => (onMove(-1), setOpen(false))} />
           <MenuItem icon="down" label="Descendre" onClick={() => (onMove(1), setOpen(false))} />
           <MenuItem icon="copy" label="Dupliquer" onClick={() => (onDuplicate(), setOpen(false))} />
+          {onToggleOptional ? (
+            <MenuItem icon="check" label={optional ? "Inclure dans le total" : "Proposer en option"} onClick={() => (onToggleOptional(), setOpen(false))} />
+          ) : null}
           {onAddNote ? <MenuItem icon="lock" label="Ajouter un commentaire interne" onClick={() => (onAddNote(), setOpen(false))} /> : null}
           {onSaveToCatalog ? <MenuItem icon="box" label="Enregistrer dans le catalogue" onClick={() => (onSaveToCatalog(), setOpen(false))} /> : null}
           <MenuItem icon="trash" label="Supprimer" danger onClick={() => (onRemove(), setOpen(false))} />

@@ -102,7 +102,10 @@ export function SnapshotView({
                     ) : (
                       <>
                         <div className="flex justify-between gap-3">
-                          <span className="font-medium">{l.label}</span>
+                          <span className="font-medium">
+                            {l.optional ? <span className="mr-1.5 rounded bg-accent-soft px-1.5 py-0.5 text-xs text-accent">Option</span> : null}
+                            {l.label}
+                          </span>
                           <span className="tabular font-medium whitespace-nowrap">{r ? formatEuros(r.netCents) : ""}</span>
                         </div>
                         {l.description ? <div className="whitespace-pre-line text-xs text-muted">{l.description}</div> : null}
@@ -154,7 +157,11 @@ export function SnapshotView({
                 return (
                   <tr key={l.id} className="align-top">
                     <td className="px-5 py-2 sm:px-8">
-                      <div className="font-medium">{l.label}</div>
+                      <div className="font-medium">
+                        {l.optional ? <span className="mr-1.5 rounded bg-accent-soft px-1.5 py-0.5 text-xs text-accent">Option</span> : null}
+                        {l.label}
+                      </div>
+                      {l.optional ? <div className="text-xs text-muted italic">Non comprise dans le total</div> : null}
                       {l.description ? <div className="whitespace-pre-line text-xs text-muted">{l.description}</div> : null}
                       {r && r.discountBp ? <div className="text-xs text-muted">Remise {formatPercent(r.discountBp)}</div> : null}
                     </td>
@@ -236,6 +243,12 @@ export function SnapshotView({
             <dt>Total TTC</dt>
             <dd className="tabular">{formatEuros(s.calc.totalTtcCents)}</dd>
           </div>
+          {s.calc.options ? (
+            <p className="text-xs text-muted">
+              {s.calc.options.count > 1 ? `${s.calc.options.count} options proposées` : "1 option proposée"}, non comprise(s) :{" "}
+              {formatEuros(s.calc.options.htCents)} HT, {formatEuros(s.calc.options.ttcCents)} TTC
+            </p>
+          ) : null}
           {afterTotals?.map(([label, value, bold]) => (
             <div key={label} className={`flex justify-between ${bold ? "font-semibold" : "text-muted"}`}>
               <dt>{label}</dt>

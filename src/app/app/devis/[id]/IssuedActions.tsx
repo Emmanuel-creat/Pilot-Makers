@@ -6,6 +6,7 @@ import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
 import { apiFetch, ApiError, uid } from "@/components/editor/api";
 import { cancelQuoteAction } from "@/app/actions";
+import { formatEuros } from "@/lib/calc/format";
 import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function SendButton({ quoteId, primary }: { quoteId: string; primary: boolean }) {
@@ -151,7 +152,16 @@ export function ShareLinkButton({ quoteId }: { quoteId: string }) {
   );
 }
 
-export function ManualResponse({ quoteId, version }: { quoteId: string; version: number }) {
+export function ManualResponse({
+  quoteId,
+  version,
+  options = [],
+}: {
+  quoteId: string;
+  version: number;
+  options?: { id: string; label: string; ttcCents: number }[];
+}) {
+  const [chosen, setChosen] = useState<string[]>([]);
   const router = useRouter();
   const [open, setOpen] = useState<"accept" | "refuse" | null>(null);
   const [proof, setProof] = useState("");
@@ -162,7 +172,7 @@ export function ManualResponse({ quoteId, version }: { quoteId: string; version:
     setBusy(true);
     setError("");
     try {
-      await apiFetch(`/api/quotes/${quoteId}/accept`, { method: "POST", json: { decision: open, version, proof, ...(open === "refuse" && reasonCode ? { reasonCode } : {}) } });
+      await apiFetch(`/api/quotes/${quoteId}/accept`, { method: "POST", json: { decision: open, version, proof, ...(open === "refuse" && reasonCode ? { reasonCode } : {}), ...(open === "accept" && options.length ? { options: chosen } : {}) } });
       setOpen(null);
       router.refresh();
     } catch (e) {
@@ -196,6 +206,23 @@ export function ManualResponse({ quoteId, version }: { quoteId: string; version:
             placeholder={open === "accept" ? "Ex. : devis signé avec la mention « bon pour accord », reçu par courrier le 12/10" : "Ex. : appel téléphonique du 12/10"}
             aria-label="Preuve"
           />
+          {open === "accept" && options.length ? (
+            <fieldset className="space-y-1.5">
+              <legend className="label">Options retenues par le client</legend>
+              {options.map((o) => (
+                <label key={o.id} className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4"
+                    checked={chosen.includes(o.id)}
+                    onChange={(e) => setChosen((c) => (e.target.checked ? [...c, o.id] : c.filter((x) => x !== o.id)))}
+                  />
+                  <span className="flex-1">{o.label}</span>
+                  <span className="tabular text-muted">+ {formatEuros(o.ttcCents)}</span>
+                </label>
+              ))}
+            </fieldset>
+          ) : null}
           {open === "refuse" ? (
             <div>
               <label className="label" htmlFor="m-reason">

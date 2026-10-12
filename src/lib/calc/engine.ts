@@ -43,6 +43,8 @@ export interface CalcLineInput {
   /** Taux de TVA en pourcentage, ex. "20", "10", "5,5" */
   vatPercent?: string;
   nature?: LineNature;
+  /** Ligne proposée en option : chiffrée, mais hors total tant que le client ne l'a pas choisie */
+  optional?: boolean;
 }
 
 export interface CalcSectionInput {
@@ -79,6 +81,8 @@ export interface CalcLineResult {
   discountCents: number;
   netCents: number;
   costCents: number | null;
+  /** Présent uniquement pour une ligne en option (hors total) */
+  optional?: true;
 }
 
 export interface CalcSectionResult {
@@ -118,6 +122,8 @@ export interface CalcResult {
   };
   issues: CalcIssue[];
   ok: boolean;
+  /** Présent uniquement si le devis contient des options : somme HT et TTC des options non comprises */
+  options?: { count: number; htCents: number; ttcCents: number };
 }
 
 export const ALLOWED_VAT_BP = [0, 210, 550, 850, 1000, 2000] as const;
@@ -172,6 +178,9 @@ export function computeQuote(input: CalcInput): CalcResult {
   let cost = 0n;
   let linesWithoutCost = 0;
   let pricedLines = 0;
+  let optionCount = 0;
+  let optionHt = 0n;
+  let optionTtc = 0n;
 
   for (const section of input.sections) {
     let sectionTotal = 0n;
@@ -259,6 +268,27 @@ export function computeQuote(input: CalcInput): CalcResult {
       const grossCents = divRound(qty * price, 1000n * 100n);
       const netCents = divRound(qty * price * (10000n - disc), 1000n * 100n * 10000n);
       const discCents = grossCents - netCents;
+      if (line.optional) {
+        // Option : chiffrée pour le client, sans effet sur les totaux, la TVA ni la marge.
+        optionCount++;
+        optionHt += netCents;
+        optionTtc += netCents + divRound(netCents * vat, 10000n);
+        lines.push({
+          id: line.id,
+          kind: line.kind,
+          quantityMilli: toNum(qty),
+          unitPrice4: toNum(price),
+          unitCost4: unitCost === null ? null : toNum(unitCost),
+          discountBp: toNum(disc),
+          vatBp: toNum(vat),
+          grossCents: toNum(grossCents),
+          discountCents: toNum(discCents),
+          netCents: toNum(netCents),
+          costCents: unitCost === null ? null : toNum(divRound(qty * unitCost, 1000n * 100n)),
+          optional: true,
+        });
+        continue;
+      }
       let lineCost: bigint | null = null;
       if (unitCost !== null) {
         lineCost = divRound(qty * unitCost, 1000n * 100n);
@@ -341,5 +371,6 @@ export function computeQuote(input: CalcInput): CalcResult {
     },
     issues,
     ok: !issues.some((i) => i.blocking),
+    ...(optionCount ? { options: { count: optionCount, htCents: toNum(optionHt), ttcCents: toNum(optionTtc) } } : {}),
   };
 }

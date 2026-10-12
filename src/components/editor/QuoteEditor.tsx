@@ -178,6 +178,17 @@ export function QuoteEditor({
     () => consumerTerms(d.contractPlace, customer?.type, calc, org.vat_regime),
     [d.contractPlace, customer, calc, org.vat_regime],
   );
+  // Remise guidée : effet de la remise globale sur la marge, connu avant d'émettre (lignes avec coût renseigné).
+  const discountImpact = useMemo(() => {
+    if (!showMargin || !calc.globalDiscountCents || calc.margin.linesWithoutCost > 0) return null;
+    const without = computeQuote(draftToCalcInput({ ...d, globalDiscount: "" }, vatExempt));
+    return {
+      cost: calc.globalDiscountCents,
+      before: without.margin.marginCents,
+      after: calc.margin.marginCents,
+      rateAfter: calc.margin.marginRateBp,
+    };
+  }, [calc, d, vatExempt, showMargin]);
   const blocking = issues.filter((i) => i.blocking);
   const warnings = issues.filter((i) => !i.blocking);
   const lineResults = useMemo(() => new Map(calc.sections.flatMap((s) => s.lines.map((l) => [l.id, l] as const))), [calc]);
@@ -871,7 +882,16 @@ export function QuoteEditor({
                   value={d.globalDiscount}
                   onChange={(e) => set("globalDiscount", e.target.value)}
                   placeholder="0"
+                  aria-describedby={discountImpact ? "q-discount-impact" : undefined}
                 />
+                {discountImpact ? (
+                  <p id="q-discount-impact" className={`mt-1 text-xs ${discountImpact.after < 0 ? "text-danger" : "text-muted"}`}>
+                    Remise de {formatEuros(discountImpact.cost)} HT : la marge prévue passe de {formatEuros(discountImpact.before)} à{" "}
+                    {formatEuros(discountImpact.after)}
+                    {discountImpact.rateAfter !== null ? ` (${formatPercent(discountImpact.rateAfter)} du prix de vente)` : ""}.
+                    {discountImpact.after < 0 ? " Le devis serait vendu à perte." : ""}
+                  </p>
+                ) : null}
               </div>
               <div>
                 <label className="label" htmlFor="q-start">
@@ -1223,6 +1243,11 @@ export function Totals({
       <div className="border-t border-line pt-2">
         <Row label="Total TTC" value={formatEuros(calc.totalTtcCents)} big />
       </div>
+      {calc.options ? (
+        <p className="text-xs text-muted">
+          {calc.options.count > 1 ? `${calc.options.count} options` : "1 option"} non comprise(s) : {formatEuros(calc.options.htCents)} HT, au choix du client.
+        </p>
+      ) : null}
     </dl>
   );
 }

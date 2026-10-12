@@ -14,6 +14,7 @@ import { getOrganization } from "@/lib/services/organization";
 import { EDITABLE_STATUSES, PENDING_STATUSES } from "@/lib/services/quote-types";
 import { getDraft, getQuoteRow, getVersion, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
 import { archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
+import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
 import { INVOICE_KINDS, INVOICE_STATUSES, listInvoices } from "@/lib/services/invoices";
@@ -243,7 +244,11 @@ export default async function QuotePage({
               <p className="text-xs text-muted">
                 Le client peut accepter en ligne via le lien. Si sa réponse vous arrive autrement, enregistrez-la ici.
               </p>
-              <ManualResponse quoteId={id} version={draft.currentVersion} />
+              <ManualResponse
+                quoteId={id}
+                version={draft.currentVersion}
+                options={current ? snapshotOptions(current.snapshot).map((o) => ({ id: o.id, label: o.label, ttcCents: o.ttcCents })) : []}
+              />
             </section>
           ) : null}
 

@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { requestMeta } from "@/lib/server/session";
 import { recordClientView } from "@/lib/services/quotes";
 import { reducedVatAttestation } from "@/lib/services/consumer";
+import { publicOptionSource } from "@/lib/services/options";
 import { ClientResponse } from "./ClientResponse";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,7 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
             version={s.version}
             ttc={s.calc.totalTtcCents}
             withdrawal={Boolean(s.consumer?.withdrawal)}
+            optionSource={publicOptionSource(s)}
             vatAttestation={s.consumer?.reducedVatBp.length ? reducedVatAttestation(s.consumer.reducedVatBp) : ""}
           />
         </div>

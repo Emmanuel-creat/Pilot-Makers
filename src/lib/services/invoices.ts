@@ -22,6 +22,7 @@ import { audit, logError, requireWritable } from "./context";
 import type { Customer } from "./customers";
 import { appUrl, renderTemplate, sendMail } from "./mail";
 import type { Organization } from "./organization";
+import { acceptedCalc, withChosenOptions } from "./options";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
 import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
 import type { DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
@@ -238,20 +239,25 @@ interface AcceptedQuote {
 }
 
 async function acceptedQuote(q: Queryable, ctx: Ctx, quoteId: string): Promise<AcceptedQuote> {
-  const r = await one<{ id: string; number: string | null; status: string; customer_id: string | null; accepted_version: unknown }>(
+  const r = await one<{ id: string; number: string | null; status: string; customer_id: string | null; accepted_version: unknown; accepted_options: unknown }>(
     q,
-    "SELECT id, number, status, customer_id, accepted_version FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
+    "SELECT id, number, status, customer_id, accepted_version, accepted_options FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",
     [quoteId, ctx.orgId],
   );
   if (!r) throw notFound("Devis introuvable");
   if (r.status !== "accepted" || !r.accepted_version) throw conflict("Seul un devis accepté peut être facturé");
   const v = await getVersion(q, ctx.orgId, quoteId, num(r.accepted_version));
+  // Le devis facturé est celui que le client a accepté : options choisies comprises, options écartées retirées.
+  const chosen = (r.accepted_options as string[] | null) ?? [];
+  const snapshot: QuoteSnapshot = v.snapshot.calc.options
+    ? { ...v.snapshot, sections: withChosenOptions(v.snapshot.sections, chosen), calc: acceptedCalc(v.snapshot, chosen) }
+    : v.snapshot;
   return {
     id: r.id,
     number: r.number ?? v.number,
     customer_id: r.customer_id,
     accepted_version: num(r.accepted_version),
-    snapshot: v.snapshot,
+    snapshot,
     versionId: v.id,
   };
 }

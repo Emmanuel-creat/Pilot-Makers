@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { apiFetch, ApiError } from "@/components/editor/api";
 import { formatEuros } from "@/lib/calc/format";
+import { acceptedCalc, snapshotOptions, type OptionCalcSource } from "@/lib/services/options";
 import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function ClientResponse({
@@ -14,6 +15,7 @@ export function ClientResponse({
   ttc,
   withdrawal = false,
   vatAttestation = "",
+  optionSource = null,
 }: {
   token: string;
   number: string;
@@ -23,6 +25,8 @@ export function ClientResponse({
   withdrawal?: boolean;
   /** Texte de l'attestation de TVA réduite, vide si aucun taux réduit */
   vatAttestation?: string;
+  /** Lignes en option proposées au choix, null si le devis n'en contient pas */
+  optionSource?: OptionCalcSource | null;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<"accept" | "refuse" | null>(null);
@@ -34,6 +38,9 @@ export function ClientResponse({
   const [earlyStart, setEarlyStart] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [chosen, setChosen] = useState<string[]>([]);
+  const offered = useMemo(() => (optionSource ? snapshotOptions(optionSource) : []), [optionSource]);
+  const total = useMemo(() => (optionSource ? acceptedCalc(optionSource, chosen).totalTtcCents : ttc), [optionSource, chosen, ttc]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +49,16 @@ export function ClientResponse({
     try {
       await apiFetch(`/api/public/quotes/${token}/respond`, {
         method: "POST",
-        json: { decision: mode, name, consent, reason, vatAttestation: attest, earlyStart, ...(mode === "refuse" && reasonCode ? { reasonCode } : {}) },
+        json: {
+          decision: mode,
+          name,
+          consent,
+          reason,
+          vatAttestation: attest,
+          earlyStart,
+          ...(mode === "refuse" && reasonCode ? { reasonCode } : {}),
+          ...(mode === "accept" && offered.length ? { options: chosen } : {}),
+        },
       });
       router.refresh();
     } catch (err) {
@@ -76,12 +92,30 @@ export function ClientResponse({
         </label>
         <input id="r-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
       </div>
+      {mode === "accept" && offered.length ? (
+        <fieldset className="space-y-2 rounded-md bg-surface-2 p-3 text-sm">
+          <legend className="px-1 font-medium">Options proposées</legend>
+          {offered.map((o) => (
+            <label key={o.id} className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                checked={chosen.includes(o.id)}
+                onChange={(e) => setChosen((c) => (e.target.checked ? [...c, o.id] : c.filter((x) => x !== o.id)))}
+              />
+              <span className="flex-1">{o.label}</span>
+              <span className="tabular shrink-0">+ {formatEuros(o.ttcCents)} TTC</span>
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
       {mode === "accept" ? (
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" className="mt-0.5 h-4 w-4" checked={consent} onChange={(e) => setConsent(e.target.checked)} required />
           <span>
             Bon pour accord : j'accepte le devis {number} (version {version}) d'un montant de{" "}
-            <strong className="tabular">{formatEuros(ttc)} TTC</strong>, ainsi que ses conditions.
+            <strong className="tabular">{formatEuros(total)} TTC</strong>
+            {offered.length ? (chosen.length ? `, options cochées comprises` : ", sans option") : ""}, ainsi que ses conditions.
           </span>
         </label>
       ) : null}

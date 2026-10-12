@@ -184,6 +184,8 @@ export interface PdfAcceptance {
   via: string;
   /** Empreinte SHA-256 du PDF émis que le client a accepté */
   documentSha256: string;
+  /** Options retenues et montant accepté, quand le devis proposait des options */
+  options?: string;
 }
 
 export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, accepted?: PdfAcceptance): Promise<Uint8Array> {
@@ -367,12 +369,15 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     for (const line of section.lines) {
       const r = lineResults.get(line.id);
       const labelW = cols.qty - cols.label - 30;
-      const labelLines = wrapText(line.label || "", f.bold, 8.5, labelW);
+      const optional = line.kind === "item" && line.optional === true;
+      const labelLines = wrapText((optional ? "Option : " : "") + (line.label || ""), f.bold, 8.5, labelW);
       const descLines = line.description.trim() ? wrapText(line.description, f.regular, 7.5, labelW) : [];
-      const noteLines =
-        line.kind === "item" && line.estimated
+      const noteLines = [
+        ...(line.kind === "item" && line.estimated
           ? wrapText("Quantité estimée, à confirmer sur place" + (line.estimateNote ? " : " + line.estimateNote : ""), f.italic, 7, labelW)
-          : [];
+          : []),
+        ...(optional ? wrapText("Proposée en option : non comprise dans le total, à cocher à l'acceptation", f.italic, 7, labelW) : []),
+      ];
       const h = labelLines.length * 10.5 + descLines.length * 9 + noteLines.length * 8.5 + 6;
       w.ensure(Math.min(h, 120));
       let ly = w.y;
@@ -460,6 +465,19 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   w.text("Total TTC", tx, w.y - 11, 11, f.bold, ttcColor);
   w.textRight(formatEuros(c.totalTtcCents), cols.total - 4, w.y - 11, 11, f.bold, ttcColor);
   w.y -= 26;
+  if (c.options) {
+    w.ensure(20);
+    w.y -= 12;
+    w.textRight(
+      `${c.options.count > 1 ? `${c.options.count} options proposées` : "1 option proposée"}, non comprise(s) : ${formatEuros(c.options.htCents)} HT, ${formatEuros(c.options.ttcCents)} TTC`,
+      cols.total - 4,
+      w.y,
+      8.5,
+      f.italic,
+      GREY,
+    );
+    w.y -= 6;
+  }
   if (opts?.afterTotals?.length) {
     w.ensure(opts.afterTotals.length * 14 + 6);
     for (const [label, value, bold] of opts.afterTotals) {
@@ -502,9 +520,9 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     w.paragraph(withdrawalForm(s.org, s.number), M.left, CONTENT_W, 9.5);
   }
   function acceptance() {
-    w.ensure(110);
+    w.ensure(accepted?.options ? 130 : 110);
     w.y -= 16;
-    const zoneH = 86;
+    const zoneH = accepted?.options ? 106 : 86;
     w.page.drawRectangle({ x: M.left, y: w.y - zoneH, width: CONTENT_W, height: zoneH, borderColor: GREY, borderWidth: 0.8 });
     w.text("Bon pour accord du client", M.left + 10, w.y - 14, 9.5, f.bold);
     if (accepted) {
@@ -515,6 +533,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
         [`le ${accepted.at}`, f.regular],
         [accepted.via, f.regular],
         [`Empreinte du devis : ${accepted.documentSha256.slice(0, 32)}`, f.regular],
+        ...(accepted.options ? ([[accepted.options, f.bold]] as const) : []),
       ] as const) {
         for (const l of wrapText(txt, font, 8, half)) {
           w.text(l, M.left + 10, ay, 8, font, font === f.bold ? BLACK : GREY);

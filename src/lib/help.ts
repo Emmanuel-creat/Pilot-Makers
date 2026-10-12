@@ -68,6 +68,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Sur Mac, Cmd remplace Ctrl.", "Le bouton en forme de clavier, en haut de l'éditeur, affiche la même liste."],
   },
   {
+    slug: "lignes-en-option",
+    category: "devis",
+    title: "Proposer des options que le client choisit",
+    summary: "Chiffrer une prestation en plus, hors total, que le client coche ou non en acceptant.",
+    steps: [
+      "Dans l'éditeur, ouvrez le menu de la ligne et choisissez « Proposer en option » : elle reste chiffrée mais sort du total.",
+      "Le PDF et la page du client affichent la ligne avec la mention « Option » et le montant des options non comprises.",
+      "En acceptant en ligne, le client coche les options voulues et voit le montant final avant de valider.",
+      "Les factures d'acompte et de solde reprennent exactement ce qui a été accepté, options choisies comprises.",
+    ],
+    notes: ["Si l'acceptation vous arrive par un autre moyen, cochez les options retenues en l'enregistrant."],
+  },
+  {
     slug: "modifier-un-devis-envoye",
     category: "devis",
     title: "Modifier un devis déjà envoyé",

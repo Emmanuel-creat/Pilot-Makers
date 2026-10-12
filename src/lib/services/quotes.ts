@@ -15,6 +15,7 @@ import { canonicalJson, randomToken, sha256 } from "@/lib/security";
 import { assertCanIssue } from "./billing";
 import { incrementUsage } from "./catalog";
 import { retentionBp } from "./btp";
+import { acceptedCalc, snapshotOptions, validChoice } from "./options";
 import { REFUSAL_CODES, REFUSAL_REASONS } from "./refusal";
 import { consumerTerms, isContractPlace, reducedVatAttestation } from "./consumer";
 import { buildMentions, checkCompliance, COMPLIANCE_RULES_VERSION, type ComplianceIssue } from "./compliance";
@@ -57,6 +58,7 @@ const lineSchema = z.object({
   estimated: z.boolean().default(false),
   estimateNote: str(500),
   internalNote: str(1000),
+  optional: z.boolean().optional(),
 });
 
 const sectionSchema = z.object({
@@ -135,6 +137,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
           estimated: Boolean(l.estimated),
           estimateNote: String(l.estimate_note),
           internalNote: String(l.internal_note ?? ""),
+          ...(l.optional === true ? { optional: true } : {}),
         }),
       ),
   }));
@@ -360,10 +363,10 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
       seen.add(l.id);
       await tx.query(
         `INSERT INTO quote_lines (id, section_id, quote_id, org_id, position, kind, catalog_item_id, nature, label, description,
-           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note)
+           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note, optional)
          VALUES ($1,$2,$3,$4,$5,$6,
            (SELECT id FROM catalog_items WHERE id=$7::uuid AND org_id=$4),
-           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
         [
           l.id,
           s.id,
@@ -384,6 +387,7 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
           l.estimated,
           l.estimateNote,
           l.internalNote ?? "",
+          l.kind === "item" && l.optional === true,
         ],
       );
     }
@@ -821,7 +825,11 @@ export async function getVersion(q: Queryable, orgId: string, quoteId: string, v
  * le snapshot figé et l'événement d'acceptation, il est donc toujours identique.
  */
 export async function acceptedCopy(q: Queryable, orgId: string, quoteId: string) {
-  const quote = await one<{ accepted_version: unknown }>(q, "SELECT accepted_version FROM quotes WHERE id=$1 AND org_id=$2", [quoteId, orgId]);
+  const quote = await one<{ accepted_version: unknown; accepted_options: unknown }>(
+    q,
+    "SELECT accepted_version, accepted_options FROM quotes WHERE id=$1 AND org_id=$2",
+    [quoteId, orgId],
+  );
   const version = numOrNull(quote?.accepted_version);
   if (!version) throw conflict("Ce devis n'a pas été accepté");
   const v = await getVersion(q, orgId, quoteId, version);
@@ -840,8 +848,19 @@ export async function acceptedCopy(q: Queryable, orgId: string, quoteId: string)
     at,
     via: online ? "en ligne, par le lien sécurisé transmis au client" : `enregistré par l'entreprise : ${String(ev.data.proof ?? "")}`.slice(0, 200),
     documentSha256: v.pdfSha256,
+    options: acceptanceOptionsText(v.snapshot, (quote?.accepted_options as string[] | null) ?? []),
   });
   return { pdf, number: v.number, version: v.version };
+}
+
+/** Ligne « options retenues » de l'exemplaire accepté, absente si le devis ne proposait pas d'option. */
+function acceptanceOptionsText(s: QuoteSnapshot, chosen: string[]): string | undefined {
+  if (!s.calc.options) return undefined;
+  const labels = snapshotOptions(s)
+    .filter((o) => chosen.includes(o.id))
+    .map((o) => o.label);
+  const total = acceptedCalc(s, chosen).totalTtcCents;
+  return `${labels.length ? "Options retenues : " + labels.join(", ") : "Aucune option retenue"}. Montant accepté : ${formatEuros(total)} TTC.`;
 }
 
 /** Contrôle d'intégrité d'une version conservée : empreintes et totaux. */
@@ -1113,6 +1132,8 @@ export const responseSchema = z.object({
   reasonCode: z.enum(REFUSAL_CODES).optional(),
   vatAttestation: z.boolean().optional().default(false),
   earlyStart: z.boolean().optional().default(false),
+  /** Lignes en option retenues par le client */
+  options: z.array(z.string()).max(200).optional().default([]),
 });
 
 /** Réponse du client depuis le lien : rattachée à la version exacte qu'il a consultée. */
@@ -1136,15 +1157,25 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
     if (r.version.snapshot.validUntil < parisDate(new Date())) throw conflict("La durée de validité de ce devis est dépassée");
     const accepted = input.decision === "accept";
     const consumer = r.version.snapshot.consumer;
+    const chosen = accepted ? validChoice(r.version.snapshot, input.options) : [];
+    if (!chosen) throw badRequest("Option inconnue : rechargez la page du devis");
+    const finalCalc = acceptedCalc(r.version.snapshot, chosen);
     if (accepted && consumer?.reducedVatBp.length && !input.vatAttestation) {
       throw badRequest("Cochez l'attestation sur le taux réduit de TVA pour accepter");
     }
-    await tx.query(`UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, refusal_reason=$4, updated_at=now() WHERE id=$1`, [
-      r.link.quote_id,
-      accepted ? "accepted" : "refused",
-      accepted ? r.version.version : null,
-      accepted ? "" : (input.reasonCode ?? ""),
-    ]);
+    await tx.query(
+      `UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, refusal_reason=$4, accepted_options=$5,
+         total_ht_cents=$6, total_ttc_cents=$7, updated_at=now() WHERE id=$1`,
+      [
+        r.link.quote_id,
+        accepted ? "accepted" : "refused",
+        accepted ? r.version.version : null,
+        accepted ? "" : (input.reasonCode ?? ""),
+        JSON.stringify(chosen),
+        accepted ? finalCalc.totalHtCents : r.version.snapshot.calc.totalHtCents,
+        accepted ? finalCalc.totalTtcCents : r.version.snapshot.calc.totalTtcCents,
+      ],
+    );
     // Éléments de preuve conservés : version, empreinte du PDF, nom saisi, date, adresse IP, navigateur.
     await tx.query(
       `INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data, ip, user_agent)
@@ -1163,7 +1194,8 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
           withdrawal_period: accepted && consumer?.withdrawal ? true : null,
           early_start_requested: accepted && consumer?.withdrawal ? input.earlyStart : null,
           pdf_sha256: r.version.pdfSha256,
-          total_ttc_cents: r.version.snapshot.calc.totalTtcCents,
+          total_ttc_cents: accepted ? finalCalc.totalTtcCents : r.version.snapshot.calc.totalTtcCents,
+          ...(r.version.snapshot.calc.options ? { options: chosen, options_offered: snapshotOptions(r.version.snapshot).map((o) => o.label) } : {}),
           via: "lien sécurisé",
         }),
         meta.ip,
@@ -1193,6 +1225,7 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
     version: z.coerce.number().int().min(1),
     proof: z.string().trim().min(3, "Précisez la preuve de l'acceptation (ex. devis signé reçu le...)").max(2000),
     reasonCode: z.enum(REFUSAL_CODES).optional(),
+    options: z.array(z.string()).max(200).optional().default([]),
   });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
@@ -1207,14 +1240,29 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
     if (num(r.current_version) !== input.version) throw conflict("Seule la dernière version émise peut être acceptée");
     if (!PENDING_STATUSES.includes(r.status) && r.status !== "expired") throw conflict("Ce devis n'attend pas de réponse");
     const accepted = input.decision === "accept";
+    const v = await getVersion(tx, ctx.orgId, quoteId, input.version);
+    const chosen = accepted ? validChoice(v.snapshot, input.options) : [];
+    if (!chosen) throw badRequest("Option inconnue");
+    const finalCalc = acceptedCalc(v.snapshot, chosen);
     await tx.query(
-      "UPDATE quotes SET status=$3, responded_at=now(), accepted_version=$4, refusal_reason=$5, updated_at=now() WHERE id=$1 AND org_id=$2",
-      [quoteId, ctx.orgId, accepted ? "accepted" : "refused", accepted ? input.version : null, accepted ? "" : (input.reasonCode ?? "")],
+      `UPDATE quotes SET status=$3, responded_at=now(), accepted_version=$4, refusal_reason=$5, accepted_options=$6,
+         total_ht_cents=$7, total_ttc_cents=$8, updated_at=now() WHERE id=$1 AND org_id=$2`,
+      [
+        quoteId,
+        ctx.orgId,
+        accepted ? "accepted" : "refused",
+        accepted ? input.version : null,
+        accepted ? "" : (input.reasonCode ?? ""),
+        JSON.stringify(chosen),
+        accepted ? finalCalc.totalHtCents : v.snapshot.calc.totalHtCents,
+        accepted ? finalCalc.totalTtcCents : v.snapshot.calc.totalTtcCents,
+      ],
     );
     await addEvent(tx, ctx, quoteId, input.version, accepted ? "accepted" : "refused", {
       proof: input.proof,
       via: "saisie par l'entreprise",
       ...(accepted || !input.reasonCode ? {} : { reason_code: input.reasonCode }),
+      ...(accepted && v.snapshot.calc.options ? { options: chosen } : {}),
     });
     return { status: accepted ? "accepted" : "refused" };
   });
