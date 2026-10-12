@@ -13,10 +13,11 @@ import { badRequest, forbidden, notFound } from "@/lib/http";
 import { requestPasswordReset } from "./accounts";
 import { computeEntitlements } from "./billing";
 import type { Ctx } from "./context";
-import { audit } from "./context";
+import { adminTwoFactorRequired, audit } from "./context";
 
 export function requirePlatformAdmin(ctx: Ctx) {
   if (!ctx.isPlatformAdmin || ctx.supportAccess) throw forbidden("Réservé à l'administration de la plateforme");
+  if (adminTwoFactorRequired() && !ctx.twoFactor) throw forbidden("Activez la double authentification pour administrer la plateforme");
 }
 
 export async function searchAccounts(ctx: Ctx, q = "") {

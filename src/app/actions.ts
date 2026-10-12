@@ -9,7 +9,7 @@ import {
   cancelAccountDeletion,
   changePassword,
   confirmAccountDeletion,
-  login,
+  beginLogin,
   logout,
   register,
   requestAccountDeletion,
@@ -29,11 +29,18 @@ import { setCustomerArchived } from "@/lib/services/customers";
 import { updateOrganization } from "@/lib/services/organization";
 import { cancelQuote, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
+import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableTwoFactor, regenerateRecoveryCodes } from "@/lib/services/two-factor";
 import { acceptInvite, changeRole, inviteMember, removeMember, switchOrg } from "@/lib/services/team";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
-export type ActionState = { ok?: boolean; error?: string; fieldErrors?: Record<string, string>; message?: string } | null;
+export type ActionState = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  message?: string;
+  codes?: string[];
+} | null;
 
 function toState(e: unknown): ActionState {
   unstable_rethrow(e);
@@ -82,15 +89,83 @@ export async function registerAction(_: ActionState, fd: FormData): Promise<Acti
 }
 
 export async function loginAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let challenge = false;
   try {
     const db = await getDb();
-    const token = await login(db, s(fd, "email"), s(fd, "password"), await requestMeta());
-    await setSessionCookie(token);
+    const r = await beginLogin(db, s(fd, "email"), s(fd, "password"), await requestMeta());
+    if ("challenge" in r) {
+      const c = await cookies();
+      c.set(CHALLENGE_COOKIE, r.challenge, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 600,
+      });
+      challenge = true;
+    } else {
+      await setSessionCookie(r.token);
+    }
   } catch (e) {
     return toState(e);
   }
-  const next = s(fd, "next");
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/app");
+  const next = safeNext(s(fd, "next"));
+  if (challenge) redirect("/connexion/verification" + (next !== "/app" ? "?next=" + encodeURIComponent(next) : ""));
+  redirect(next);
+}
+
+const CHALLENGE_COOKIE = "pm_2fa";
+
+function safeNext(next: string) {
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/app";
+}
+
+export async function verifyLoginAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const db = await getDb();
+    const c = await cookies();
+    const userId = await completeLoginChallenge(db, c.get(CHALLENGE_COOKIE)?.value ?? "", s(fd, "code"));
+    c.delete(CHALLENGE_COOKIE);
+    await setSessionCookie(await createSession(db, userId, await requestMeta()));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(safeNext(s(fd, "next")));
+}
+
+/* Double authentification ------------------------------------------ */
+
+export async function beginTwoFactorAction(): Promise<void> {
+  await withCtx((ctx) => beginTwoFactorSetup(ctx));
+  revalidatePath("/app/compte");
+}
+
+export async function confirmTwoFactorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const codes = await withCtx((ctx) => confirmTwoFactor(ctx, s(fd, "code")));
+    return { ok: true, codes, message: "Double authentification activée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function regenerateRecoveryAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const codes = await withCtx((ctx) => regenerateRecoveryCodes(ctx, s(fd, "code")));
+    return { ok: true, codes, message: "Nouveaux codes de secours générés. Les anciens ne fonctionnent plus." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function disableTwoFactorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => disableTwoFactor(ctx, s(fd, "password"), s(fd, "code")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/compte");
+  return { ok: true, message: "Double authentification désactivée." };
 }
 
 export async function logoutAction() {

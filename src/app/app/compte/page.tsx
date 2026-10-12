@@ -4,7 +4,19 @@ import { Submit } from "@/components/forms/Submit";
 import { Notice, PageHeader, Section, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listSessions } from "@/lib/services/accounts";
-import { cancelDeletionAction, passwordAction, preferencesAction, requestDeletionAction, revokeSessionAction } from "@/app/actions";
+import {
+  beginTwoFactorAction,
+  cancelDeletionAction,
+  confirmTwoFactorAction,
+  disableTwoFactorAction,
+  passwordAction,
+  preferencesAction,
+  regenerateRecoveryAction,
+  requestDeletionAction,
+  revokeSessionAction,
+} from "@/app/actions";
+import { pendingTwoFactorSetup, twoFactorState } from "@/lib/services/two-factor";
+import { CodesForm } from "./TwoFactor";
 
 export const metadata = { title: "Mon compte" };
 
@@ -14,8 +26,19 @@ function deviceName(ua: string) {
   return `${nav} sur ${os}`;
 }
 
-export default async function AccountPage() {
+const codeField = (id: string) => (
+  <div>
+    <label className="label" htmlFor={id}>
+      Code de l'application ou code de secours
+    </label>
+    <input id={id} name="code" autoComplete="one-time-code" className="field font-mono" required />
+  </div>
+);
+
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ double?: string }> }) {
+  const sp = await searchParams;
   const ctx = await requirePageCtx();
+  const [tf, pending] = await Promise.all([twoFactorState(ctx.db, ctx.userId), pendingTwoFactorSetup(ctx)]);
   const [sessions, user] = await Promise.all([
     listSessions(ctx),
     ctx.db.query<{ name: string; locale: string; timezone: string; status: string; deletion_requested_at: Date | null; created_at: Date }>(
@@ -68,7 +91,72 @@ export default async function AccountPage() {
           </div>
         </ActionForm>
       </Section>
-      <Section title="Mot de passe" description="12 caractères minimum. Le changement ferme vos autres sessions.">
+      {sp.double === "requis" && !tf.enabled ? (
+        <Notice tone="warning" title="Double authentification requise">
+          L'administration de la plateforme n'est accessible qu'avec la double authentification activée.
+        </Notice>
+      ) : null}
+      <Section
+        title="Double authentification"
+        description="Après le mot de passe, un code à 6 chiffres affiché par une application d'authentification (Google Authenticator, Microsoft Authenticator, 2FAS, Aegis...) est demandé."
+      >
+        {tf.enabled ? (
+          <div className="space-y-5">
+            <Notice tone="success">
+              Activée le {fmtDate(tf.enabledAt)}. {tf.recoveryLeft} code{tf.recoveryLeft > 1 ? "s" : ""} de secours restant
+              {tf.recoveryLeft > 1 ? "s" : ""}.
+            </Notice>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <CodesForm action={regenerateRecoveryAction}>
+                <h3 className="text-sm font-semibold">Nouveaux codes de secours</h3>
+                {codeField("tf-regen")}
+                <button className="btn-secondary">Générer de nouveaux codes</button>
+              </CodesForm>
+              <ActionForm action={disableTwoFactorAction} className="space-y-3">
+                <h3 className="text-sm font-semibold">Désactiver</h3>
+                <div>
+                  <label className="label" htmlFor="tf-pw">
+                    Mot de passe
+                  </label>
+                  <input id="tf-pw" name="password" type="password" autoComplete="current-password" className="field" required />
+                </div>
+                {codeField("tf-off")}
+                <Submit className="btn-danger">Désactiver</Submit>
+              </ActionForm>
+            </div>
+          </div>
+        ) : pending ? (
+          <div className="grid gap-5 sm:grid-cols-[200px_1fr]">
+            <div
+              className="rounded-md border border-line bg-white p-2"
+              aria-label="QR code à scanner avec l'application d'authentification"
+              role="img"
+              dangerouslySetInnerHTML={{ __html: pending.svg }}
+            />
+            <CodesForm action={confirmTwoFactorAction}>
+              <ol className="list-decimal space-y-1 pl-5 text-sm">
+                <li>Ouvrez votre application d'authentification et scannez le QR code.</li>
+                <li>
+                  Sans appareil photo, saisissez la clé : <code className="break-all font-mono text-xs">{pending.secret.replace(/(.{4})/g, "$1 ").trim()}</code>
+                </li>
+                <li>Recopiez le code à 6 chiffres affiché.</li>
+              </ol>
+              <div>
+                <label className="label" htmlFor="tf-first">
+                  Code à 6 chiffres
+                </label>
+                <input id="tf-first" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={7} className="field max-w-40 font-mono" required />
+              </div>
+              <Submit>Activer</Submit>
+            </CodesForm>
+          </div>
+        ) : (
+          <form action={beginTwoFactorAction}>
+            <button className="btn-primary">Activer la double authentification</button>
+          </form>
+        )}
+      </Section>
+      <Section title="Mot de passe" description="10 caractères minimum, avec des lettres et des chiffres. Le changement ferme vos autres sessions.">
         <ActionForm action={passwordAction} resetOnSuccess>
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
@@ -81,13 +169,13 @@ export default async function AccountPage() {
               <label className="label" htmlFor="pw-new">
                 Nouveau
               </label>
-              <input id="pw-new" name="next" type="password" autoComplete="new-password" minLength={12} className="field" required />
+              <input id="pw-new" name="next" type="password" autoComplete="new-password" minLength={10} className="field" required />
             </div>
             <div>
               <label className="label" htmlFor="pw-conf">
                 Confirmation
               </label>
-              <input id="pw-conf" name="confirm" type="password" autoComplete="new-password" minLength={12} className="field" required />
+              <input id="pw-conf" name="confirm" type="password" autoComplete="new-password" minLength={10} className="field" required />
             </div>
           </div>
           <div className="flex justify-end">

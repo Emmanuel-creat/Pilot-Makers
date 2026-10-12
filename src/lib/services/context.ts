@@ -30,12 +30,20 @@ export interface Ctx {
   email: string;
   userName: string;
   isPlatformAdmin: boolean;
+  /** Double authentification activée sur le compte */
+  twoFactor?: boolean;
   sessionId: string | null;
   ip: string;
   userAgent: string;
   entitlements: Entitlements;
   /** Accès support en cours (administrateur de la plateforme dans l'espace d'un client) */
   supportAccess?: { reason: string; expiresAt: Date };
+}
+
+/** En production, l'administration exige la double authentification (désactivable par REQUIRE_ADMIN_2FA=0). */
+export function adminTwoFactorRequired() {
+  const flag = process.env.REQUIRE_ADMIN_2FA;
+  return flag ? flag === "1" : process.env.NODE_ENV === "production";
 }
 
 const ROLE_RANK: Record<Role, number> = { member: 1, admin: 2, owner: 3 };

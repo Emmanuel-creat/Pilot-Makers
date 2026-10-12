@@ -4,13 +4,14 @@
  * Chaque e-mail est d'abord enregistré (traçabilité, idempotence), puis confié au
  * prestataire. Le prestataire fourni ("outbox") conserve les messages dans la
  * boîte d'envoi de l'application, visible dans l'interface, sans rien envoyer
- * réellement. Pour un vrai prestataire (Brevo, Postmark, Mailjet...), implémenter
- * MailProvider et choisir MAIL_PROVIDER.
+ * réellement. Les vrais prestataires (Brevo, Postmark, Resend) sont dans
+ * mail-providers.ts et s'activent par MAIL_PROVIDER, MAIL_API_KEY et MAIL_FROM.
  */
 
 import type { Queryable } from "@/lib/db";
 import { one } from "@/lib/db";
 import { recordUsage } from "./context";
+import { providerFromEnv, type OutgoingMail } from "./mail-providers";
 
 export interface MailMessage {
   orgId?: string | null;
@@ -25,7 +26,7 @@ export interface MailMessage {
 
 export interface MailProvider {
   name: string;
-  deliver(msg: MailMessage & { id: string }): Promise<{ status: "sent" | "failed" | "bounced"; providerMessageId?: string; error?: string }>;
+  deliver(msg: OutgoingMail): Promise<{ status: "sent" | "failed" | "bounced"; providerMessageId?: string; error?: string }>;
 }
 
 /** Boîte d'envoi locale. Les adresses du domaine "invalide.test" simulent un rejet. */
@@ -40,8 +41,15 @@ export const outboxProvider: MailProvider = {
   },
 };
 
+let override: MailProvider | null = null;
+
+/** Pour les tests : remplace le prestataire (null rétablit la configuration). */
+export function setMailProviderForTests(p: MailProvider | null) {
+  override = p;
+}
+
 export function getMailProvider(): MailProvider {
-  return outboxProvider;
+  return override ?? providerFromEnv() ?? outboxProvider;
 }
 
 export interface SentMail {
@@ -79,7 +87,20 @@ export async function sendMail(q: Queryable, msg: MailMessage): Promise<SentMail
   ))!;
   let result: Awaited<ReturnType<MailProvider["deliver"]>>;
   try {
-    result = await provider.deliver({ ...msg, id: row.id });
+    const extra: Pick<OutgoingMail, "replyTo" | "attachment"> = {};
+    if (msg.orgId) {
+      const org = await one<{ email: string }>(q, "SELECT email FROM organizations WHERE id=$1", [msg.orgId]);
+      extra.replyTo = org?.email || null;
+    }
+    if (msg.attachmentVersionId && provider !== outboxProvider) {
+      const v = await one<{ number: string; version: number; pdf: Uint8Array }>(
+        q,
+        "SELECT number, version, pdf FROM quote_versions WHERE id=$1",
+        [msg.attachmentVersionId],
+      );
+      if (v) extra.attachment = { filename: `Devis-${v.number}-v${v.version}.pdf`, contentBase64: Buffer.from(v.pdf).toString("base64") };
+    }
+    result = await provider.deliver({ ...msg, ...extra, id: row.id });
   } catch (e) {
     result = { status: "failed", error: (e as Error).message };
   }
@@ -99,4 +120,27 @@ export function appUrl(path = ""): string {
 /** Remplace {variable} dans un modèle de message. */
 export function renderTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? vars[k] : m));
+}
+
+/** Applique un événement de suivi du prestataire (rejet, plainte) à l'e-mail correspondant. */
+export async function applyMailEvent(
+  q: Queryable,
+  provider: string,
+  ev: { providerMessageId: string; status: "bounced" | "sent" | "complaint"; detail: string },
+): Promise<boolean> {
+  const row = await one<{ id: string; quote_id: string | null; org_id: string | null }>(
+    q,
+    "SELECT id, quote_id, org_id FROM emails WHERE provider=$1 AND provider_message_id=$2",
+    [provider, ev.providerMessageId],
+  );
+  if (!row) return false;
+  if (ev.status === "sent") return true;
+  await q.query("UPDATE emails SET status='bounced', error=$2 WHERE id=$1", [row.id, ev.detail.slice(0, 300)]);
+  if (row.quote_id && row.org_id) {
+    await q.query(
+      "INSERT INTO document_events (org_id, quote_id, type, actor_type, data) VALUES ($1,$2,'send_failed','system',$3)",
+      [row.org_id, row.quote_id, JSON.stringify({ email_id: row.id, status: ev.status, error: ev.detail })],
+    );
+  }
+  return true;
 }

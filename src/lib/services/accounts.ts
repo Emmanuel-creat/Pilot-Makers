@@ -12,6 +12,7 @@ import { computeEntitlements, createInitialSubscription } from "./billing";
 import type { Ctx, Role } from "./context";
 import { audit } from "./context";
 import { appUrl, sendMail } from "./mail";
+import { createLoginChallenge } from "./two-factor";
 
 export const TERMS_VERSION = "2026-10";
 export const SESSION_DAYS = 30;
@@ -150,7 +151,30 @@ const MAX_FAILS_PER_EMAIL = 5;
 const MAX_FAILS_PER_IP = 30;
 const WINDOW_MIN = 15;
 
+/** Connexion sans double authentification (tests, outils). Refuse un compte protégé par un second facteur. */
 export async function login(db: Database, emailInput: string, password: string, meta: RequestMeta) {
+  const r = await beginLogin(db, emailInput, password, meta);
+  if ("challenge" in r) throw unauthorized("Code de double authentification requis");
+  return r.token;
+}
+
+/**
+ * Premier temps de la connexion. Sans double authentification, ouvre la session ;
+ * avec, renvoie un jeton d'étape à échanger contre un code (completeLoginChallenge).
+ */
+export async function beginLogin(
+  db: Database,
+  emailInput: string,
+  password: string,
+  meta: RequestMeta,
+): Promise<{ token: string } | { challenge: string }> {
+  const userId = await checkCredentials(db, emailInput, password, meta);
+  const u = await one<{ totp_enabled_at: Date | null }>(db, "SELECT totp_enabled_at FROM users WHERE id=$1", [userId]);
+  if (u?.totp_enabled_at) return { challenge: await createLoginChallenge(db, userId) };
+  return { token: await createSession(db, userId, meta) };
+}
+
+async function checkCredentials(db: Database, emailInput: string, password: string, meta: RequestMeta): Promise<string> {
   const email = String(emailInput ?? "").trim().toLowerCase();
   const since = new Date(Date.now() - WINDOW_MIN * 60_000);
   const fails = await one<{ by_email: unknown; by_ip: unknown }>(
@@ -173,7 +197,7 @@ export async function login(db: Database, emailInput: string, password: string, 
   if (!user || !ok) throw unauthorized("Adresse e-mail ou mot de passe incorrect");
   if (user.status === "suspended") throw forbidden("Ce compte est suspendu. Contactez l'assistance.");
   if (user.status === "deleted") throw unauthorized("Adresse e-mail ou mot de passe incorrect");
-  return createSession(db, user.id, meta);
+  return user.id;
 }
 
 export async function createSession(db: Queryable, userId: string, meta: RequestMeta) {
@@ -207,9 +231,9 @@ export async function contextFromToken(db: Database, token: string | undefined, 
     last_seen_at: Date;
   }>(db, "SELECT id, user_id, org_id, expires_at, revoked_at, last_seen_at FROM sessions WHERE token_hash=$1", [sha256(token)]);
   if (!s || s.revoked_at || s.expires_at < new Date()) return null;
-  const u = await one<{ email: string; name: string; status: string; is_platform_admin: boolean }>(
+  const u = await one<{ email: string; name: string; status: string; is_platform_admin: boolean; totp_enabled_at: Date | null }>(
     db,
-    "SELECT email, name, status, is_platform_admin FROM users WHERE id=$1",
+    "SELECT email, name, status, is_platform_admin, totp_enabled_at FROM users WHERE id=$1",
     [s.user_id],
   );
   if (!u || u.status === "suspended" || u.status === "deleted") return null;
@@ -225,13 +249,13 @@ export async function buildContext(
   orgId: string | null,
   sessionId: string | null,
   meta: RequestMeta,
-  u?: { email: string; name: string; is_platform_admin: boolean },
+  u?: { email: string; name: string; is_platform_admin: boolean; totp_enabled_at?: Date | null },
 ): Promise<Ctx | null> {
   const user =
     u ??
-    (await one<{ email: string; name: string; is_platform_admin: boolean }>(
+    (await one<{ email: string; name: string; is_platform_admin: boolean; totp_enabled_at: Date | null }>(
       db,
-      "SELECT email, name, is_platform_admin FROM users WHERE id=$1",
+      "SELECT email, name, is_platform_admin, totp_enabled_at FROM users WHERE id=$1",
       [userId],
     ));
   if (!user) return null;
@@ -251,6 +275,7 @@ export async function buildContext(
     email: user.email,
     userName: user.name,
     isPlatformAdmin: user.is_platform_admin,
+    twoFactor: !!user.totp_enabled_at,
     sessionId,
     ip: meta.ip,
     userAgent: meta.userAgent,

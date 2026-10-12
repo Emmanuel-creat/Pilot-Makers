@@ -6,7 +6,7 @@ import { getDb } from "@/lib/db";
 import { HttpError, unauthorized, forbidden } from "@/lib/http";
 import { contextFromToken, SESSION_DAYS } from "@/lib/services/accounts";
 import { resolveSupportAccess } from "@/lib/services/admin";
-import type { Ctx } from "@/lib/services/context";
+import { adminTwoFactorRequired, type Ctx } from "@/lib/services/context";
 
 export const SESSION_COOKIE = "pm_session";
 export const SUPPORT_COOKIE = "pm_support";
@@ -76,6 +76,7 @@ export async function requirePageCtx(opts: { verified?: boolean } = {}): Promise
 export async function requireAdminPage(): Promise<Ctx> {
   const ctx = await requirePageCtx();
   if (!ctx.isPlatformAdmin || ctx.supportAccess) redirect("/app");
+  if (adminTwoFactorRequired() && !ctx.twoFactor) redirect("/app/compte?double=requis");
   return ctx;
 }
 

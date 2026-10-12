@@ -1,8 +1,12 @@
 import type { Database } from "./index";
 import { sql as m001 } from "./migrations/001_initial";
+import { sql as m002 } from "./migrations/002_two_factor";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
-export const migrations: { id: string; sql: string }[] = [{ id: "001_initial", sql: m001 }];
+export const migrations: { id: string; sql: string }[] = [
+  { id: "001_initial", sql: m001 },
+  { id: "002_two_factor", sql: m002 },
+];
 
 export async function runMigrations(db: Database): Promise<void> {
   await db.exec(
