@@ -60,6 +60,7 @@ const lineSchema = z.object({
   estimated: z.boolean().default(false),
   estimateNote: str(500),
   internalNote: str(1000),
+  wastePercent: str(10).optional(),
   optional: z.boolean().optional(),
 });
 
@@ -139,6 +140,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
           estimated: Boolean(l.estimated),
           estimateNote: String(l.estimate_note),
           internalNote: String(l.internal_note ?? ""),
+          ...(l.waste_percent ? { wastePercent: String(l.waste_percent) } : {}),
           ...(l.optional === true ? { optional: true } : {}),
         }),
       ),
@@ -377,10 +379,10 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
       seen.add(l.id);
       await tx.query(
         `INSERT INTO quote_lines (id, section_id, quote_id, org_id, position, kind, catalog_item_id, nature, label, description,
-           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note, optional)
+           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note, optional, waste_percent)
          VALUES ($1,$2,$3,$4,$5,$6,
            (SELECT id FROM catalog_items WHERE id=$7::uuid AND org_id=$4),
-           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
         [
           l.id,
           s.id,
@@ -402,6 +404,7 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
           l.estimateNote,
           l.internalNote ?? "",
           l.kind === "item" && l.optional === true,
+          l.wastePercent ?? "",
         ],
       );
     }
@@ -660,7 +663,7 @@ export function buildSnapshot(args: {
         : {}),
     },
     // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
-    sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, ...l }) => l) })),
+    sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, wastePercent: _waste, ...l }) => l) })),
     calc,
     mentions: [
       ...(d.amendment ? [amendmentMention(d.amendment)] : []),

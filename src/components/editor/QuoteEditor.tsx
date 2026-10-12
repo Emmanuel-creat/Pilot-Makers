@@ -433,6 +433,7 @@ export function QuoteEditor({
         unitPrice: price4ToInput(it.unit_price4),
         unitCost: it.unit_cost4 === null ? "" : price4ToInput(it.unit_cost4),
         vatPercent: franchise ? "0" : bpToInput(it.vat_bp),
+        ...(it.waste_bp ? { wastePercent: bpToInput(it.waste_bp) } : {}),
         estimated: it.source === "library",
         estimateNote: it.source === "library" ? "tarif indicatif de la bibliothèque, à adapter" : "",
       }),
@@ -752,6 +753,7 @@ export function QuoteEditor({
                         issues={calc.issues.filter((i) => i.lineId === l.id)}
                         showCosts={showCosts}
                         laborRates={pricing.laborRates}
+                        coefficient={pricing.coefficients[l.nature as keyof Pricing["coefficients"]] ?? 0}
                         vatExempt={vatExempt}
                         readOnly={false}
                         onChange={(patch) => setLine(s.id, l.id, patch)}

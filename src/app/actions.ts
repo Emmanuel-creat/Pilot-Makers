@@ -577,6 +577,7 @@ export async function savePricingAction(_: ActionState, fd: FormData): Promise<A
         perKm: s(fd, "per_km"),
         fixed: s(fd, "fixed"),
         freeKm: s(fd, "free_km"),
+        coefficients: { materiau: s(fd, "coef_materiau"), sous_traitance: s(fd, "coef_sous_traitance"), main_oeuvre: s(fd, "coef_main_oeuvre"), autre: s(fd, "coef_autre") },
       }),
     );
     revalidatePath("/app/entreprise");

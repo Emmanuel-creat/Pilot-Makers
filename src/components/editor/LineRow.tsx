@@ -5,7 +5,7 @@ import { Icon } from "@/components/Icon";
 import { formatEuros } from "@/lib/calc/format";
 import type { CalcIssue, CalcLineResult } from "@/lib/calc/engine";
 import type { DraftLine } from "@/lib/services/quote-types";
-import { laborPatch, rateForPrice, type LaborRate } from "@/lib/services/pricing";
+import { coefficientLabel, laborPatch, priceFromCost, rateForPrice, withWaste, type LaborRate } from "@/lib/services/pricing";
 
 export const UNITS = ["u", "h", "j", "m²", "m³", "ml", "m", "kg", "t", "l", "forfait", "lot", "ens", "sac"];
 export const VAT_OPTIONS = ["20", "10", "5,5", "2,1", "0"];
@@ -25,6 +25,8 @@ interface Props {
   showCosts: boolean;
   /** Qualifications proposées sur une ligne de main-d'oeuvre */
   laborRates?: LaborRate[];
+  /** Coefficient de vente de la famille de la ligne (dix-millièmes), 0 si aucun */
+  coefficient?: number;
   vatExempt: boolean;
   readOnly: boolean;
   onChange: (patch: Partial<DraftLine>) => void;
@@ -42,7 +44,7 @@ interface Props {
   dragOver: boolean;
 }
 
-export function LineRow({ line, result, issues, showCosts, laborRates = [], vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
+export function LineRow({ line, result, issues, showCosts, laborRates = [], coefficient = 0, vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
   const [showDesc, setShowDesc] = useState(!!line.description);
   const [showNote, setShowNote] = useState(!!line.internalNote);
   const err = (field: string) => issues.find((i) => i.field === field && i.blocking)?.message;
@@ -69,6 +71,8 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], vatE
 
   const pending = line.kind === "pending";
   const optional = line.kind === "item" && line.optional === true;
+  const suggested = coefficient ? priceFromCost(line.unitCost, coefficient) : null;
+  const wasted = line.kind === "item" && line.wastePercent ? withWaste(line.quantity, line.wastePercent) : null;
   return (
     <div
       className={`group rounded-md border px-2 py-2 ${pending ? "border-warning/50 bg-warning-soft/40" : optional ? "border-dashed border-accent/50 bg-accent-soft/40" : "border-line bg-surface"} ${dragOver ? "ring-2 ring-accent" : ""}`}
@@ -157,6 +161,26 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], vatE
               <div className="tabular py-1 text-right font-semibold whitespace-nowrap">{pending ? <span className="text-warning">-</span> : formatEuros(result?.netCents ?? 0)}</div>
             </Labeled>
           </div>
+          {wasted && !readOnly ? (
+            <p className="mt-1.5 px-1.5 text-xs text-muted">
+              Chutes conseillées : {line.wastePercent} %.{" "}
+              <button
+                type="button"
+                className="link"
+                onClick={() =>
+                  onChange({
+                    quantity: wasted,
+                    wastePercent: "",
+                    internalNote: [line.internalNote, `Quantité mesurée ${line.quantity} ${line.unit}, chutes de ${line.wastePercent} % ajoutées.`]
+                      .filter(Boolean)
+                      .join("\n"),
+                  })
+                }
+              >
+                Passer à {wasted} {line.unit} avec les chutes
+              </button>
+            </p>
+          ) : null}
           {showDesc ? (
             <textarea
               value={line.description}
@@ -198,6 +222,11 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], vatE
                   />
                   {result?.costCents !== null && result?.costCents !== undefined ? <span className="text-muted">soit {formatEuros(result.costCents)}</span> : null}
                 </label>
+              ) : null}
+              {showCosts && suggested && !readOnly ? (
+                <button type="button" className="link" onClick={() => onChange({ unitPrice: suggested })}>
+                  Prix = coût x {coefficientLabel(coefficient)}, soit {suggested} €
+                </button>
               ) : null}
               {line.estimated ? (
                 <span className="flex items-center gap-1.5 text-warning">

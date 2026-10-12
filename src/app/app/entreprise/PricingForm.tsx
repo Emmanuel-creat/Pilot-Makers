@@ -6,7 +6,15 @@ import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
 import { centsToInput, formatEuros } from "@/lib/calc/format";
-import { DEFAULT_QUALIFICATIONS, LABOR_RATES_MAX, travelCostCents, type Pricing } from "@/lib/services/pricing";
+import {
+  COEFFICIENT_FAMILIES,
+  coefficientLabel,
+  DEFAULT_QUALIFICATIONS,
+  LABOR_RATES_MAX,
+  travelCostCents,
+  type CoefficientFamily,
+  type Pricing,
+} from "@/lib/services/pricing";
 
 type Row = { key: number; label: string; price: string; cost: string };
 
@@ -92,6 +100,33 @@ export function PricingForm({ initial, canEdit }: { initial: Pricing; canEdit: b
                 <Icon name="plus" size={16} /> Ajouter une qualification
               </button>
             ) : null}
+          </section>
+
+          <section className="space-y-3 border-t border-line pt-5">
+            <div>
+              <h2 className="font-semibold">Coefficients de vente par famille</h2>
+              <p className="text-sm text-muted">
+                Prix de vente = coût d'achat x coefficient. Dans l'éditeur, une ligne avec un coût d'achat propose le prix correspondant. Laissez vide
+                pour ne rien proposer.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-4">
+              {(Object.entries(COEFFICIENT_FAMILIES) as [CoefficientFamily, string][]).map(([k, label]) => (
+                <div key={k}>
+                  <label className="label" htmlFor={`coef-${k}`}>
+                    {label}
+                  </label>
+                  <input
+                    id={`coef-${k}`}
+                    name={`coef_${k}`}
+                    className="field tabular"
+                    inputMode="decimal"
+                    placeholder="Ex. : 1,30"
+                    defaultValue={initial.coefficients[k] ? coefficientLabel(initial.coefficients[k]!) : ""}
+                  />
+                </div>
+              ))}
+            </div>
           </section>
 
           <section className="space-y-3 border-t border-line pt-5">

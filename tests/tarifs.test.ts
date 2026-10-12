@@ -60,6 +60,7 @@ describe("taux horaires et frais de déplacement", () => {
 
   it("ignore des tarifs enregistrés invalides", () => {
     expect(readPricing({ laborRates: [{ label: "  " }, { label: "X", priceCents: -5 }], travel: { perKmCents: "a" } })).toEqual({
+      coefficients: {},
       laborRates: [{ label: "X", priceCents: 0, costCents: 0 }],
       travel: { perKmCents: 0, fixedCents: 0, freeKm: 0 },
     });

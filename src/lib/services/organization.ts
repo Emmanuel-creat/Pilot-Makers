@@ -14,7 +14,7 @@ import {
   validateVatNumber,
 } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
-import { eurosToCents, LABOR_RATES_MAX, readPricing, type Pricing } from "./pricing";
+import { COEFFICIENT_FAMILIES, coefficientToBp, eurosToCents, LABOR_RATES_MAX, readPricing, type CoefficientFamily, type Pricing } from "./pricing";
 import { audit, requireRole, requireWritable } from "./context";
 
 export interface Organization {
@@ -242,7 +242,13 @@ export function redactForRole<T extends Partial<Organization>>(org: T, role: Ctx
  */
 export async function savePricing(
   ctx: Ctx,
-  input: { rates: { label: string; price: string; cost: string }[]; perKm: string; fixed: string; freeKm: string },
+  input: {
+    rates: { label: string; price: string; cost: string }[];
+    perKm: string;
+    fixed: string;
+    freeKm: string;
+    coefficients?: Partial<Record<CoefficientFamily, string>>;
+  },
 ): Promise<Pricing> {
   requireRole(ctx, "admin");
   requireWritable(ctx);
@@ -264,7 +270,17 @@ export async function savePricing(
   });
   const freeKm = input.freeKm.trim() ? Number(input.freeKm.trim()) : 0;
   if (!Number.isInteger(freeKm) || freeKm < 0 || freeKm > 500) throw badRequest("Rayon sans frais : nombre entier de kilomètres, 500 au plus");
+  const coefficients: Partial<Record<CoefficientFamily, number>> = {};
+  for (const [k, label] of Object.entries(COEFFICIENT_FAMILIES) as [CoefficientFamily, string][]) {
+    try {
+      const bp = coefficientToBp(input.coefficients?.[k] ?? "", label);
+      if (bp) coefficients[k] = bp;
+    } catch (e) {
+      throw badRequest((e as Error).message);
+    }
+  }
   const pricing = readPricing({
+    coefficients,
     laborRates,
     travel: { perKmCents: cents(input.perKm, "Prix du kilomètre"), fixedCents: cents(input.fixed, "Forfait par déplacement"), freeKm },
   });

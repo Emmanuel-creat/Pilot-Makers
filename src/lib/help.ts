@@ -218,13 +218,15 @@ export const HELP_ARTICLES: HelpArticle[] = [
   {
     slug: "taux-horaires-et-deplacements",
     category: "devis",
-    title: "Taux horaires par qualification et frais de déplacement",
+    title: "Taux horaires, coefficients, chutes et déplacements",
     summary: "Chiffrer la main-d'œuvre et les déplacements d'un clic, avec vos propres tarifs.",
     steps: [
       "Dans Entreprise, onglet Tarifs, indiquez le prix de l'heure de chaque qualification (apprenti, ouvrier, chef d'équipe) et, si vous le souhaitez, son coût interne.",
       "Renseignez le barème des déplacements : forfait par déplacement, prix du kilomètre et rayon sans frais kilométriques.",
       "Dans l'éditeur, une ligne de main-d'œuvre propose la liste des qualifications : le prix de l'heure et le coût interne se remplissent.",
       "Le bouton « Déplacement » d'une section calcule la ligne à partir de la distance du chantier et du nombre de déplacements.",
+      "Avec un coefficient de vente par famille, une ligne dont vous saisissez le coût d'achat propose le prix de vente correspondant.",
+      "Un matériau du catalogue peut porter un taux de pertes et chutes : sur le devis, un clic passe de la quantité mesurée à la quantité à fournir.",
     ],
     notes: [
       "Les kilomètres comptés sont ceux de l'aller-retour au-delà du rayon sans frais.",

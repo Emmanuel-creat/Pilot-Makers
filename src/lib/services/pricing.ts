@@ -23,9 +23,20 @@ export interface TravelSettings {
   freeKm: number;
 }
 
+/** Familles qui peuvent avoir un coefficient de vente (prix = coût d'achat x coefficient). */
+export const COEFFICIENT_FAMILIES = {
+  materiau: "Matériaux et fournitures",
+  sous_traitance: "Sous-traitance",
+  main_oeuvre: "Main-d'œuvre",
+  autre: "Autres",
+} as const;
+export type CoefficientFamily = keyof typeof COEFFICIENT_FAMILIES;
+
 export interface Pricing {
   laborRates: LaborRate[];
   travel: TravelSettings;
+  /** Coefficient de vente par famille, en dix-millièmes (13000 = x 1,30) */
+  coefficients: Partial<Record<CoefficientFamily, number>>;
 }
 
 export const LABOR_RATES_MAX = 8;
@@ -41,7 +52,14 @@ export function readPricing(raw: unknown): Pricing {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const rates = Array.isArray(r.laborRates) ? r.laborRates : [];
   const t = (r.travel && typeof r.travel === "object" ? r.travel : {}) as Record<string, unknown>;
+  const c = (r.coefficients && typeof r.coefficients === "object" ? r.coefficients : {}) as Record<string, unknown>;
+  const coefficients: Pricing["coefficients"] = {};
+  for (const k of Object.keys(COEFFICIENT_FAMILIES) as CoefficientFamily[]) {
+    const v = int(c[k], 100_000);
+    if (v >= 10_000) coefficients[k] = v;
+  }
   return {
+    coefficients,
     laborRates: rates
       .map((x) => x as Record<string, unknown>)
       .filter((x) => typeof x.label === "string" && x.label.trim())
@@ -102,4 +120,54 @@ export function travelLine(t: TravelSettings, km: number, trips: number) {
     unit: "u",
     unitPrice: centsToInput(unit),
   };
+}
+
+/** Coefficient saisi ("1,3") vers des dix-millièmes ; vide vaut 0 (pas de coefficient). */
+export function coefficientToBp(input: string, label: string): number {
+  const t = input.trim().replace(/^x\s*/i, "");
+  if (!t) return 0;
+  let v: bigint;
+  try {
+    v = parseScaled(t, 4);
+  } catch {
+    throw new Error(`${label} : coefficient invalide`);
+  }
+  if (v < 10_000n || v > 100_000n) throw new Error(`${label} : coefficient entre 1 et 10`);
+  return Number(v);
+}
+
+export const coefficientLabel = (bp: number) => (bp / 10_000).toFixed(2).replace(".", ",");
+
+/** Prix de vente HT déduit du coût d'achat et du coefficient de la famille, au centime. */
+export function priceFromCost(unitCost: string, coefBp: number): string | null {
+  let cost: bigint;
+  try {
+    cost = parseScaled(unitCost.trim() || "x", 4);
+  } catch {
+    return null;
+  }
+  if (cost <= 0n || !coefBp) return null;
+  // coût (4 décimales) x coefficient (4 décimales) arrondi au centime
+  const cents = (cost * BigInt(coefBp) + 500_000n) / 1_000_000n;
+  return centsToInput(Number(cents));
+}
+
+/** Quantité à fournir : quantité mesurée augmentée des chutes, arrondie au centième supérieur. */
+export function withWaste(quantity: string, wastePercent: string): string | null {
+  let q: bigint;
+  let w: bigint;
+  try {
+    q = parseScaled(quantity.trim() || "x", 3);
+    w = parseScaled(wastePercent.trim() || "x", 2);
+  } catch {
+    return null;
+  }
+  if (q <= 0n || w <= 0n) return null;
+  // q en millièmes, w en points de base : résultat en centièmes, arrondi vers le haut
+  const num = q * (10_000n + w);
+  const den = 100_000n;
+  const hundredths = (num + den - 1n) / den;
+  const t = hundredths.toString().padStart(3, "0");
+  const out = `${t.slice(0, -2)},${t.slice(-2)}`.replace(/,?0+$/, "");
+  return out;
 }

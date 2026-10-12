@@ -37,6 +37,8 @@ export interface DraftLine {
   estimateNote: string;
   /** Commentaire interne, jamais montré au client ni imprimé */
   internalNote?: string;
+  /** Pertes et chutes proposées par le catalogue (en %), à ajouter à la quantité mesurée */
+  wastePercent?: string;
   /** Proposée en option : hors total tant que le client ne la choisit pas */
   optional?: boolean;
 }

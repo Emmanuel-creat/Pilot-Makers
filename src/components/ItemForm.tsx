@@ -15,6 +15,8 @@ export interface ItemFormValue {
   hourly_cost: string;
   unit_price: string;
   vat_percent: string;
+  /** Pertes et chutes en %, vide si aucune */
+  waste_percent: string;
   supplier: string;
   duration_minutes: number | null;
   price_valid_until: string | null;
@@ -35,6 +37,7 @@ export const EMPTY_ITEM: ItemFormValue = {
   hourly_cost: "",
   unit_price: "",
   vat_percent: "20",
+  waste_percent: "",
   supplier: "",
   duration_minutes: null,
   price_valid_until: null,
@@ -173,6 +176,14 @@ export function ItemForm({
         </div>
         {text("price_valid_until", "Prix valable jusqu'au", { type: "date" })}
       </div>
+      {v.category === "materiau" || v.waste_percent ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            {text("waste_percent", "Pertes et chutes (%)", { inputMode: "decimal", placeholder: "Ex. : 10" })}
+            <p className="mt-1 text-xs text-muted">Proposées dans le devis pour passer de la quantité mesurée à la quantité à fournir.</p>
+          </div>
+        </div>
+      ) : null}
       {showCosts ? (
         <div className="rounded-md bg-surface-2 p-4">
           <p className="mb-3 text-xs font-medium text-muted">Informations internes, jamais visibles par le client</p>

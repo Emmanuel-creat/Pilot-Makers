@@ -38,6 +38,8 @@ export interface CatalogItem {
   hourly_cost4: number | null;
   unit_price4: number;
   vat_bp: number;
+  /** Pertes et chutes à prévoir, en points de base (1000 = 10 %) */
+  waste_bp: number;
   supplier: string;
   duration_minutes: number | null;
   price_valid_until: string | null;
@@ -62,6 +64,7 @@ export function mapItem(r: Record<string, unknown>): CatalogItem {
     hourly_cost4: numOrNull(r.hourly_cost4),
     unit_price4: num(r.unit_price4),
     vat_bp: num(r.vat_bp),
+    waste_bp: num(r.waste_bp),
     usage_count: num(r.usage_count),
     tags: Array.isArray(r.tags) ? (r.tags as string[]) : [],
     last_used_at: (r.last_used_at as Date | null) ?? null,
@@ -109,6 +112,7 @@ export const itemSchema = z.object({
   hourly_cost: decimalText("Coût horaire", 4, false),
   unit_price: decimalText("Prix de vente", 4, true),
   vat_percent: decimalText("Taux de TVA", 2, true),
+  waste_percent: decimalText("Pertes et chutes", 2, false),
   supplier: z.string().trim().max(120).optional().default(""),
   duration_minutes: z.coerce.number().int().min(0).max(100000).optional().nullable(),
   price_valid_until: z
@@ -140,6 +144,7 @@ function parseItem(raw: unknown) {
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message, parsed.error.issues);
   const d = parsed.data;
   if (d.vat_percent !== null && d.vat_percent > 10000) throw badRequest("Taux de TVA invalide");
+  if (d.waste_percent !== null && d.waste_percent > 5000) throw badRequest("Pertes et chutes : 50 % au plus");
   return d;
 }
 
@@ -166,8 +171,8 @@ export async function createItem(ctx: Ctx, raw: unknown, q: Queryable = ctx.db, 
   const row = await one<{ id: string }>(
     q,
     `INSERT INTO catalog_items (org_id, reference, name, description, category, subcategory, unit, unit_cost4, hourly_cost4,
-       unit_price4, vat_bp, supplier, duration_minutes, price_valid_until, active, favorite, source, source_note, updated_by, tags)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id`,
+       unit_price4, vat_bp, supplier, duration_minutes, price_valid_until, active, favorite, source, source_note, updated_by, tags, waste_bp)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING id`,
     [
       ctx.orgId,
       reference,
@@ -189,6 +194,7 @@ export async function createItem(ctx: Ctx, raw: unknown, q: Queryable = ctx.db, 
       extra.sourceNote ?? "",
       ctx.userId,
       d.tags ?? [],
+      d.waste_percent ?? 0,
     ],
   );
   return row!.id;
@@ -219,7 +225,7 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
     await tx.query(
       `UPDATE catalog_items SET reference=$3, name=$4, description=$5, category=$6, subcategory=$7, unit=$8, unit_cost4=$9,
          hourly_cost4=$10, unit_price4=$11, vat_bp=$12, supplier=$13, duration_minutes=$14, price_valid_until=$15, active=$16,
-         favorite=$17, updated_by=$18, tags=coalesce($19, tags), updated_at=now()
+         favorite=$17, updated_by=$18, tags=coalesce($19, tags), waste_bp=coalesce($20, waste_bp), updated_at=now()
        WHERE id=$1 AND org_id=$2`,
       [
         id,
@@ -241,6 +247,7 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
         d.favorite,
         ctx.userId,
         d.tags ?? null,
+        d.waste_percent,
       ],
     );
     if (before.unit_price4 !== d.unit_price || before.unit_cost4 !== d.unit_cost) {
@@ -293,6 +300,7 @@ export function itemToInput(it: CatalogItem): ItemInput {
     hourly_cost: it.hourly_cost4 === null ? "" : price4ToInput(it.hourly_cost4),
     unit_price: price4ToInput(it.unit_price4),
     vat_percent: bpToInput(it.vat_bp),
+    waste_percent: it.waste_bp ? bpToInput(it.waste_bp) : "",
     supplier: it.supplier,
     duration_minutes: it.duration_minutes,
     price_valid_until: it.price_valid_until,
@@ -406,6 +414,7 @@ const CSV_COLUMNS = [
   "hourly_cost",
   "unit_price",
   "vat_percent",
+  "waste_percent",
   "supplier",
   "duration_minutes",
   "price_valid_until",
