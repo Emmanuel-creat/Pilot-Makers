@@ -184,4 +184,11 @@ describe("assistant de préparation", () => {
     expect(p.questions.length).toBeGreaterThan(2);
     expect(minimizePersonalData("tel 06 12 34 56 78 ou a@b.fr")).toBe("tel [téléphone] ou [e-mail]");
   });
+
+  it("rattache chaque surface à la prestation citée dans la même phrase", async () => {
+    const p = await proposeDraft(a, { text: "Salle de bain de 6 m2, pose de carrelage au sol, faïence murale sur 14,5 m2." });
+    const lines = p.sections.flatMap((s) => s.lines);
+    expect(lines.find((l) => /faïence/i.test(l.label))?.quantity).toBe("14,5");
+    expect(lines.find((l) => /carrelage au sol/i.test(l.label))?.quantity).toBe("6");
+  });
 });

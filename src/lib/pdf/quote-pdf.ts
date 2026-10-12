@@ -5,7 +5,7 @@
  * enregistrées. Le coût interne et la marge n'y figurent jamais.
  */
 
-import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb, type RGB } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb, type RGB } from "pdf-lib";
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
 import type { QuoteSnapshot } from "@/lib/services/quote-types";
 
@@ -474,6 +474,17 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
       font: f.regular,
       color: GREY,
     });
+    if (s.preview) {
+      p.drawText("APERÇU - DOCUMENT NON ÉMIS", {
+        x: 120,
+        y: 300,
+        size: 34,
+        font: f.bold,
+        color: rgb(0.85, 0.2, 0.2),
+        opacity: 0.18,
+        rotate: degrees(35),
+      });
+    }
     if (s.watermark) {
       p.drawText("Réalisé avec Pilot-Makers", { x: A4.w - M.right - 92, y: 22, size: 6.5, font: f.italic, color: GREY });
     }

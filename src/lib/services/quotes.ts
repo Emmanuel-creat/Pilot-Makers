@@ -6,8 +6,9 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Queryable } from "@/lib/db";
 import { num, numOrNull, one } from "@/lib/db";
-import { computeQuote, type CalcInput, type CalcResult } from "@/lib/calc/engine";
+import { computeQuote, type CalcResult } from "@/lib/calc/engine";
 import { formatEuros } from "@/lib/calc/format";
+import { draftToCalcInput } from "@/lib/calc/draft";
 import { badRequest, conflict, forbidden, HttpError, isUuid, notFound } from "@/lib/http";
 import { renderQuotePdf, pdfTotals } from "@/lib/pdf/quote-pdf";
 import { canonicalJson, randomToken, sha256 } from "@/lib/security";
@@ -171,27 +172,7 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
   };
 }
 
-export function draftToCalcInput(d: Pick<QuoteDraft, "sections" | "globalDiscount">, vatExempt: boolean): CalcInput {
-  return {
-    vatExempt,
-    globalDiscountPercent: d.globalDiscount,
-    sections: d.sections.map((s) => ({
-      id: s.id,
-      title: s.title,
-      lines: s.lines.map((l) => ({
-        id: l.id,
-        kind: l.kind,
-        label: l.label,
-        quantity: l.quantity,
-        unitPrice: l.unitPrice,
-        unitCost: l.unitCost,
-        discountPercent: l.discountPercent,
-        vatPercent: l.vatPercent,
-        nature: l.nature,
-      })),
-    })),
-  };
-}
+export { draftToCalcInput };
 
 export interface QuoteListFilters {
   status?: string;
@@ -536,6 +517,97 @@ export function verifySnapshot(s: QuoteSnapshot): { ok: boolean; reason?: string
   return { ok: true };
 }
 
+/** Construit la photographie figée d'un devis (utilisée à l'émission et pour l'aperçu). */
+export function buildSnapshot(args: {
+  ctx: Ctx;
+  d: QuoteDraft;
+  org: Organization;
+  customer: Customer;
+  calc: CalcResult;
+  issues: ComplianceIssue[];
+  number: string;
+  version: number;
+  now?: Date;
+}): QuoteSnapshot {
+  const { ctx, d, org, customer, calc, issues, number, version } = args;
+  const now = args.now ?? new Date();
+  const issueDate = parisDate(now);
+  const validUntil = parisDate(addDays(now, d.validityDays));
+  const site = d.site;
+  const snapshot: QuoteSnapshot = {
+    schema: 1,
+    rulesVersion: COMPLIANCE_RULES_VERSION,
+    number,
+    version,
+    issuedAt: now.toISOString(),
+    issueDate,
+    validUntil,
+    author: d.authorName || ctx.userName,
+    template: d.template || org.quote_template,
+    accentColor: org.accent_color,
+    watermark: Boolean(ctx.entitlements.plan.features.watermark),
+    org: {
+      trade_name: org.trade_name,
+      legal_name: org.legal_name,
+      legal_form: org.legal_form,
+      share_capital: org.share_capital,
+      rcs_rm: org.rcs_rm,
+      address_line1: org.address_line1,
+      address_line2: org.address_line2,
+      postal_code: org.postal_code,
+      city: org.city,
+      country: org.country,
+      siren: org.siren,
+      siret: org.siret,
+      vat_number: org.vat_number,
+      phone: org.phone,
+      email: org.email,
+      website: org.website,
+      logo_data: org.logo_data,
+      signature_data: org.signature_data,
+      vat_regime: org.vat_regime,
+      general_conditions: org.general_conditions,
+    },
+    customer: {
+      id: customer.id,
+      type: customer.type,
+      name: customerDisplayName(customer),
+      contact:
+        customer.type !== "particulier" ? [customer.civility, customer.first_name, customer.last_name].filter(Boolean).join(" ") : "",
+      billing_line1: customer.billing_line1,
+      billing_line2: customer.billing_line2,
+      billing_postal_code: customer.billing_postal_code,
+      billing_city: customer.billing_city,
+      billing_country: customer.billing_country,
+      email: customer.email,
+      phone: customer.phone,
+      siren: customer.siren,
+      vat_number: customer.vat_number,
+    },
+    quote: {
+      title: d.title,
+      description: d.description,
+      site,
+      paymentTerms: d.paymentTerms,
+      specialConditions: d.specialConditions,
+      depositPercent: d.depositPercent,
+      estimatedDuration: d.estimatedDuration,
+      estimatedStart: d.estimatedStart,
+      globalDiscount: d.globalDiscount,
+    },
+    sections: d.sections,
+    calc,
+    mentions: buildMentions({
+      org,
+      customer: { type: customer.type, name: "", billing_line1: "", billing_postal_code: "", billing_city: "", siren: "" },
+      validUntil: frDate(validUntil),
+      depositPercent: d.depositPercent,
+    }),
+    warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
+  };
+  return snapshot;
+}
+
 export async function issueQuote(ctx: Ctx, id: string, expectedRevision?: number) {
   requireWritable(ctx);
   try {
@@ -588,80 +660,8 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     }
 
     const now = new Date();
-    const issueDate = parisDate(now);
-    const validUntil = parisDate(addDays(now, d.validityDays));
-    const site = d.site;
-    const snapshot: QuoteSnapshot = {
-      schema: 1,
-      rulesVersion: COMPLIANCE_RULES_VERSION,
-      number,
-      version,
-      issuedAt: now.toISOString(),
-      issueDate,
-      validUntil,
-      author: d.authorName || ctx.userName,
-      template: d.template || org.quote_template,
-      accentColor: org.accent_color,
-      watermark: Boolean(ctx.entitlements.plan.features.watermark),
-      org: {
-        trade_name: org.trade_name,
-        legal_name: org.legal_name,
-        legal_form: org.legal_form,
-        share_capital: org.share_capital,
-        rcs_rm: org.rcs_rm,
-        address_line1: org.address_line1,
-        address_line2: org.address_line2,
-        postal_code: org.postal_code,
-        city: org.city,
-        country: org.country,
-        siren: org.siren,
-        siret: org.siret,
-        vat_number: org.vat_number,
-        phone: org.phone,
-        email: org.email,
-        website: org.website,
-        logo_data: org.logo_data,
-        signature_data: org.signature_data,
-        vat_regime: org.vat_regime,
-        general_conditions: org.general_conditions,
-      },
-      customer: {
-        id: customer.id,
-        type: customer.type,
-        name: customerDisplayName(customer),
-        contact:
-          customer.type !== "particulier" ? [customer.civility, customer.first_name, customer.last_name].filter(Boolean).join(" ") : "",
-        billing_line1: customer.billing_line1,
-        billing_line2: customer.billing_line2,
-        billing_postal_code: customer.billing_postal_code,
-        billing_city: customer.billing_city,
-        billing_country: customer.billing_country,
-        email: customer.email,
-        phone: customer.phone,
-        siren: customer.siren,
-        vat_number: customer.vat_number,
-      },
-      quote: {
-        title: d.title,
-        description: d.description,
-        site,
-        paymentTerms: d.paymentTerms,
-        specialConditions: d.specialConditions,
-        depositPercent: d.depositPercent,
-        estimatedDuration: d.estimatedDuration,
-        estimatedStart: d.estimatedStart,
-        globalDiscount: d.globalDiscount,
-      },
-      sections: d.sections,
-      calc,
-      mentions: buildMentions({
-        org,
-        customer: { type: customer.type, name: "", billing_line1: "", billing_postal_code: "", billing_city: "", siren: "" },
-        validUntil: frDate(validUntil),
-        depositPercent: d.depositPercent,
-      }),
-      warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
-    };
+    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now });
+    const validUntil = snapshot.validUntil;
     const check = verifySnapshot(snapshot);
     if (!check.ok) throw new HttpError(500, "integrity", "Contrôle de cohérence échoué : " + check.reason, check.reason);
     let pdf: Uint8Array;
@@ -696,6 +696,44 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     await recordUsage(tx, ctx.orgId, ctx.userId, "pdf");
     return { version, number, pdfSha256: pdfHash, warnings: snapshot.warnings };
   });
+}
+
+/** PDF d'aperçu d'un brouillon, non enregistré et marqué « Aperçu ». */
+export async function previewPdf(ctx: Ctx, id: string): Promise<Uint8Array> {
+  const d = await getDraft(ctx, id);
+  const org = await orgRow(ctx.db, ctx.orgId);
+  const customer =
+    (d.customerId ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null) ??
+    ({
+      id: "",
+      type: "particulier",
+      civility: "",
+      first_name: "",
+      last_name: "Client à choisir",
+      company_name: "",
+      billing_line1: "",
+      billing_line2: "",
+      billing_postal_code: "",
+      billing_city: "",
+      billing_country: "France",
+      email: "",
+      phone: "",
+      siren: "",
+      vat_number: "",
+    } as unknown as Customer);
+  const calc = computeQuote(draftToCalcInput(d, org.vat_regime === "franchise"));
+  const snapshot = buildSnapshot({
+    ctx,
+    d,
+    org,
+    customer,
+    calc,
+    issues: [],
+    number: d.number ?? "BROUILLON",
+    version: d.currentVersion + 1,
+  });
+  snapshot.preview = true;
+  return renderQuotePdf(snapshot);
 }
 
 /* ------------------------------------------------------------------ */

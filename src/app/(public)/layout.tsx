@@ -1,0 +1,42 @@
+import Link from "next/link";
+import { Logo } from "@/components/Icon";
+
+export default function PublicLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-line bg-surface">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+          <Link href="/" className="flex items-center gap-2 font-semibold">
+            <Logo /> Pilot-Makers
+          </Link>
+          <nav className="flex items-center gap-2 text-sm">
+            <Link href="/#tarifs" className="btn-ghost hidden sm:inline-flex">
+              Tarifs
+            </Link>
+            <Link href="/connexion" className="btn-ghost">
+              Connexion
+            </Link>
+            <Link href="/inscription" className="btn-primary">
+              Essai gratuit
+            </Link>
+          </nav>
+        </div>
+      </header>
+      <main className="flex-1">{children}</main>
+      <footer className="border-t border-line bg-surface">
+        <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted">
+          <span>Pilot-Makers, BAILLY emmanuel</span>
+          <Link href="/cgu" className="hover:text-ink">
+            Conditions d'utilisation
+          </Link>
+          <Link href="/confidentialite" className="hover:text-ink">
+            Confidentialité
+          </Link>
+          <Link href="/sous-traitants" className="hover:text-ink">
+            Sous-traitants
+          </Link>
+        </div>
+      </footer>
+    </div>
+  );
+}

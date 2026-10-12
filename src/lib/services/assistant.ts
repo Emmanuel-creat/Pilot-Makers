@@ -60,6 +60,16 @@ export function detectMeasures(text: string) {
   return { surfaceM2: surfaces[0] ?? null, lengthMl: lengths[0] ?? null, rooms };
 }
 
+/** Mesure citée dans la même partie de phrase que la prestation (ex. « faïence murale sur 14 m² »). */
+export function measureNear(text: string, trigger: RegExp) {
+  for (const clause of text.split(/[;\n]|[.,](?!\d)|\bet\b|\bpuis\b/)) {
+    if (!trigger.test(norm(clause))) continue;
+    const m = detectMeasures(clause);
+    if (m.surfaceM2 !== null || m.lengthMl !== null) return m;
+  }
+  return null;
+}
+
 interface Intent {
   section: string;
   keywords: string[];
@@ -107,6 +117,10 @@ function score(itemName: string, keywords: string[], text: string): number {
   let s = 0;
   for (const k of keywords) if (n.includes(norm(k))) s += 3;
   for (const w of norm(text).split(/\s+/)) if (w.length > 4 && n.includes(w)) s += 1;
+  // Une dépose ne doit jamais être proposée pour une pose, et inversement.
+  const isRemoval = /\b(depose|demolition)\b/.test(n);
+  const wantsRemoval = keywords.some((k) => /\b(depose|demolition)\b/.test(norm(k)));
+  if (isRemoval !== wantsRemoval) s -= 10;
   return s;
 }
 
@@ -160,12 +174,15 @@ export const localProvider: AssistantProvider = {
       let quantity = "";
       let estimated = false;
       let estimateNote = "";
-      if (unit === "m²" && measures.surfaceM2 !== null) {
-        quantity = String(measures.surfaceM2).replace(".", ",");
+      const near = measureNear(text, intent.triggers);
+      const surface = near?.surfaceM2 ?? measures.surfaceM2;
+      const length = near?.lengthMl ?? measures.lengthMl;
+      if (unit === "m²" && surface !== null) {
+        quantity = String(surface).replace(".", ",");
         estimated = true;
         estimateNote = `déduite de la description (${quantity} m²), à mesurer sur place`;
-      } else if (unit === "ml" && measures.lengthMl !== null) {
-        quantity = String(measures.lengthMl).replace(".", ",");
+      } else if (unit === "ml" && length !== null) {
+        quantity = String(length).replace(".", ",");
         estimated = true;
         estimateNote = `déduite de la description (${quantity} ml), à mesurer`;
       } else if (unit === "forfait" || unit === "u") {

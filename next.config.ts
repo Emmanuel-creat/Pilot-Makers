@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite", "pg", "bcryptjs", "pdf-lib"],
   poweredByHeader: false,
+  agentRules: false,
   async headers() {
     return [
       {

@@ -1,0 +1,117 @@
+import Link from "next/link";
+import { Icon } from "@/components/Icon";
+import { Empty, PageHeader, Section, Stat, fmtDate } from "@/components/ui";
+import { formatEuros } from "@/lib/calc/format";
+import { requirePageCtx } from "@/lib/server/session";
+import { EVENT_LABELS, getDashboard } from "@/lib/services/dashboard";
+
+export const metadata = { title: "Tableau de bord" };
+
+export default async function Dashboard() {
+  const ctx = await requirePageCtx();
+  const d = await getDashboard(ctx);
+  const c = d.counts;
+  const total = Object.values(c).reduce((a, b) => a + b, 0);
+  const org = await ctx.db.query<{ siret: string; address_line1: string }>("SELECT siret, address_line1 FROM organizations WHERE id=$1", [ctx.orgId]);
+  const profileIncomplete = !org[0]?.siret || !org[0]?.address_line1;
+  return (
+    <>
+      <PageHeader
+        title={`Bonjour ${ctx.userName.split(" ")[0] ?? ""}`}
+        subtitle="Ce qui demande votre attention aujourd'hui."
+        actions={
+          <Link href="/app/devis/nouveau" className="btn-primary">
+            <Icon name="plus" /> Créer un devis
+          </Link>
+        }
+      />
+      {profileIncomplete ? (
+        <Link href="/app/bienvenue" className="card mb-6 flex items-center gap-3 border-warning/40 bg-warning-soft p-4 text-sm">
+          <Icon name="building" className="text-warning" />
+          <span className="flex-1">Complétez le profil de votre entreprise (adresse, SIRET, assurance) pour pouvoir émettre vos devis.</span>
+          <Icon name="right" />
+        </Link>
+      ) : null}
+      {total === 0 ? (
+        <Empty
+          icon="quote"
+          title="Aucun devis pour l'instant"
+          action={
+            <Link href="/app/devis/nouveau" className="btn-primary">
+              Créer mon premier devis
+            </Link>
+          }
+        >
+          Commencez par votre catalogue de prestations, ou décrivez directement un chantier : l'assistant vous propose des lignes.
+        </Empty>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Stat label="Brouillons" value={c.draft + c.incomplete} hint={c.incomplete ? `dont ${c.incomplete} à compléter` : undefined} href="/app/devis?status=drafts" />
+            <Stat label="À envoyer" value={c.ready} href="/app/devis?status=ready" />
+            <Stat label="En attente de réponse" value={c.sent + c.viewed} hint={c.viewed ? `dont ${c.viewed} consulté(s)` : undefined} href="/app/devis?status=pending" />
+            <Stat label="Acceptés" value={c.accepted} href="/app/devis?status=accepted" />
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Montant des devis en cours" value={formatEuros(d.pendingAmountTtcCents)} hint="TTC, devis émis sans réponse" />
+            <Stat label={`Devis acceptés (${d.periodDays} j)`} value={formatEuros(d.acceptedAmountHtCents)} hint="HT. Ce n'est pas du chiffre d'affaires encaissé." />
+            <Stat label="Taux d'acceptation" value={d.acceptanceRate === null ? "-" : `${String(d.acceptanceRate).replace(".", ",")} %`} hint={`Sur ${d.periodDays} jours, acceptés / (acceptés + refusés)`} />
+            <Stat label="Délai moyen de réponse" value={d.averageResponseDays === null ? "-" : `${String(d.averageResponseDays).replace(".", ",")} j`} hint="Entre l'envoi et la réponse" />
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Section title="Arrivent à expiration" description="Devis en attente dont la validité se termine sous 7 jours.">
+              {d.expiringSoon.length === 0 ? (
+                <p className="text-sm text-muted">Rien à signaler.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {d.expiringSoon.map((q) => (
+                    <li key={q.id}>
+                      <Link href={`/app/devis/${q.id}`} className="flex items-center justify-between gap-3 py-2 text-sm hover:text-accent">
+                        <span className="min-w-0 truncate">
+                          <span className="font-medium">{q.number}</span> {q.title}
+                        </span>
+                        <span className="shrink-0 text-muted">{fmtDate(q.validUntil)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+            <Section title="Chantiers à préparer" description="Devis acceptés : acompte, commande de matériaux, planning.">
+              {d.toPrepare.length === 0 ? (
+                <p className="text-sm text-muted">Aucun devis accepté pour le moment.</p>
+              ) : (
+                <ul className="divide-y divide-line">
+                  {d.toPrepare.map((q) => (
+                    <li key={q.id}>
+                      <Link href={`/app/devis/${q.id}`} className="flex items-center justify-between gap-3 py-2 text-sm hover:text-accent">
+                        <span className="min-w-0 truncate">
+                          <span className="font-medium">{q.number}</span> {q.title}
+                        </span>
+                        <span className="tabular shrink-0">{formatEuros(q.totalTtcCents)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          </div>
+          <Section title="Activité récente">
+            <ul className="divide-y divide-line">
+              {d.recent.map((e, i) => (
+                <li key={i} className="flex items-center gap-3 py-2 text-sm">
+                  <Icon name={e.type === "accepted" ? "check" : e.type === "viewed" ? "eye" : e.type === "sent" ? "send" : "quote"} className="text-muted" size={16} />
+                  <Link href={`/app/devis/${e.quoteId}`} className="min-w-0 flex-1 truncate hover:text-accent">
+                    {EVENT_LABELS[e.type] ?? e.type} : {e.number ?? "brouillon"} {e.title}
+                  </Link>
+                  <span className="hidden shrink-0 text-muted sm:inline">{e.actor}</span>
+                  <span className="shrink-0 text-muted">{fmtDate(e.createdAt, true)}</span>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        </div>
+      )}
+    </>
+  );
+}

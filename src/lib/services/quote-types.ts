@@ -134,4 +134,6 @@ export interface QuoteSnapshot {
   calc: CalcResult;
   mentions: string[];
   warnings: string[];
+  /** Aperçu d'un brouillon : jamais enregistré, marqué comme tel sur le PDF */
+  preview?: boolean;
 }
