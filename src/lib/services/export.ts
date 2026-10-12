@@ -21,6 +21,7 @@ export async function exportAccountData(ctx: Ctx) {
     organizationHistory: await q("SELECT changes, created_at FROM organization_history WHERE org_id=$1 ORDER BY created_at"),
     members: await q("SELECT u.email, u.name, m.role, m.created_at FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1"),
     customers: await q("SELECT * FROM customers WHERE org_id=$1 ORDER BY created_at"),
+    leads: await q("SELECT * FROM leads WHERE org_id=$1 ORDER BY created_at"),
     catalog: await q("SELECT * FROM catalog_items WHERE org_id=$1 ORDER BY reference"),
     catalogPriceHistory: await q("SELECT item_id, old_price4, new_price4, old_cost4, new_cost4, created_at FROM catalog_price_history WHERE org_id=$1"),
     quotes: await q("SELECT * FROM quotes WHERE org_id=$1 ORDER BY created_at"),

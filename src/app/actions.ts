@@ -29,6 +29,7 @@ import { setCustomerArchived } from "@/lib/services/customers";
 import { updateOrganization } from "@/lib/services/organization";
 import { cancelQuote, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
+import { convertLeadToQuote, createLead, updateLead } from "@/lib/services/leads";
 import { createQuoteFromTemplate, deleteTemplate, renameTemplate } from "@/lib/services/templates";
 import {
   cancelPayment,
@@ -637,4 +638,39 @@ export async function sendInvoiceAction(_: ActionState, fd: FormData): Promise<A
   } catch (e) {
     return toState(e);
   }
+}
+
+/* Demandes entrantes */
+
+export async function createLeadAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      createLead(ctx, {
+        name: s(fd, "name"),
+        email: s(fd, "email"),
+        phone: s(fd, "phone"),
+        city: s(fd, "city"),
+        description: s(fd, "description"),
+        source: s(fd, "source") || undefined,
+        next_action: s(fd, "next_action"),
+        next_action_on: s(fd, "next_action_on"),
+      }),
+    );
+    revalidatePath("/app/demandes");
+    return { ok: true };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function updateLeadAction(fd: FormData) {
+  await withCtx((ctx) =>
+    updateLead(ctx, s(fd, "id"), { status: s(fd, "status") || undefined, next_action: s(fd, "next_action"), next_action_on: s(fd, "next_action_on") }),
+  );
+  revalidatePath("/app/demandes");
+}
+
+export async function convertLeadAction(fd: FormData) {
+  const quoteId = await withCtx((ctx) => convertLeadToQuote(ctx, s(fd, "id")));
+  redirect(`/app/devis/${quoteId}`);
 }

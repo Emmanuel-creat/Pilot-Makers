@@ -6,6 +6,8 @@ import { formatEuros } from "@/lib/calc/format";
 import { num } from "@/lib/db";
 import { requirePageCtx } from "@/lib/server/session";
 import { customerDisplayName, getCustomer } from "@/lib/services/customers";
+import { customerBalance, listInvoices } from "@/lib/services/invoices";
+import { InvoiceBadge } from "@/components/InvoiceBadge";
 import type { QuoteStatus } from "@/lib/services/quote-types";
 import { archiveCustomerAction } from "@/app/actions";
 import { EditCustomer } from "./EditCustomer";
@@ -21,6 +23,15 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
     [id, ctx.orgId],
   );
   const accepted = quotes.filter((q) => q.status === "accepted").reduce((n, q) => n + num(q.total_ttc_cents), 0);
+  const decided = quotes.filter((q) => q.status === "accepted" || q.status === "refused").length;
+  const rate = decided ? Math.round((quotes.filter((q) => q.status === "accepted").length / decided) * 100) : null;
+  const invoices = await listInvoices(ctx, { customerId: id });
+  const balance = customerBalance(invoices);
+  const sites = await ctx.db.query<{ line1: string; postal_code: string; city: string; n: unknown }>(
+    `SELECT site_line1 AS line1, site_postal_code AS postal_code, site_city AS city, count(*) AS n FROM quotes
+     WHERE customer_id=$1 AND org_id=$2 AND site_line1 <> '' GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 LIMIT 20`,
+    [id, ctx.orgId],
+  );
   const { id: _id, org_id: _o, archived_at, created_at: _c, updated_at: _u, last_activity_at: _l, ...form } = c;
   return (
     <>
@@ -64,8 +75,69 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
                 <div className="text-muted">Accepté TTC</div>
                 <div className="tabular text-xl font-semibold">{formatEuros(accepted)}</div>
               </div>
+              <div>
+                <div className="text-muted">Taux d'acceptation</div>
+                <div className="text-xl font-semibold">{rate === null ? "-" : `${rate} %`}</div>
+              </div>
+              <div>
+                <div className="text-muted">Facturé TTC</div>
+                <div className="tabular text-xl font-semibold">{formatEuros(balance.invoicedCents)}</div>
+              </div>
+              <div>
+                <div className="text-muted">Encaissé</div>
+                <div className="tabular text-xl font-semibold">{formatEuros(balance.paidCents)}</div>
+              </div>
+              <div>
+                <div className="text-muted">Reste dû</div>
+                <div className={`tabular text-xl font-semibold ${balance.overdueCents > 0 ? "text-danger" : ""}`}>{formatEuros(balance.dueCents)}</div>
+                {balance.overdueCents > 0 ? <div className="text-xs text-danger">dont {formatEuros(balance.overdueCents)} en retard</div> : null}
+              </div>
             </div>
           </section>
+          {c.notes ? (
+            <section className="card p-4">
+              <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+                <Icon name="lock" size={14} className="text-muted" /> Notes internes
+              </h2>
+              <p className="text-sm whitespace-pre-line">{c.notes}</p>
+            </section>
+          ) : null}
+          {sites.length ? (
+            <section className="card p-4">
+              <h2 className="mb-2 text-sm font-semibold">Chantiers</h2>
+              <ul className="space-y-1.5 text-sm">
+                {sites.map((st) => (
+                  <li key={`${st.line1}-${st.city}`} className="flex justify-between gap-2">
+                    <span className="min-w-0 truncate">
+                      {st.line1}, {st.postal_code} {st.city}
+                    </span>
+                    <span className="shrink-0 text-muted">{num(st.n)} devis</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          {invoices.length ? (
+            <section className="card p-4">
+              <h2 className="mb-2 text-sm font-semibold">Factures et avoirs</h2>
+              <ul className="divide-y divide-line">
+                {invoices.map((i) => (
+                  <li key={i.id}>
+                    <Link href={`/app/factures/${i.id}`} className="flex items-center justify-between gap-2 py-2.5 text-sm hover:text-accent">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{i.number}</span>
+                        <span className="block truncate text-xs text-muted">{fmtDate(i.issue_date)}</span>
+                      </span>
+                      <span className="shrink-0 text-right">
+                        <span className="tabular block">{formatEuros(i.total_ttc_cents)}</span>
+                        <InvoiceBadge status={i.status} />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <section className="card p-4">
             <h2 className="mb-2 text-sm font-semibold">Historique des devis</h2>
             {quotes.length === 0 ? <p className="text-sm text-muted">Aucun devis pour ce client.</p> : null}

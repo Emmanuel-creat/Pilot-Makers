@@ -10,6 +10,7 @@ export default async function MorePage() {
   const ctx = await requirePageCtx();
   const links = [
     ["/app/factures", "Factures", "euro"],
+    ["/app/demandes", "Demandes", "inbox"],
     ["/app/modeles", "Modèles de devis", "copy"],
     ["/app/entreprise", "Entreprise", "building"],
     ["/app/equipe", "Équipe", "team"],

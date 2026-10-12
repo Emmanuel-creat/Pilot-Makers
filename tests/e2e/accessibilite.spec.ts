@@ -37,7 +37,7 @@ test("pages publiques", async ({ page }) => {
 
 test("écrans de l'application", async ({ page }) => {
   await login(page);
-  for (const path of ["/app", "/app/devis", "/app/clients", "/app/catalogue", "/app/factures", "/app/entreprise", "/app/compte", "/app/assistance"]) {
+  for (const path of ["/app", "/app/devis", "/app/clients", "/app/demandes", "/app/catalogue", "/app/factures", "/app/entreprise", "/app/compte", "/app/assistance"]) {
     await page.goto(path);
     await audit(page, path);
   }

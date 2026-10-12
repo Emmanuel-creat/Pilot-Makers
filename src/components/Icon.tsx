@@ -41,6 +41,7 @@ const PATHS: Record<string, string> = {
   edit: "M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4",
   compare: "M8 4v16M16 4v16M4 8h4M16 16h4M4 16h4M16 8h4",
   link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  inbox: "M3.5 13.5 6 5h12l2.5 8.5v5h-17zM3.5 13.5H8l1.5 2.5h5l1.5-2.5h4.5",
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7.5V12l3 2",
   euro: "M17.5 6.5A6.5 6.5 0 1 0 17.5 17.5M5 10.5h8M5 13.5h8",
   calendar: "M4 6h16v14H4zM4 10h16M8.5 3.5V7M15.5 3.5V7",

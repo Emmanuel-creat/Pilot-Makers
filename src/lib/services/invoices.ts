@@ -154,12 +154,16 @@ const LIST_COLUMNS = `i.id, i.org_id, i.quote_id, i.customer_id, i.kind, i.numbe
   i.total_ht_cents, i.total_vat_cents, i.total_ttc_cents, i.amount_due_cents, i.paid_cents, i.credited_cents, i.reminder_count,
   i.sent_at, i.issued_at, i.pdf_sha256, i.snapshot->'customer'->>'name' AS customer_name, q.number AS quote_number`;
 
-export async function listInvoices(ctx: Ctx, f: { status?: string; q?: string; quoteId?: string; limit?: number } = {}) {
+export async function listInvoices(ctx: Ctx, f: { status?: string; q?: string; quoteId?: string; customerId?: string; limit?: number } = {}) {
   const params: unknown[] = [ctx.orgId];
   const where = ["i.org_id=$1"];
   if (f.quoteId) {
     params.push(f.quoteId);
     where.push(`i.quote_id=$${params.length}`);
+  }
+  if (f.customerId) {
+    params.push(f.customerId);
+    where.push(`i.customer_id=$${params.length}`);
   }
   if (f.q?.trim()) {
     params.push(`%${f.q.trim().toLowerCase()}%`);
@@ -975,4 +979,22 @@ export async function saveInvoiceSettings(
 
 export function invoicePublicUrl(id: string) {
   return appUrl(`/app/factures/${id}`);
+}
+
+/** Situation financière d'un client : facturé, encaissé, restant dû (avoirs déduits). */
+export function customerBalance(list: InvoiceRow[]) {
+  let invoiced = 0;
+  let paid = 0;
+  let due = 0;
+  let overdue = 0;
+  for (const i of list) {
+    if (i.kind === "credit_note") continue;
+    const net = i.amount_due_cents - i.credited_cents;
+    invoiced += net;
+    paid += i.paid_cents;
+    const rest = Math.max(net - i.paid_cents, 0);
+    due += rest;
+    if (i.status === "overdue") overdue += rest;
+  }
+  return { invoicedCents: invoiced, paidCents: paid, dueCents: due, overdueCents: overdue };
 }

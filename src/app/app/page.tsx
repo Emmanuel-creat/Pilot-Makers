@@ -4,6 +4,7 @@ import { Empty, PageHeader, Section, Stat, fmtDate } from "@/components/ui";
 import { formatEuros } from "@/lib/calc/format";
 import { requirePageCtx } from "@/lib/server/session";
 import { EVENT_LABELS, getDashboard } from "@/lib/services/dashboard";
+import { leadsDue } from "@/lib/services/leads";
 
 export const metadata = { title: "Tableau de bord" };
 
@@ -14,6 +15,7 @@ export default async function Dashboard() {
   const total = Object.values(c).reduce((a, b) => a + b, 0);
   const org = await ctx.db.query<{ siret: string; address_line1: string }>("SELECT siret, address_line1 FROM organizations WHERE id=$1", [ctx.orgId]);
   const profileIncomplete = !org[0]?.siret || !org[0]?.address_line1;
+  const leadsToFollow = await leadsDue(ctx);
   return (
     <>
       <PageHeader
@@ -29,6 +31,15 @@ export default async function Dashboard() {
         <Link href="/app/bienvenue" className="card mb-6 flex items-center gap-3 border-warning/40 bg-warning-soft p-4 text-sm">
           <Icon name="building" className="text-warning" />
           <span className="flex-1">Complétez le profil de votre entreprise (adresse, SIRET, assurance) pour pouvoir émettre vos devis.</span>
+          <Icon name="right" />
+        </Link>
+      ) : null}
+      {leadsToFollow ? (
+        <Link href="/app/demandes" className="card mb-6 flex items-center gap-3 p-4 text-sm hover:border-accent">
+          <Icon name="inbox" className="text-accent" />
+          <span className="flex-1">
+            {leadsToFollow > 1 ? `${leadsToFollow} demandes attendent` : "1 demande attend"} votre prochaine action aujourd'hui.
+          </span>
           <Icon name="right" />
         </Link>
       ) : null}

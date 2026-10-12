@@ -61,6 +61,7 @@ test("les pages principales s'affichent", async ({ page }) => {
   for (const [path, title] of [
     ["/app/devis", "Devis"],
     ["/app/clients", "Clients"],
+    ["/app/demandes", "Demandes"],
     ["/app/catalogue", "Catalogue"],
     ["/app/factures", "Factures"],
     ["/app/modeles", "Modèles de devis"],
