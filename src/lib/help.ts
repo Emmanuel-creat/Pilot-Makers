@@ -172,6 +172,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "factures-de-situation",
+    category: "factures",
+    title: "Factures de situation selon l'avancement",
+    summary: "Facturer un chantier long au fur et à mesure, en pourcentage cumulé du devis accepté.",
+    steps: [
+      "Sur le devis accepté, saisissez l'avancement cumulé du chantier (par exemple 40 %) et créez la situation.",
+      "Chaque nouvelle situation facture seulement la différence avec la précédente : 70 % après 40 % facture 30 % du devis.",
+      "Quand le chantier est terminé, créez la facture de solde : elle facture le reste jusqu'à 100 %, au centime près du devis.",
+      "Pour corriger une situation, annulez-la par un avoir : elle ne compte plus dans l'avancement.",
+    ],
+    notes: [
+      "Un même devis se facture soit par acomptes, soit par situations, pas les deux.",
+      "La retenue de garantie éventuelle est déduite de chaque situation.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -171,3 +171,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 8 (12/10/2026) : 216 (options au choix du client, facturées selon son choix), 227.
 - Vague 9 (12/10/2026) : 244, 264 (étiquettes ; familles et sous-familles existaient), 267.
 - Vague 10 (12/10/2026) : 286, 287.
+- Vague 11 (12/10/2026) : 307.

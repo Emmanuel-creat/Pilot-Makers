@@ -17,7 +17,7 @@ import { archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuot
 import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
-import { INVOICE_KINDS, INVOICE_STATUSES, listInvoices } from "@/lib/services/invoices";
+import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
 
 export const metadata = { title: "Devis" };
 
@@ -115,6 +115,8 @@ export default async function QuotePage({
   const current = shownVersion > 0 ? await getVersion(ctx.db, ctx.orgId, id, shownVersion) : null;
   const [events, emails, invoices] = await Promise.all([quoteEvents(ctx, id), quoteEmails(ctx, id), listInvoices(ctx, { quoteId: id })]);
   const hasFinal = invoices.some((i) => i.kind === "final" && i.status !== "canceled");
+  const hasDeposits = invoices.some((i) => i.kind === "deposit" && i.status !== "canceled");
+  const progress = await invoicedProgress(ctx, id);
   const links = await ctx.db.query<{ n: unknown; viewed: Date | null }>(
     "SELECT count(*) AS n, max(first_viewed_at) AS viewed FROM share_links WHERE quote_id=$1 AND org_id=$2 AND revoked_at IS NULL AND expires_at > now()",
     [id, ctx.orgId],
@@ -234,7 +236,7 @@ export default async function QuotePage({
               ) : (
                 <p className="text-xs text-muted">Aucune facture pour ce devis.</p>
               )}
-              {writable && status === "accepted" ? <QuoteBilling quoteId={id} defaultPercent={draft.depositPercent} hasFinal={hasFinal} /> : null}
+              {writable && status === "accepted" ? <QuoteBilling quoteId={id} defaultPercent={draft.depositPercent} hasFinal={hasFinal} hasDeposits={hasDeposits} progress={progress} /> : null}
             </section>
           ) : null}
 

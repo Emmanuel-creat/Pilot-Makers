@@ -25,9 +25,9 @@ import type { Organization } from "./organization";
 import { acceptedCalc, withChosenOptions } from "./options";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
 import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
-import type { DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
+import type { DraftLine, DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
 
-export const INVOICE_KINDS = { deposit: "Facture d'acompte", final: "Facture", credit_note: "Avoir" } as const;
+export const INVOICE_KINDS = { deposit: "Facture d'acompte", progress: "Facture de situation", final: "Facture", credit_note: "Avoir" } as const;
 export type InvoiceKind = keyof typeof INVOICE_KINDS;
 
 export const PAYMENT_METHODS = {
@@ -59,8 +59,10 @@ export interface InvoiceSnapshot extends QuoteSnapshot {
     quoteIssueDate: string | null;
     creditedNumber: string | null;
     deductions: Deduction[];
-    /** Retenue de garantie déduite de la facture de solde */
+    /** Retenue de garantie déduite de la facture de solde ou de situation */
     retention?: { bp: number; cents: number };
+    /** Facturation à l'avancement : rang de la situation et avancements cumulés, en points de base */
+    progress?: { index: number; previousBp: number; cumulativeBp: number };
     amountDueCents: number;
     bank: { holder: string; iban: string; bic: string };
     latePenalty: string;
@@ -306,6 +308,7 @@ interface IssueArgs {
   reverseCharge?: boolean;
   /** Retenue de garantie à déduire, en points de base du TTC */
   retentionBp?: number;
+  progress?: { index: number; previousBp: number; cumulativeBp: number };
 }
 
 function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean, dueDate: string): string[] {
@@ -314,7 +317,12 @@ function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean,
   if (a.creditedInvoice) m.push(`Avoir sur la facture n° ${a.creditedInvoice.number}.`);
   if (org.vat_regime === "franchise") m.push("TVA non applicable, article 293 B du Code général des impôts.");
   else if (a.reverseCharge) m.push(REVERSE_CHARGE_MENTION);
-  if (a.retentionBp && a.kind === "final") m.push(retentionMention(a.retentionBp));
+  if (a.retentionBp && (a.kind === "final" || a.kind === "progress")) m.push(retentionMention(a.retentionBp));
+  if (a.progress) {
+    m.push(
+      `Situation n° ${a.progress.index} : travaux réalisés à ${formatPercent(a.progress.cumulativeBp)} du devis, dont ${formatPercent(a.progress.previousBp)} déjà facturés.`,
+    );
+  }
   if (a.kind !== "credit_note") {
     m.push(a.dueInDays === 0 ? "Paiement à réception de la facture." : `Date d'échéance : ${frDate(dueDate)}.`);
     m.push("Pas d'escompte pour paiement anticipé.");
@@ -338,8 +346,9 @@ function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean,
 
 export function invoicePdfOptions(s: InvoiceSnapshot): PdfDocOptions {
   const inv = s.invoice;
-  const title = inv.kind === "credit_note" ? "AVOIR" : inv.kind === "deposit" ? "FACTURE D'ACOMPTE" : "FACTURE";
-  const name = inv.kind === "credit_note" ? "Avoir" : inv.kind === "deposit" ? "Facture d'acompte" : "Facture";
+  const title =
+    inv.kind === "credit_note" ? "AVOIR" : inv.kind === "deposit" ? "FACTURE D'ACOMPTE" : inv.kind === "progress" ? "FACTURE DE SITUATION" : "FACTURE";
+  const name = INVOICE_KINDS[inv.kind];
   const afterTotals: [string, string, boolean][] = [];
   for (const d of inv.deductions) {
     afterTotals.push([`Acompte ${d.number} du ${frDate(d.issueDate)} (dont TVA ${formatEuros(d.vatCents)})`, "-" + formatEuros(d.ttcCents), false]);
@@ -365,6 +374,7 @@ export function invoicePdfOptions(s: InvoiceSnapshot): PdfDocOptions {
       inv.kind === "credit_note" ? "" : `Échéance : ${frDate(inv.dueDate)}`,
       inv.quoteNumber ? `Devis : ${inv.quoteNumber}` : "",
       inv.creditedNumber ? `Facture d'origine : ${inv.creditedNumber}` : "",
+      inv.progress ? `Situation n° ${inv.progress.index}, avancement ${formatPercent(inv.progress.cumulativeBp)}` : "",
     ],
     siteLabel: "Lieu des travaux",
     afterTotals,
@@ -460,6 +470,7 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
       creditedNumber: a.creditedInvoice?.number ?? null,
       deductions: a.deductions,
       ...(retention ? { retention } : {}),
+      ...(a.progress ? { progress: a.progress } : {}),
       amountDueCents: amountDue,
       bank: { holder: org.bank_holder, iban: org.bank_iban, bic: org.bank_bic },
       latePenalty: org.late_penalty_text,
@@ -536,6 +547,89 @@ async function activeDeposits(q: Queryable, orgId: string, quoteId: string) {
   return rows.map(mapInvoice).filter((d) => d.credited_cents < d.total_ttc_cents);
 }
 
+/** Situations non annulées d'un devis, de la plus ancienne à la plus récente. */
+async function activeSituations(q: Queryable, orgId: string, quoteId: string) {
+  const rows = await q.query<Record<string, unknown>>(
+    "SELECT * FROM invoices WHERE org_id=$1 AND quote_id=$2 AND kind='progress' AND credited_cents < amount_due_cents ORDER BY issued_at",
+    [orgId, quoteId],
+  );
+  return rows.map((r) => ({ row: mapInvoice(r), progress: (r.snapshot as InvoiceSnapshot).invoice.progress! }));
+}
+
+/** Avancement déjà facturé, en points de base du devis. */
+export async function invoicedProgress(ctx: Ctx, quoteId: string): Promise<{ count: number; cumulativeBp: number }> {
+  const list = await activeSituations(ctx.db, ctx.orgId, quoteId);
+  return { count: list.length, cumulativeBp: list.reduce((m, x) => Math.max(m, x.progress.cumulativeBp), 0) };
+}
+
+/**
+ * Lignes d'une tranche d'avancement, une par taux de TVA. Les montants sont calculés en cumulé
+ * (cumul arrondi moins précédent arrondi) pour que la somme des situations tombe juste au centime.
+ */
+function progressLines(s: QuoteSnapshot, quoteNumber: string, fromBp: number, toBp: number, label: (vat: string) => string): DraftLine[] {
+  const groups = s.calc.vatGroups.filter((g) => g.baseCents > 0);
+  const at = (base: number, bp: number) => Number((BigInt(base) * BigInt(bp) + 5000n) / 10000n);
+  return groups.map((g) => ({
+    id: randomUUID(),
+    kind: "item" as const,
+    catalogItemId: null,
+    nature: "forfait" as const,
+    label: label(groups.length > 1 ? ` (travaux à TVA ${formatPercent(g.vatBp)})` : ""),
+    description: `Devis ${quoteNumber} du ${frDate(s.issueDate)} : ${formatEuros(g.baseCents)} HT${groups.length > 1 ? " à ce taux" : ""}`,
+    quantity: "1",
+    unit: "forfait",
+    unitPrice: centsToInput(at(g.baseCents, toBp) - at(g.baseCents, fromBp)),
+    unitCost: "",
+    discountPercent: "",
+    vatPercent: bpToInput(g.vatBp),
+    estimated: false,
+    estimateNote: "",
+  }));
+}
+
+/** Facture de situation : l'avancement cumulé atteint, moins ce qui a déjà été facturé. */
+export async function createProgressInvoice(ctx: Ctx, quoteId: string, input: { percent: string }) {
+  let bp: number;
+  try {
+    bp = Number(parseScaled(String(input.percent ?? "").replace("%", "").trim(), 2));
+  } catch {
+    throw badRequest("Avancement invalide");
+  }
+  if (bp <= 0 || bp >= 10000) throw badRequest("L'avancement cumulé doit être compris entre 0 et 100 % (la dernière tranche passe par la facture de solde)");
+  return withIssue(ctx, async (tx) => {
+    const quote = await acceptedQuote(tx, ctx, quoteId);
+    const existingFinal = await one(tx, "SELECT 1 FROM invoices WHERE quote_id=$1 AND kind='final' AND credited_cents < amount_due_cents", [quoteId]);
+    if (existingFinal) throw conflict("La facture de solde est déjà émise");
+    if ((await activeDeposits(tx, ctx.orgId, quoteId)).length) {
+      throw conflict("Des acomptes ont été facturés sur ce devis : ils seront déduits de la facture de solde. Les situations ne sont pas possibles en plus.");
+    }
+    const previous = await activeSituations(tx, ctx.orgId, quoteId);
+    const previousBp = previous.reduce((m, x) => Math.max(m, x.progress.cumulativeBp), 0);
+    if (bp <= previousBp) throw badRequest(`L'avancement doit dépasser celui déjà facturé (${formatPercent(previousBp)})`);
+    const s = quote.snapshot;
+    const index = previous.length + 1;
+    const lines = progressLines(s, quote.number, previousBp, bp, (vat) => `Situation n° ${index} : avancement de ${formatPercent(previousBp)} à ${formatPercent(bp)}${vat}`);
+    const org = await orgRow(tx, ctx.orgId);
+    const customer = await customerRow(tx, ctx, quote.customer_id, s.customer);
+    return issueInvoiceTx(tx, ctx, {
+      kind: "progress",
+      quote,
+      customer,
+      title: `Situation n° ${index} : ${s.quote.title}`,
+      site: s.quote.site,
+      sections: [{ id: randomUUID(), title: "", description: "", lines }],
+      globalDiscount: "",
+      paymentTerms: s.quote.paymentTerms || org.payment_terms,
+      deductions: [],
+      creditedInvoice: null,
+      dueInDays: num(org.invoice_due_days) || 30,
+      reverseCharge: s.quote.reverseCharge,
+      retentionBp: retentionBp(s.quote.retentionPercent) || 0,
+      progress: { index, previousBp, cumulativeBp: bp },
+    });
+  });
+}
+
 /** Part non annulée d'un acompte, TVA comprise, au prorata si un avoir partiel l'a réduit. */
 function deductionOf(d: InvoiceRow): Deduction {
   const remaining = d.total_ttc_cents - d.credited_cents;
@@ -564,6 +658,9 @@ export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { p
     const quote = await acceptedQuote(tx, ctx, quoteId);
     const existingFinal = await one(tx, "SELECT 1 FROM invoices WHERE quote_id=$1 AND kind='final' AND credited_cents < amount_due_cents", [quoteId]);
     if (existingFinal) throw conflict("La facture de solde est déjà émise : plus d'acompte possible");
+    if ((await activeSituations(tx, ctx.orgId, quoteId)).length) {
+      throw conflict("Ce chantier est facturé à l'avancement : émettez une facture de situation plutôt qu'un acompte");
+    }
     const s = quote.snapshot;
     const pct = formatPercent(Number(bp));
     const groups = s.calc.vatGroups.filter((g) => g.baseCents > 0);
@@ -628,7 +725,19 @@ export async function createFinalInvoice(ctx: Ctx, quoteId: string) {
     const org = await orgRow(tx, ctx.orgId);
     const deductions = (await activeDeposits(tx, ctx.orgId, quoteId)).map(deductionOf);
     const customer = await customerRow(tx, ctx, quote.customer_id, s.customer);
-    const sections = s.sections.map((sec) => ({ ...sec, lines: sec.lines.filter((l) => l.kind !== "pending") }));
+    // Chantier facturé à l'avancement : le solde est la dernière tranche, jusqu'à 100 %.
+    const situations = await activeSituations(tx, ctx.orgId, quoteId);
+    const doneBp = situations.reduce((m, x) => Math.max(m, x.progress.cumulativeBp), 0);
+    const sections = situations.length
+      ? [
+          {
+            id: randomUUID(),
+            title: "",
+            description: "",
+            lines: progressLines(s, quote.number, doneBp, 10000, (vat) => `Solde des travaux : avancement de ${formatPercent(doneBp)} à 100 %${vat}`),
+          },
+        ]
+      : s.sections.map((sec) => ({ ...sec, lines: sec.lines.filter((l) => l.kind !== "pending") }));
     return issueInvoiceTx(tx, ctx, {
       kind: "final",
       quote,
@@ -636,7 +745,7 @@ export async function createFinalInvoice(ctx: Ctx, quoteId: string) {
       title: s.quote.title,
       site: s.quote.site,
       sections,
-      globalDiscount: s.quote.globalDiscount,
+      globalDiscount: situations.length ? "" : s.quote.globalDiscount,
       paymentTerms: s.quote.paymentTerms || org.payment_terms,
       deductions,
       creditedInvoice: null,

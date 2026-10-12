@@ -36,6 +36,7 @@ import {
   createCreditNote,
   createDepositInvoice,
   createFinalInvoice,
+  createProgressInvoice,
   recordPayment,
   saveInvoiceSettings,
   sendInvoice,
@@ -581,6 +582,16 @@ export async function depositInvoiceAction(_: ActionState, fd: FormData): Promis
   let id: string;
   try {
     id = (await withCtx((ctx) => createDepositInvoice(ctx, s(fd, "quoteId"), { percent: s(fd, "percent") }))).id;
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/factures/${id}`);
+}
+
+export async function progressInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = (await withCtx((ctx) => createProgressInvoice(ctx, s(fd, "quoteId"), { percent: s(fd, "percent") }))).id;
   } catch (e) {
     return toState(e);
   }

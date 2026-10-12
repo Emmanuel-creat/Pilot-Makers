@@ -149,7 +149,7 @@ export async function buildFec(ctx: Ctx, from: string, to: string) {
       map,
     );
     seq++;
-    const lib = `${r.kind === "credit_note" ? "Avoir" : r.kind === "deposit" ? "Acompte" : "Facture"} ${r.number} ${snap.customer.name}`;
+    const lib = `${r.kind === "credit_note" ? "Avoir" : r.kind === "deposit" ? "Acompte" : r.kind === "progress" ? "Situation" : "Facture"} ${r.number} ${snap.customer.name}`;
     for (const l of lines) rows.push(fecRow("VT", "Journal des ventes", `VT${String(seq).padStart(6, "0")}`, date, l, String(r.number), lib));
   }
   const payments = await ctx.db.query<Record<string, unknown>>(
