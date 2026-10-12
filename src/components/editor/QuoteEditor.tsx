@@ -1183,6 +1183,7 @@ export function QuoteEditor({
       </Modal>
       {assistantQuota > 0 ? (
         <AssistantPanel
+          quoteId={d.id}
           open={assistant}
           onClose={() => setAssistant(false)}
           initialText={d.description}

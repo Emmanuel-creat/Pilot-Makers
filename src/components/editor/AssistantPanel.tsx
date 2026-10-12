@@ -14,6 +14,9 @@ interface Proposal {
   warnings: string[];
   explanations?: Record<string, string>;
   trades?: { code: string; label: string }[];
+  proposalId?: string;
+  habitsApplied?: number;
+  quality?: { lines: number; keptPercent: number | null };
 }
 
 /**
@@ -26,7 +29,9 @@ export function AssistantPanel({
   initialText,
   autoRun,
   onAdd,
+  quoteId,
 }: {
+  quoteId: string;
   open: boolean;
   onClose: () => void;
   initialText: string;
@@ -44,7 +49,7 @@ export function AssistantPanel({
     setBusy(true);
     setError("");
     try {
-      const p = await apiFetch<Proposal>("/api/ai/quote-draft", { method: "POST", json: { text: value } });
+      const p = await apiFetch<Proposal>("/api/ai/quote-draft", { method: "POST", json: { text: value, quoteId } });
       setProposal(p);
       setExcluded([]);
     } catch (e) {
@@ -65,9 +70,15 @@ export function AssistantPanel({
   const add = () => {
     if (!proposal) return;
     const sections = proposal.sections
-      .map((s) => ({ ...s, id: uid(), lines: s.lines.filter((l) => !excluded.includes(l.id)).map((l) => ({ ...l, id: uid() })) }))
+      // Les lignes gardent leur identifiant : à l'émission, on mesure ce qui a été gardé tel quel.
+      .map((s) => ({ ...s, id: uid(), lines: s.lines.filter((l) => !excluded.includes(l.id)) }))
       .filter((s) => s.lines.length);
     onAdd(sections);
+    if (proposal.proposalId) {
+      const lineIds = sections.flatMap((s) => s.lines.map((l) => l.id));
+      // Mesure seulement : un échec ne doit pas gêner la saisie du devis.
+      apiFetch(`/api/ai/proposals/${proposal.proposalId}`, { method: "POST", json: { quoteId, lineIds } }).catch(() => undefined);
+    }
     setProposal(null);
     onClose();
   };
@@ -98,6 +109,16 @@ export function AssistantPanel({
       {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       {proposal ? (
         <div className="mt-5 space-y-4">
+          {proposal.habitsApplied || (proposal.quality?.keptPercent ?? null) !== null ? (
+            <p className="text-xs text-muted">
+              {proposal.habitsApplied
+                ? `${proposal.habitsApplied} ligne${proposal.habitsApplied > 1 ? "s" : ""} ajustée${proposal.habitsApplied > 1 ? "s" : ""} selon vos devis précédents (libellé, prix ou ordre). `
+                : ""}
+              {proposal.quality && proposal.quality.keptPercent !== null
+                ? `Sur vos devis émis, ${proposal.quality.keptPercent} % des lignes proposées ont été gardées telles quelles (${proposal.quality.lines} ligne${proposal.quality.lines > 1 ? "s" : ""}).`
+                : ""}
+            </p>
+          ) : null}
           {proposal.trades?.length ? (
             <p className="text-sm">
               <span className="text-muted">Métiers reconnus : </span>

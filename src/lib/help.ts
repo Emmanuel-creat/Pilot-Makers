@@ -142,6 +142,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: [
       "Rien n'est ajouté sans votre clic, et le taux de TVA n'est jamais choisi à votre place.",
       "Les e-mails et numéros de téléphone sont masqués avant l'analyse.",
+      "L'assistant apprend de vos devis émis : les libellés, les prix et l'ordre des lignes que vous retenez sont repris dans les propositions suivantes.",
+      "Il indique aussi la part des lignes proposées que vous avez gardées telles quelles, pour juger de sa justesse.",
     ],
   },
   {

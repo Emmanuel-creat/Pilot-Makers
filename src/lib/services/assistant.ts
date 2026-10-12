@@ -14,17 +14,18 @@
  * l'interface AssistantProvider, à condition de respecter le même contrat de sortie.
  */
 
-import { hitRate } from "@/lib/rate-limit";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { bpToInput, price4ToInput } from "@/lib/calc/format";
-import { badRequest } from "@/lib/http";
+import { badRequest, notFound } from "@/lib/http";
+import { hitRate } from "@/lib/rate-limit";
 import { LIBRARY, LIBRARY_DATE, tradeForProfession, type LibraryTrade } from "@/lib/library";
 import { assertAiQuota } from "./billing";
 import { searchItems, type CatalogItem } from "./catalog";
 import type { Ctx } from "./context";
 import { recordUsage, requireWritable } from "./context";
 import type { DraftLine, DraftSection } from "./quote-types";
+import { assistantQuality, habitKey, loadHabits, samePrice, type Habit, type ProposedLine } from "./assistant-habits";
 
 export interface AssistantProposal {
   summary: string;
@@ -37,6 +38,12 @@ export interface AssistantProposal {
   /** Métiers reconnus dans la description */
   trades: { code: LibraryTrade; label: string }[];
   detected: { surfaceM2: number | null; lengthMl: number | null; rooms: string[] };
+  /** Proposition conservée, pour mesurer ce qui est gardé à l'émission */
+  proposalId?: string;
+  /** Lignes ajustées selon les habitudes de l'entreprise */
+  habitsApplied?: number;
+  /** Part des lignes proposées gardées telles quelles sur les devis émis */
+  quality?: { lines: number; keptPercent: number | null };
 }
 
 export interface AssistantProvider {
@@ -307,7 +314,58 @@ export function getAssistantProvider(): AssistantProvider {
   return localProvider;
 }
 
-const inputSchema = z.object({ text: z.string().trim().min(10, "Décrivez le chantier en quelques phrases").max(4000) });
+const inputSchema = z.object({
+  text: z.string().trim().min(10, "Décrivez le chantier en quelques phrases").max(4000),
+  quoteId: z.string().uuid().optional(),
+});
+
+/**
+ * Reprend les habitudes de l'entreprise : libellé et position préférés, et prix
+ * habituel pour une ligne qui ne vient pas du catalogue (le catalogue reste la
+ * référence de prix). Retourne la clé d'origine de chaque ligne.
+ */
+export function applyHabits(p: AssistantProposal, habits: Map<string, Habit>) {
+  const sourceKeys = new Map<string, string>();
+  let applied = 0;
+  for (const s of p.sections) {
+    const original = new Map(s.lines.map((l, i) => [l.id, i]));
+    for (const l of s.lines) {
+      const key = habitKey(l.label);
+      sourceKeys.set(l.id, key);
+      const h = habits.get(key);
+      if (!h || l.kind === "note") continue;
+      const changes: string[] = [];
+      if (h.label && h.label !== l.label) {
+        l.label = h.label;
+        changes.push("libellé");
+      }
+      if (!l.catalogItemId && h.unitPrice && h.unit === l.unit && !samePrice(h.unitPrice, l.unitPrice)) {
+        l.unitPrice = h.unitPrice;
+        l.estimateNote = l.estimateNote.replace(/prix indicatif de la bibliothèque \([^)]*\), absent de votre catalogue/, "prix de vos devis précédents");
+        changes.push("prix");
+      }
+      if (changes.length) {
+        applied++;
+        p.explanations[l.id] = `${p.explanations[l.id] ?? ""} ${changes.join(" et ")} repris de vos devis précédents.`.trim();
+      }
+    }
+    const rank = (id: string, label: string) => habits.get(habitKey(label))?.position ?? original.get(id)!;
+    s.lines.sort((a, b) => rank(a.id, a.label) - rank(b.id, b.label) || original.get(a.id)! - original.get(b.id)!);
+  }
+  return { applied, sourceKeys };
+}
+
+/** Lignes que l'artisan a ajoutées au devis depuis une proposition. */
+export async function markProposalAdded(ctx: Ctx, proposalId: string, raw: unknown) {
+  requireWritable(ctx);
+  const parsed = z.object({ quoteId: z.string().uuid(), lineIds: z.array(z.string().max(64)).max(500) }).safeParse(raw);
+  if (!parsed.success) throw badRequest("Lignes ajoutées invalides");
+  const r = await ctx.db.query(
+    "UPDATE assistant_proposals SET added_at=now(), quote_id=$3, added_line_ids=$4 WHERE id=$1 AND org_id=$2 AND measured_at IS NULL RETURNING id",
+    [proposalId, ctx.orgId, parsed.data.quoteId, JSON.stringify(parsed.data.lineIds)],
+  );
+  if (!r.length) throw notFound("Proposition introuvable");
+}
 
 /** Limite les données personnelles transmises : adresses e-mail et numéros de téléphone sont masqués. */
 export function minimizePersonalData(text: string): string {
@@ -324,6 +382,19 @@ export async function proposeDraft(ctx: Ctx, raw: unknown): Promise<AssistantPro
   const catalog = await searchItems(ctx, { limit: 2000 });
   const org = await ctx.db.query<{ trade: string }>("SELECT trade FROM organizations WHERE id=$1", [ctx.orgId]);
   const result = await provider.propose({ text: minimizePersonalData(parsed.data.text), catalog, profession: org[0]?.trade ?? "" });
+  const { applied, sourceKeys } = applyHabits(result, await loadHabits(ctx.db, ctx.orgId));
+  const lines: ProposedLine[] = result.sections.flatMap((s) =>
+    s.lines.map((l) => ({ id: l.id, sourceKey: sourceKeys.get(l.id) ?? habitKey(l.label), label: l.label, unit: l.unit, unitPrice: l.unitPrice })),
+  );
+  const saved = await ctx.db.query<{ id: string }>("INSERT INTO assistant_proposals (org_id, quote_id, lines) VALUES ($1,$2,$3) RETURNING id", [
+    ctx.orgId,
+    parsed.data.quoteId ?? null,
+    JSON.stringify(lines),
+  ]);
+  const quality = await assistantQuality(ctx.db, ctx.orgId);
+  result.proposalId = saved[0].id;
+  result.habitsApplied = applied;
+  result.quality = { lines: quality.lines, keptPercent: quality.keptPercent };
   // Coût mesuré par compte : nul pour le moteur local, à renseigner pour un fournisseur externe.
   await recordUsage(ctx.db, ctx.orgId, ctx.userId, "ai", 1, provider.name === "local" ? 0 : 2000);
   return result;

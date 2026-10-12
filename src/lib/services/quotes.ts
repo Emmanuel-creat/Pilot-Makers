@@ -2,7 +2,6 @@
  * Devis : brouillons, émission de versions figées, envoi, acceptation (modules E, F, I).
  */
 
-import { hitRate } from "@/lib/rate-limit";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Queryable } from "@/lib/db";
@@ -11,10 +10,12 @@ import { computeQuote, type CalcResult } from "@/lib/calc/engine";
 import { formatEuros } from "@/lib/calc/format";
 import { draftToCalcInput } from "@/lib/calc/draft";
 import { badRequest, conflict, forbidden, HttpError, isUuid, notFound } from "@/lib/http";
+import { hitRate } from "@/lib/rate-limit";
 import { renderQuotePdf, pdfTotals } from "@/lib/pdf/quote-pdf";
 import { canonicalJson, randomToken, sha256 } from "@/lib/security";
 import { assertCanIssue } from "./billing";
 import { incrementUsage } from "./catalog";
+import { measureProposals } from "./assistant-habits";
 import { retentionBp } from "./btp";
 import { acceptedCalc, snapshotOptions, validChoice } from "./options";
 import { REFUSAL_CODES, REFUSAL_REASONS } from "./refusal";
@@ -760,6 +761,8 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
       ctx.orgId,
       d.sections.flatMap((s) => s.lines.map((l) => l.catalogItemId).filter((x): x is string => !!x)),
     );
+    // Qualité de l'assistant : ce qui a été gardé des lignes proposées, et habitudes retenues.
+    await measureProposals(tx, ctx.orgId, id, d.sections);
     await addEvent(tx, ctx, id, version, "issued", { pdf_sha256: pdfHash, snapshot_sha256: snapHash, total_ttc_cents: calc.totalTtcCents });
     await recordUsage(tx, ctx.orgId, ctx.userId, "pdf");
     return { version, number, pdfSha256: pdfHash, warnings: snapshot.warnings };
