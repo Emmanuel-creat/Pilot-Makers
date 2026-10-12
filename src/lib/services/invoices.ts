@@ -24,6 +24,7 @@ import { appUrl, renderTemplate, sendMail } from "./mail";
 import type { Organization } from "./organization";
 import { acceptedCalc, withChosenOptions } from "./options";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
+import { nextInstallment, SCHEDULE_MAX, scheduleText, splitSchedule, type Schedule } from "./schedule";
 import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
 import type { DraftLine, DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
 
@@ -107,6 +108,7 @@ export interface InvoiceRow {
   customer_name?: string;
   quote_number?: string | null;
   pdf_sha256: string;
+  schedule: Schedule | null;
 }
 
 function isoDate(v: unknown): string {
@@ -115,14 +117,16 @@ function isoDate(v: unknown): string {
 }
 
 export function invoiceStatus(
-  r: { kind: string; amount_due_cents: number; paid_cents: number; credited_cents: number; due_date: string },
+  r: { kind: string; amount_due_cents: number; paid_cents: number; credited_cents: number; due_date: string; schedule?: Schedule | null },
   today = parisDate(new Date()),
 ): InvoiceStatus {
   if (r.kind === "credit_note") return "credit";
   if (r.credited_cents >= r.amount_due_cents) return "canceled";
   const balance = r.amount_due_cents - r.paid_cents - r.credited_cents;
   if (balance <= 0) return "paid";
-  if (r.due_date < today) return "overdue";
+  // Avec un échéancier, le retard se juge sur la première échéance non réglée.
+  const due = r.schedule ? (nextInstallment(r.schedule, r.paid_cents + r.credited_cents, today)?.dueDate ?? r.due_date) : r.due_date;
+  if (due < today) return "overdue";
   return r.paid_cents > 0 ? "partial" : "issued";
 }
 
@@ -138,6 +142,7 @@ export function mapInvoice(r: Record<string, unknown>): InvoiceRow {
     paid_cents: num(r.paid_cents),
     credited_cents: num(r.credited_cents),
     reminder_count: num(r.reminder_count),
+    schedule: (r.schedule as Schedule | null) ?? null,
   };
   delete (base as Record<string, unknown>).pdf;
   delete (base as Record<string, unknown>).snapshot;
@@ -154,7 +159,7 @@ export function mapInvoice(r: Record<string, unknown>): InvoiceRow {
 
 const LIST_COLUMNS = `i.id, i.org_id, i.quote_id, i.customer_id, i.kind, i.number, i.credited_invoice_id, i.title, i.issue_date, i.due_date,
   i.total_ht_cents, i.total_vat_cents, i.total_ttc_cents, i.amount_due_cents, i.paid_cents, i.credited_cents, i.reminder_count,
-  i.sent_at, i.issued_at, i.pdf_sha256, i.snapshot->'customer'->>'name' AS customer_name, q.number AS quote_number`;
+  i.sent_at, i.issued_at, i.pdf_sha256, i.schedule, i.snapshot->'customer'->>'name' AS customer_name, q.number AS quote_number`;
 
 export async function listInvoices(ctx: Ctx, f: { status?: string; q?: string; quoteId?: string; customerId?: string; limit?: number } = {}) {
   const params: unknown[] = [ctx.orgId];
@@ -922,6 +927,47 @@ export async function cancelPayment(ctx: Ctx, paymentId: string) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Échéancier de paiement                                              */
+/* ------------------------------------------------------------------ */
+
+const scheduleSchema = z.object({
+  count: z.coerce.number().int().min(2, "Au moins deux échéances").max(SCHEDULE_MAX, `Au plus ${SCHEDULE_MAX} échéances`),
+  firstDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de première échéance invalide"),
+  everyMonths: z.coerce.number().int().min(1).max(3).default(1),
+});
+
+/** Répartit le reste à payer d'une facture en échéances mensuelles égales. */
+export async function setInvoiceSchedule(ctx: Ctx, invoiceId: string, raw: unknown) {
+  requireWritable(ctx);
+  const parsed = scheduleSchema.safeParse(raw);
+  if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
+  const { count, firstDate, everyMonths } = parsed.data;
+  const inv = await getInvoice(ctx, invoiceId);
+  if (inv.kind === "credit_note") throw badRequest("Un avoir ne se règle pas par échéances");
+  if (inv.balance_cents <= 0) throw conflict("Cette facture est déjà réglée");
+  if (firstDate < inv.issue_date) throw badRequest("La première échéance ne peut pas précéder la date de la facture");
+  if (inv.balance_cents < count * 100) throw badRequest("Chaque échéance doit être d'au moins 1 €");
+  const schedule: Schedule = { base: inv.paid_cents + inv.credited_cents, items: splitSchedule(inv.balance_cents, count, firstDate, everyMonths) };
+  await ctx.db.query("UPDATE invoices SET schedule=$3, reminder_count=0 WHERE id=$1 AND org_id=$2", [invoiceId, ctx.orgId, JSON.stringify(schedule)]);
+  await audit(ctx.db, {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    action: "invoice.schedule",
+    target: invoiceId,
+    data: { count, firstDate, everyMonths, total: inv.balance_cents },
+    ip: ctx.ip,
+  });
+  return schedule;
+}
+
+export async function clearInvoiceSchedule(ctx: Ctx, invoiceId: string) {
+  requireWritable(ctx);
+  const r = await ctx.db.query("UPDATE invoices SET schedule=NULL WHERE id=$1 AND org_id=$2 AND schedule IS NOT NULL RETURNING id", [invoiceId, ctx.orgId]);
+  if (!r.length) throw notFound("Échéancier introuvable");
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "invoice.schedule_clear", target: invoiceId, ip: ctx.ip });
+}
+
+/* ------------------------------------------------------------------ */
 /* Envoi et relances                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -935,7 +981,11 @@ export function defaultInvoiceMessage(inv: InvoiceRow, org: Pick<Organization, "
     subject: `${name.charAt(0).toUpperCase() + name.slice(1)} ${inv.number} - ${org.trade_name}`,
     body:
       `Bonjour,\n\nVeuillez trouver ci-joint notre ${name} n° ${inv.number} d'un montant de ${formatEuros(inv.amount_due_cents)} TTC` +
-      (inv.kind === "credit_note" ? ".\n" : `, payable au plus tard le ${frDate(inv.due_date)}.\n`) +
+      (inv.kind === "credit_note"
+        ? ".\n"
+        : inv.schedule && inv.balance_cents > 0
+          ? `.\n\nComme convenu, le reste à payer de ${formatEuros(inv.balance_cents)} est réglé selon l'échéancier suivant :\n${scheduleText(inv.schedule, frDate, formatEuros)}\n`
+          : `, payable au plus tard le ${frDate(inv.due_date)}.\n`) +
       `\nCordialement,\n${org.trade_name}`,
   };
 }
@@ -999,14 +1049,19 @@ export async function runInvoiceReminders(db: Database, now = new Date()) {
   for (const org of orgs) {
     const days = (org.invoice_reminder_settings.days ?? [3, 15, 30]).filter((d) => Number.isInteger(d) && d >= 0).sort((a, b) => a - b);
     const rows = await db.query<Record<string, unknown>>(
-      "SELECT * FROM invoices WHERE org_id=$1 AND kind <> 'credit_note' AND due_date < $2 AND amount_due_cents > paid_cents + credited_cents",
+      "SELECT * FROM invoices WHERE org_id=$1 AND kind <> 'credit_note' AND (due_date < $2 OR schedule IS NOT NULL) AND amount_due_cents > paid_cents + credited_cents",
       [org.id, today],
     );
     for (const r of rows) {
       const inv = mapInvoice(r);
-      const step = days.at(inv.reminder_count);
+      // Avec un échéancier, chaque échéance non réglée a ses propres paliers de relance.
+      const next = inv.schedule ? nextInstallment(inv.schedule, inv.paid_cents + inv.credited_cents, today) : null;
+      if (inv.schedule && !next?.overdue) continue;
+      const done = next ? (inv.schedule?.reminders?.[next.index] ?? 0) : inv.reminder_count;
+      const dueDate = next ? next.dueDate : inv.due_date;
+      const step = days.at(done);
       if (step === undefined) continue;
-      if (parisDate(addDays(new Date(inv.due_date + "T12:00:00Z"), step)) > today) continue;
+      if (parisDate(addDays(new Date(dueDate + "T12:00:00Z"), step)) > today) continue;
       const snap = r.snapshot as InvoiceSnapshot;
       const to = snap.customer.email;
       if (!to) continue;
@@ -1014,8 +1069,8 @@ export async function runInvoiceReminders(db: Database, now = new Date()) {
         type: kindName(inv.kind),
         numero: inv.number,
         montant: formatEuros(inv.amount_due_cents),
-        echeance: frDate(inv.due_date),
-        reste: formatEuros(inv.balance_cents),
+        echeance: next ? `${frDate(dueDate)} (échéance ${next.index + 1} de l'échéancier convenu)` : frDate(inv.due_date),
+        reste: formatEuros(next ? next.owedCents : inv.balance_cents),
         entreprise: org.trade_name,
       });
       const mail = await sendMail(db, {
@@ -1027,9 +1082,17 @@ export async function runInvoiceReminders(db: Database, now = new Date()) {
         body,
         attachmentInvoiceId: inv.id,
         invoiceId: inv.id,
-        idempotencyKey: `invoice-reminder:${inv.id}:${inv.reminder_count + 1}`,
+        idempotencyKey: next ? `invoice-reminder:${inv.id}:e${next.index + 1}:${done + 1}` : `invoice-reminder:${inv.id}:${inv.reminder_count + 1}`,
       });
-      await db.query("UPDATE invoices SET reminder_count=reminder_count+1, last_reminder_at=now() WHERE id=$1", [inv.id]);
+      if (next && inv.schedule) {
+        const reminders = { ...inv.schedule.reminders, [next.index]: done + 1 };
+        await db.query("UPDATE invoices SET schedule=$2, reminder_count=reminder_count+1, last_reminder_at=now() WHERE id=$1", [
+          inv.id,
+          JSON.stringify({ ...inv.schedule, reminders }),
+        ]);
+      } else {
+        await db.query("UPDATE invoices SET reminder_count=reminder_count+1, last_reminder_at=now() WHERE id=$1", [inv.id]);
+      }
       if (mail.status === "sent") sent++;
     }
   }

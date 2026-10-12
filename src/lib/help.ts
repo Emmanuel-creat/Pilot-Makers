@@ -188,6 +188,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "paiement-en-plusieurs-fois",
+    category: "factures",
+    title: "Paiement en plusieurs fois",
+    summary: "Accorder un échéancier à un client sans modifier la facture émise.",
+    steps: [
+      "Ouvrez la facture et dépliez « Accorder un paiement en plusieurs fois ».",
+      "Choisissez le nombre d'échéances, le rythme et la date de la première : le reste à payer est réparti en parts égales.",
+      "Envoyez la facture par e-mail : le message rappelle chaque échéance et sa date.",
+      "Les paiements enregistrés règlent les échéances dans l'ordre ; les relances automatiques portent sur l'échéance en retard.",
+    ],
+    notes: ["La facture garde sa date d'échéance d'origine : l'échéancier est un accord de règlement qui s'y ajoute."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

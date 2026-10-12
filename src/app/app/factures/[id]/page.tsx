@@ -19,8 +19,9 @@ import {
 } from "@/lib/services/invoices";
 import { getOrganization } from "@/lib/services/organization";
 import { parisDate, frDate } from "@/lib/services/quotes";
-import { cancelPaymentAction } from "@/app/actions";
-import { CreditNoteForm, PaymentForm, SendInvoiceForm } from "./InvoiceActions";
+import { cancelPaymentAction, clearScheduleAction } from "@/app/actions";
+import { addMonths, INSTALLMENT_STATUSES, scheduleState } from "@/lib/services/schedule";
+import { CreditNoteForm, PaymentForm, ScheduleForm, SendInvoiceForm } from "./InvoiceActions";
 
 export const metadata = { title: "Facture" };
 
@@ -53,6 +54,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   if (s.invoice.deductions.length || s.invoice.retention?.cents)
     afterTotals.push([isCredit ? "Net à rembourser ou à déduire" : "Net à payer", formatEuros(inv.amount_due_cents), true]);
   const vatOptions = [...new Set(s.calc.vatGroups.map((g) => formatPercent(g.vatBp, false)))];
+  const today = parisDate(new Date());
+  const installments = inv.schedule ? scheduleState(inv.schedule, inv.paid_cents + inv.credited_cents, today) : [];
+  const lateInstallment = installments.find((x) => x.status === "overdue");
   const quoteLink = inv.quote_id ? (await listInvoices(ctx, { quoteId: inv.quote_id })).length : 0;
 
   return (
@@ -94,7 +98,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       {inv.status === "canceled" ? <Notice tone="info">Cette facture est entièrement annulée par avoir.</Notice> : null}
       {inv.status === "overdue" ? (
         <Notice tone="danger" title="Échéance dépassée">
-          Échue le {fmtDate(inv.due_date)}. {inv.reminder_count ? `${inv.reminder_count} relance(s) envoyée(s).` : "Aucune relance envoyée."}
+          {lateInstallment ? `Échéance ${lateInstallment.index + 1} du ${fmtDate(lateInstallment.dueDate)} non réglée.` : `Échue le ${fmtDate(inv.due_date)}.`} {inv.reminder_count ? `${inv.reminder_count} relance(s) envoyée(s).` : "Aucune relance envoyée."}
         </Notice>
       ) : null}
 
@@ -186,6 +190,47 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 />
               ) : null}
             </section>
+          ) : null}
+
+          {installments.length ? (
+            <section className="card space-y-3 p-4">
+              <h2 className="text-sm font-semibold">Échéancier</h2>
+              <ul className="divide-y divide-line text-sm">
+                {installments.map((it) => (
+                  <li key={it.index} className="flex items-start justify-between gap-2 py-2">
+                    <div>
+                      <div className="tabular font-medium">{formatEuros(it.amountCents)}</div>
+                      <div className="text-xs text-muted">Le {fmtDate(it.dueDate)}</div>
+                    </div>
+                    <span className={`text-xs ${it.status === "overdue" ? "text-danger" : it.status === "paid" ? "text-success" : "text-muted"}`}>
+                      {INSTALLMENT_STATUSES[it.status]}
+                      {it.paidCents && it.status !== "paid" ? `, reste ${formatEuros(it.restCents)}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {writable ? (
+                <form action={clearScheduleAction}>
+                  <input type="hidden" name="invoiceId" value={id} />
+                  <button className="link text-xs text-danger">Supprimer l'échéancier</button>
+                </form>
+              ) : null}
+            </section>
+          ) : writable && !isCredit && inv.balance_cents >= 200 ? (
+            <details className="card p-4">
+              <summary className="cursor-pointer text-sm font-semibold">Accorder un paiement en plusieurs fois</summary>
+              <p className="mt-2 text-xs text-muted">
+                La facture ne change pas : le reste à payer est réparti en échéances, rappelées dans l'e-mail d'envoi et relancées une à une.
+              </p>
+              <div className="mt-3">
+                <ScheduleForm
+                  invoiceId={id}
+                  balance={inv.balance_cents}
+                  min={inv.issue_date}
+                  firstDate={inv.due_date > today ? inv.due_date : addMonths(today, 1)}
+                />
+              </div>
+            </details>
           ) : null}
 
           {writable ? (

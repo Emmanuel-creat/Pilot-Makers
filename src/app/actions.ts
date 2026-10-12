@@ -38,6 +38,8 @@ import {
   createFinalInvoice,
   createProgressInvoice,
   recordPayment,
+  setInvoiceSchedule,
+  clearInvoiceSchedule,
   saveInvoiceSettings,
   sendInvoice,
 } from "@/lib/services/invoices";
@@ -633,6 +635,23 @@ export async function paymentAction(_: ActionState, fd: FormData): Promise<Actio
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function scheduleAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      setInvoiceSchedule(ctx, s(fd, "invoiceId"), { count: s(fd, "count"), firstDate: s(fd, "firstDate"), everyMonths: s(fd, "everyMonths") || "1" }),
+    );
+    revalidatePath(`/app/factures/${s(fd, "invoiceId")}`);
+    return { ok: true, message: "Échéancier enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function clearScheduleAction(fd: FormData) {
+  await withCtx((ctx) => clearInvoiceSchedule(ctx, s(fd, "invoiceId")));
+  revalidatePath(`/app/factures/${s(fd, "invoiceId")}`);
 }
 
 export async function cancelPaymentAction(fd: FormData) {

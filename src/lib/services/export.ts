@@ -35,7 +35,7 @@ export async function exportAccountData(ctx: Ctx) {
     subscription: (await q("SELECT plan_code, status, billing_interval, current_period_end, trial_end FROM subscriptions WHERE org_id=$1"))[0],
     subscriptionInvoices: await q("SELECT number, plan_code, amount_ht_cents, amount_ttc_cents, status, created_at FROM billing_invoices WHERE org_id=$1"),
     customerInvoices: await q(
-      `SELECT id, quote_id, customer_id, kind, number, credited_invoice_id, title, issue_date, due_date, snapshot, pdf_sha256, snapshot_sha256,
+      `SELECT id, quote_id, customer_id, kind, number, credited_invoice_id, title, issue_date, due_date, schedule, snapshot, pdf_sha256, snapshot_sha256,
          total_ht_cents, total_vat_cents, total_ttc_cents, amount_due_cents, paid_cents, credited_cents, issued_at FROM invoices WHERE org_id=$1 ORDER BY issued_at`,
     ),
     payments: await q("SELECT invoice_id, amount_cents, paid_on, method, reference, canceled_at, created_at FROM invoice_payments WHERE org_id=$1 ORDER BY paid_on"),

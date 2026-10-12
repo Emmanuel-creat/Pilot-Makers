@@ -7,7 +7,8 @@
 
 import { num } from "@/lib/db";
 import type { Ctx } from "./context";
-import { expireQuotes } from "./quotes";
+import { expireQuotes, parisDate } from "./quotes";
+import { scheduleState, type Schedule } from "./schedule";
 import type { QuoteStatus } from "./quote-types";
 import { REFUSAL_REASONS, type RefusalReason } from "./refusal";
 
@@ -29,22 +30,36 @@ export interface DashboardData {
 
 /** Encaissements prévus sur 90 jours, à partir des factures émises et non soldées. */
 async function cashForecast(ctx: Ctx): Promise<DashboardData["forecast"]> {
-  const r = (
-    await ctx.db.query<Record<string, unknown>>(
-      `WITH due AS (
-         SELECT due_date, amount_due_cents - paid_cents - credited_cents AS rest
-         FROM invoices WHERE org_id=$1 AND kind <> 'credit_note'
-       )
-       SELECT
-         coalesce(sum(rest) FILTER (WHERE due_date < current_date), 0) AS overdue,
-         coalesce(sum(rest) FILTER (WHERE due_date >= current_date AND due_date < current_date + 30), 0) AS d30,
-         coalesce(sum(rest) FILTER (WHERE due_date >= current_date + 30 AND due_date < current_date + 60), 0) AS d60,
-         coalesce(sum(rest) FILTER (WHERE due_date >= current_date + 60 AND due_date < current_date + 90), 0) AS d90,
-         coalesce(sum(rest) FILTER (WHERE due_date >= current_date + 90), 0) AS later
-       FROM due WHERE rest > 0`,
-      [ctx.orgId],
-    )
-  )[0];
+  const rows = await ctx.db.query<Record<string, unknown>>(
+    `SELECT due_date, amount_due_cents - paid_cents - credited_cents AS rest, paid_cents + credited_cents AS settled, schedule
+     FROM invoices WHERE org_id=$1 AND kind <> 'credit_note' AND amount_due_cents > paid_cents + credited_cents`,
+    [ctx.orgId],
+  );
+  const today = parisDate(new Date());
+  const day0 = Date.parse(today + "T00:00:00Z");
+  const r = { overdue: 0, d30: 0, d60: 0, d90: 0, later: 0 };
+  const put = (iso: string, cents: number) => {
+    const d = Math.round((Date.parse(iso + "T00:00:00Z") - day0) / 86_400_000);
+    if (d < 0) r.overdue += cents;
+    else if (d < 30) r.d30 += cents;
+    else if (d < 60) r.d60 += cents;
+    else if (d < 90) r.d90 += cents;
+    else r.later += cents;
+  };
+  for (const row of rows) {
+    const due = row.due_date instanceof Date ? row.due_date.toISOString().slice(0, 10) : String(row.due_date).slice(0, 10);
+    const schedule = row.schedule as Schedule | null;
+    // Avec un échéancier, chaque échéance non réglée tombe à sa propre date.
+    let planned = 0;
+    if (schedule) {
+      for (const it of scheduleState(schedule, num(row.settled), today)) {
+        if (it.restCents > 0) put(it.dueDate, it.restCents);
+        planned += it.restCents;
+      }
+    }
+    // Ce que l'échéancier ne couvre pas (un paiement annulé depuis, par exemple) reste à l'échéance de la facture.
+    if (num(row.rest) > planned) put(due, num(row.rest) - planned);
+  }
   const n = (
     await ctx.db.query<{ rest: unknown }>(
       `SELECT coalesce(sum(greatest(q.total_ttc_cents - coalesce(i.invoiced, 0), 0)), 0) AS rest
@@ -56,11 +71,11 @@ async function cashForecast(ctx: Ctx): Promise<DashboardData["forecast"]> {
     )
   )[0];
   return {
-    overdueCents: num(r?.overdue),
-    within30Cents: num(r?.d30),
-    within60Cents: num(r?.d60),
-    within90Cents: num(r?.d90),
-    laterCents: num(r?.later),
+    overdueCents: r.overdue,
+    within30Cents: r.d30,
+    within60Cents: r.d60,
+    within90Cents: r.d90,
+    laterCents: r.later,
     notInvoicedCents: num(n?.rest),
   };
 }
