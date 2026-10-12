@@ -7,6 +7,7 @@
 
 import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb, type RGB } from "pdf-lib";
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
+import { reducedVatAttestation, WITHDRAWAL_TEXT, withdrawalForm } from "@/lib/services/consumer";
 import type { QuoteSnapshot } from "@/lib/services/quote-types";
 
 const A4 = { w: 595.28, h: 841.89 };
@@ -472,11 +473,22 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions): Pr
     section("Conditions de paiement", s.quote.paymentTerms);
     section("Conditions particulières", s.quote.specialConditions);
     section("Mentions", s.mentions.join("\n"));
+    if (s.consumer?.reducedVatBp.length) section("Attestation du client pour le taux réduit de TVA", reducedVatAttestation(s.consumer.reducedVatBp));
+    if (s.consumer?.withdrawal) section("Droit de rétractation", WITHDRAWAL_TEXT);
     section("Conditions générales", s.org.general_conditions, 7.5);
   }
 
   // Zone d'acceptation : jamais coupée
   if (!opts) acceptance();
+
+  // Formulaire de rétractation, sur sa propre page pour pouvoir être détaché
+  if (!opts && s.consumer?.withdrawal) {
+    w.newPage();
+    w.y -= 18;
+    w.text("Formulaire de rétractation", M.left, w.y, 13, f.bold, accent);
+    w.y -= 6;
+    w.paragraph(withdrawalForm(s.org, s.number), M.left, CONTENT_W, 9.5);
+  }
   function acceptance() {
     w.ensure(110);
     w.y -= 16;

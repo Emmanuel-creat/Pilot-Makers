@@ -35,6 +35,12 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/sous-traitants" className="hover:text-ink">
             Sous-traitants
           </Link>
+          <Link href="/cookies" className="hover:text-ink">
+            Cookies
+          </Link>
+          <Link href="/mentions-legales" className="hover:text-ink">
+            Mentions légales
+          </Link>
         </div>
       </footer>
     </div>

@@ -377,6 +377,7 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
     globalDiscount: a.globalDiscount,
     template: a.quote?.snapshot.template ?? org.quote_template,
     internalNotes: "",
+    contractPlace: "etablissement",
     sections: a.sections,
     draftRevision: 0,
     currentVersion: 0,

@@ -14,6 +14,7 @@ import { renderQuotePdf, pdfTotals } from "@/lib/pdf/quote-pdf";
 import { canonicalJson, randomToken, sha256 } from "@/lib/security";
 import { assertCanIssue } from "./billing";
 import { incrementUsage } from "./catalog";
+import { consumerTerms, isContractPlace, reducedVatAttestation } from "./consumer";
 import { buildMentions, checkCompliance, COMPLIANCE_RULES_VERSION, type ComplianceIssue } from "./compliance";
 import type { Ctx } from "./context";
 import { audit, logError, recordUsage, requireWritable } from "./context";
@@ -78,6 +79,7 @@ export const draftSchema = z.object({
   globalDiscount: str(10),
   template: str(20),
   internalNotes: str(4000),
+  contractPlace: z.enum(["auto", "hors_etablissement", "etablissement"]).default("auto"),
   sections: z.array(sectionSchema).max(50),
 });
 
@@ -162,6 +164,7 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     globalDiscount: String(r.global_discount),
     template: String(r.template),
     internalNotes: String(r.internal_notes),
+    contractPlace: isContractPlace(r.contract_place) ? r.contract_place : ("auto" as const),
     sections: await loadSections(q, id, ctx.orgId),
     draftRevision: num(r.draft_revision),
     currentVersion: num(r.current_version),
@@ -409,7 +412,7 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
       `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
          validity_days=$10, payment_terms=$11, special_conditions=$12, deposit_percent=$13, estimated_duration=$14,
          estimated_start=$15, global_discount=$16, template=$17, internal_notes=$18, status=$19,
-         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, draft_revision=draft_revision+1, updated_at=now()
+         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, contract_place=$23, draft_revision=draft_revision+1, updated_at=now()
        WHERE id=$1 AND org_id=$2`,
       [
         id,
@@ -434,6 +437,7 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
         calc.totalHtCents,
         calc.totalTtcCents,
         calc.margin.marginCents,
+        d.contractPlace,
       ],
     );
     if (d.customerId) await tx.query("UPDATE customers SET last_activity_at=now() WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]);
@@ -457,7 +461,7 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
 function complianceInput(
   org: Organization,
   customer: Customer | null,
-  d: Pick<QuoteDraft, "title" | "description" | "site" | "validityDays" | "paymentTerms" | "sections">,
+  d: Pick<QuoteDraft, "title" | "description" | "site" | "validityDays" | "paymentTerms" | "sections" | "depositPercent" | "contractPlace">,
   calc: CalcResult,
 ) {
   return {
@@ -480,6 +484,8 @@ function complianceInput(
       site_city: d.site.city,
       validity_days: d.validityDays,
       payment_terms: d.paymentTerms,
+      deposit_percent: d.depositPercent,
+      contract_place: d.contractPlace,
     },
     lines: d.sections.flatMap((s) =>
       s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
@@ -604,6 +610,7 @@ export function buildSnapshot(args: {
       depositPercent: d.depositPercent,
     }),
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
+    consumer: consumerTerms(d.contractPlace, customer.type, calc, org.vat_regime),
   };
   return snapshot;
 }
@@ -1021,6 +1028,8 @@ export const responseSchema = z.object({
   name: z.string().trim().min(2, "Indiquez vos nom et prénom").max(160),
   consent: z.boolean().optional(),
   reason: z.string().trim().max(2000).optional().default(""),
+  vatAttestation: z.boolean().optional().default(false),
+  earlyStart: z.boolean().optional().default(false),
 });
 
 /** Réponse du client depuis le lien : rattachée à la version exacte qu'il a consultée. */
@@ -1048,6 +1057,10 @@ export async function respondFromLink(
     if (!["ready", "sent", "viewed"].includes(locked.status)) throw conflict("Ce devis n'attend plus de réponse");
     if (r.version.snapshot.validUntil < parisDate(new Date())) throw conflict("La durée de validité de ce devis est dépassée");
     const accepted = input.decision === "accept";
+    const consumer = r.version.snapshot.consumer;
+    if (accepted && consumer?.reducedVatBp.length && !input.vatAttestation) {
+      throw badRequest("Cochez l'attestation sur le taux réduit de TVA pour accepter");
+    }
     await tx.query(
       `UPDATE quotes SET status=$2, responded_at=now(), accepted_version=$3, updated_at=now() WHERE id=$1`,
       [r.link.quote_id, accepted ? "accepted" : "refused", accepted ? r.version.version : null],
@@ -1065,6 +1078,9 @@ export async function respondFromLink(
           name: input.name,
           consent_text: accepted ? "Bon pour accord" : null,
           reason: input.reason,
+          vat_attestation: accepted && consumer?.reducedVatBp.length ? reducedVatAttestation(consumer.reducedVatBp) : null,
+          withdrawal_period: accepted && consumer?.withdrawal ? true : null,
+          early_start_requested: accepted && consumer?.withdrawal ? input.earlyStart : null,
           pdf_sha256: r.version.pdfSha256,
           total_ttc_cents: r.version.snapshot.calc.totalTtcCents,
           via: "lien sécurisé",

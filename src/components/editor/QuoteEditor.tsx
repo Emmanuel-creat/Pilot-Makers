@@ -11,6 +11,7 @@ import { computeQuote } from "@/lib/calc/engine";
 import { bpToInput, formatEuros, formatPercent, price4ToInput } from "@/lib/calc/format";
 import type { CatalogItem } from "@/lib/services/catalog";
 import { checkCompliance, type ComplianceInput } from "@/lib/services/compliance";
+import { CONTRACT_PLACES, consumerTerms, type ContractPlace } from "@/lib/services/consumer";
 import type { DraftLine, DraftSection, QuoteDraft } from "@/lib/services/quote-types";
 import { apiFetch, ApiError, uid } from "./api";
 import { AssistantPanel } from "./AssistantPanel";
@@ -87,6 +88,7 @@ function payload(d: QuoteDraft) {
     globalDiscount: d.globalDiscount,
     template: d.template,
     internalNotes: d.internalNotes,
+    contractPlace: d.contractPlace,
     sections: d.sections,
   };
 }
@@ -154,11 +156,19 @@ export function QuoteEditor({
           site_city: d.site.city,
           validity_days: d.validityDays,
           payment_terms: d.paymentTerms,
+          deposit_percent: d.depositPercent,
+          contract_place: d.contractPlace,
         },
-        lines: d.sections.flatMap((s) => s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent }))),
+        lines: d.sections.flatMap((s) =>
+          s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
+        ),
         calc,
       }),
     [org, customer, d, calc],
+  );
+  const consumer = useMemo(
+    () => consumerTerms(d.contractPlace, customer?.type, calc, org.vat_regime),
+    [d.contractPlace, customer, calc, org.vat_regime],
   );
   const blocking = issues.filter((i) => i.blocking);
   const warnings = issues.filter((i) => !i.blocking);
@@ -330,7 +340,11 @@ export function QuoteEditor({
       return {
         ...o,
         sections: o.sections.map((x) =>
-          x.id === sid ? { ...x, lines: x.lines.filter((l) => l.id !== lid) } : x.id === target.id ? { ...x, lines: dir === 1 ? [line, ...x.lines] : [...x.lines, line] } : x,
+          x.id === sid
+            ? { ...x, lines: x.lines.filter((l) => l.id !== lid) }
+            : x.id === target.id
+              ? { ...x, lines: dir === 1 ? [line, ...x.lines] : [...x.lines, line] }
+              : x,
         ),
       };
     });
@@ -484,7 +498,12 @@ export function QuoteEditor({
                 <Icon name="redo" />
               </button>
             </div>
-            <button type="button" className="btn-ghost hidden min-h-9 md:inline-flex" onClick={saveAsTemplate} title="Enregistrer comme modèle de devis">
+            <button
+              type="button"
+              className="btn-ghost hidden min-h-9 md:inline-flex"
+              onClick={saveAsTemplate}
+              title="Enregistrer comme modèle de devis"
+            >
               <Icon name="copy" size={16} /> Modèle
             </button>
             <button type="button" className="btn-secondary hidden sm:inline-flex" onClick={preview}>
@@ -551,7 +570,13 @@ export function QuoteEditor({
               <label className="label" htmlFor="q-title">
                 Objet des travaux
               </label>
-              <input id="q-title" className="field" value={d.title} onChange={(e) => set("title", e.target.value)} placeholder="Ex. : Rénovation de la salle de bain" />
+              <input
+                id="q-title"
+                className="field"
+                value={d.title}
+                onChange={(e) => set("title", e.target.value)}
+                placeholder="Ex. : Rénovation de la salle de bain"
+              />
             </div>
             <div>
               <label className="label" htmlFor="q-desc">
@@ -577,7 +602,13 @@ export function QuoteEditor({
                 <label className="label" htmlFor="q-sitecp">
                   Code postal
                 </label>
-                <input id="q-sitecp" inputMode="numeric" className="field" value={d.site.postalCode} onChange={(e) => set("site", { ...d.site, postalCode: e.target.value })} />
+                <input
+                  id="q-sitecp"
+                  inputMode="numeric"
+                  className="field"
+                  value={d.site.postalCode}
+                  onChange={(e) => set("site", { ...d.site, postalCode: e.target.value })}
+                />
               </div>
               <div>
                 <label className="label" htmlFor="q-sitecity">
@@ -637,7 +668,13 @@ export function QuoteEditor({
                     />
                     {d.sections.length > 1 ? (
                       <div className="flex shrink-0">
-                        <button type="button" className="btn-ghost min-h-8 px-1.5" onClick={() => moveSection(s.id, -1)} disabled={si === 0} aria-label="Monter la section">
+                        <button
+                          type="button"
+                          className="btn-ghost min-h-8 px-1.5"
+                          onClick={() => moveSection(s.id, -1)}
+                          disabled={si === 0}
+                          aria-label="Monter la section"
+                        >
                           <Icon name="up" size={16} />
                         </button>
                         <button
@@ -651,7 +688,12 @@ export function QuoteEditor({
                         </button>
                       </div>
                     ) : null}
-                    <button type="button" className="btn-ghost min-h-8 px-1.5 text-muted" onClick={() => removeSection(s)} aria-label="Supprimer la section">
+                    <button
+                      type="button"
+                      className="btn-ghost min-h-8 px-1.5 text-muted"
+                      onClick={() => removeSection(s)}
+                      aria-label="Supprimer la section"
+                    >
                       <Icon name="trash" size={16} />
                     </button>
                   </div>
@@ -706,19 +748,35 @@ export function QuoteEditor({
                         dragOver={dragOver === l.id && drag?.l !== l.id}
                       />
                     ))}
-                    {s.lines.length === 0 ? <p className="rounded-md border border-dashed border-line px-3 py-4 text-center text-sm text-muted">Aucune ligne dans cette section.</p> : null}
+                    {s.lines.length === 0 ? (
+                      <p className="rounded-md border border-dashed border-line px-3 py-4 text-center text-sm text-muted">
+                        Aucune ligne dans cette section.
+                      </p>
+                    ) : null}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <button type="button" className="btn-secondary min-h-9 text-sm" onClick={() => setPicker(s.id)}>
                       <Icon name="box" size={16} /> Catalogue
                     </button>
-                    <button type="button" className="btn-ghost min-h-9 text-sm" onClick={() => addLines(s.id, [blankLine({ vatPercent: vatExempt ? "0" : defaultVat })])}>
+                    <button
+                      type="button"
+                      className="btn-ghost min-h-9 text-sm"
+                      onClick={() => addLines(s.id, [blankLine({ vatPercent: vatExempt ? "0" : defaultVat })])}
+                    >
                       <Icon name="plus" size={16} /> Ligne libre
                     </button>
-                    <button type="button" className="btn-ghost min-h-9 text-sm" onClick={() => addLines(s.id, [blankLine({ kind: "pending", quantity: "", vatPercent: vatExempt ? "0" : defaultVat })])}>
+                    <button
+                      type="button"
+                      className="btn-ghost min-h-9 text-sm"
+                      onClick={() => addLines(s.id, [blankLine({ kind: "pending", quantity: "", vatPercent: vatExempt ? "0" : defaultVat })])}
+                    >
                       <Icon name="clock" size={16} /> À compléter
                     </button>
-                    <button type="button" className="btn-ghost min-h-9 text-sm" onClick={() => addLines(s.id, [blankLine({ kind: "note", quantity: "" })])}>
+                    <button
+                      type="button"
+                      className="btn-ghost min-h-9 text-sm"
+                      onClick={() => addLines(s.id, [blankLine({ kind: "note", quantity: "" })])}
+                    >
                       <Icon name="note" size={16} /> Note
                     </button>
                     {sres && d.sections.length > 1 ? (
@@ -763,25 +821,51 @@ export function QuoteEditor({
                 <label className="label" htmlFor="q-deposit">
                   Acompte (%)
                 </label>
-                <input id="q-deposit" inputMode="decimal" className="field" value={d.depositPercent} onChange={(e) => set("depositPercent", e.target.value)} placeholder="0" />
+                <input
+                  id="q-deposit"
+                  inputMode="decimal"
+                  className="field"
+                  value={d.depositPercent}
+                  onChange={(e) => set("depositPercent", e.target.value)}
+                  placeholder="0"
+                />
               </div>
               <div>
                 <label className="label" htmlFor="q-discount">
                   Remise globale (%)
                 </label>
-                <input id="q-discount" inputMode="decimal" className="field" value={d.globalDiscount} onChange={(e) => set("globalDiscount", e.target.value)} placeholder="0" />
+                <input
+                  id="q-discount"
+                  inputMode="decimal"
+                  className="field"
+                  value={d.globalDiscount}
+                  onChange={(e) => set("globalDiscount", e.target.value)}
+                  placeholder="0"
+                />
               </div>
               <div>
                 <label className="label" htmlFor="q-start">
                   Début estimé
                 </label>
-                <input id="q-start" className="field" value={d.estimatedStart} onChange={(e) => set("estimatedStart", e.target.value)} placeholder="Ex. : semaine du 2 novembre" />
+                <input
+                  id="q-start"
+                  className="field"
+                  value={d.estimatedStart}
+                  onChange={(e) => set("estimatedStart", e.target.value)}
+                  placeholder="Ex. : semaine du 2 novembre"
+                />
               </div>
               <div>
                 <label className="label" htmlFor="q-duration">
                   Durée estimée
                 </label>
-                <input id="q-duration" className="field" value={d.estimatedDuration} onChange={(e) => set("estimatedDuration", e.target.value)} placeholder="Ex. : 5 jours" />
+                <input
+                  id="q-duration"
+                  className="field"
+                  value={d.estimatedDuration}
+                  onChange={(e) => set("estimatedDuration", e.target.value)}
+                  placeholder="Ex. : 5 jours"
+                />
               </div>
               <div>
                 <label className="label" htmlFor="q-template">
@@ -792,6 +876,29 @@ export function QuoteEditor({
                   <option value="moderne">Moderne</option>
                   <option value="sobre">Sobre</option>
                 </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="q-place">
+                  Lieu de signature du contrat
+                </label>
+                <select
+                  id="q-place"
+                  className="field"
+                  value={d.contractPlace}
+                  onChange={(e) => set("contractPlace", e.target.value as ContractPlace)}
+                >
+                  {(Object.entries(CONTRACT_PLACES) as [ContractPlace, string][]).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted">
+                  {consumer.withdrawal
+                    ? "Délai de rétractation de 14 jours : la mention et le formulaire seront joints au devis."
+                    : "Pas de délai de rétractation pour ce devis."}
+                  {consumer.reducedVatBp.length ? " Le client attestera les conditions du taux réduit de TVA en acceptant." : ""}
+                </p>
               </div>
             </div>
             <div>
@@ -804,7 +911,13 @@ export function QuoteEditor({
               <label className="label" htmlFor="q-special">
                 Conditions particulières
               </label>
-              <textarea id="q-special" rows={2} className="field" value={d.specialConditions} onChange={(e) => set("specialConditions", e.target.value)} />
+              <textarea
+                id="q-special"
+                rows={2}
+                className="field"
+                value={d.specialConditions}
+                onChange={(e) => set("specialConditions", e.target.value)}
+              />
             </div>
             <div>
               <label className="label" htmlFor="q-internal">
@@ -830,7 +943,9 @@ export function QuoteEditor({
                 </div>
                 <div className="flex justify-between font-medium">
                   <span>Marge prévisionnelle</span>
-                  <span className={`tabular ${calc.margin.linesWithoutCost ? "text-muted" : calc.margin.marginCents < 0 ? "text-danger" : "text-success"}`}>
+                  <span
+                    className={`tabular ${calc.margin.linesWithoutCost ? "text-muted" : calc.margin.marginCents < 0 ? "text-danger" : "text-success"}`}
+                  >
                     {calc.margin.linesWithoutCost ? "Incomplète" : formatEuros(calc.margin.marginCents)}
                     {!calc.margin.linesWithoutCost && calc.margin.marginRateBp !== null ? ` (${formatPercent(calc.margin.marginRateBp)})` : ""}
                   </span>
@@ -842,7 +957,9 @@ export function QuoteEditor({
                   </div>
                 ) : null}
                 {calc.margin.linesWithoutCost ? (
-                  <p className="mt-1 text-xs text-warning">Renseignez le coût interne de {calc.margin.linesWithoutCost} ligne(s) pour calculer la marge.</p>
+                  <p className="mt-1 text-xs text-warning">
+                    Renseignez le coût interne de {calc.margin.linesWithoutCost} ligne(s) pour calculer la marge.
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -920,7 +1037,10 @@ export function QuoteEditor({
       </div>
 
       {toast ? (
-        <div className="fixed bottom-36 left-1/2 z-50 -translate-x-1/2 rounded-md bg-ink px-4 py-2 text-sm text-bg shadow-lg lg:bottom-6" role="status">
+        <div
+          className="fixed bottom-36 left-1/2 z-50 -translate-x-1/2 rounded-md bg-ink px-4 py-2 text-sm text-bg shadow-lg lg:bottom-6"
+          role="status"
+        >
           {toast}
         </div>
       ) : null}
@@ -986,7 +1106,13 @@ function SaveIndicator({ state, error }: { state: SaveState; error: string }) {
   const [cls, label] = map[state];
   return (
     <div className={`flex items-center gap-1 text-xs ${cls}`} aria-live="polite">
-      {state === "saved" ? <Icon name="check" size={12} /> : state === "error" || state === "conflict" ? <Icon name="alert" size={12} /> : <Icon name="refresh" size={12} />}
+      {state === "saved" ? (
+        <Icon name="check" size={12} />
+      ) : state === "error" || state === "conflict" ? (
+        <Icon name="alert" size={12} />
+      ) : (
+        <Icon name="refresh" size={12} />
+      )}
       {label}
     </div>
   );
@@ -995,9 +1121,7 @@ function SaveIndicator({ state, error }: { state: SaveState; error: string }) {
 export function Totals({ calc, vatExempt }: { calc: ReturnType<typeof computeQuote>; vatExempt: boolean }) {
   return (
     <dl className="space-y-1.5 text-sm">
-      {calc.lineDiscountCents ? (
-        <Row label="Total avant remises" value={formatEuros(calc.grossCents)} muted />
-      ) : null}
+      {calc.lineDiscountCents ? <Row label="Total avant remises" value={formatEuros(calc.grossCents)} muted /> : null}
       {calc.lineDiscountCents ? <Row label="Remises sur lignes" value={"-" + formatEuros(calc.lineDiscountCents)} muted /> : null}
       {calc.globalDiscountCents ? (
         <>
@@ -1009,7 +1133,9 @@ export function Totals({ calc, vatExempt }: { calc: ReturnType<typeof computeQuo
       {vatExempt ? (
         <p className="text-xs text-muted">TVA non applicable, article 293 B du CGI</p>
       ) : (
-        calc.vatGroups.map((g) => <Row key={g.vatBp} label={`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`} value={formatEuros(g.vatCents)} muted />)
+        calc.vatGroups.map((g) => (
+          <Row key={g.vatBp} label={`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`} value={formatEuros(g.vatCents)} muted />
+        ))
       )}
       <div className="border-t border-line pt-2">
         <Row label="Total TTC" value={formatEuros(calc.totalTtcCents)} big />
@@ -1156,8 +1282,8 @@ function IssueDialog({
       ) : (
         <div className="space-y-4 text-sm">
           <p>
-            Le devis pour <strong>{customer}</strong>, d'un montant de <strong className="tabular">{formatEuros(ttc)} TTC</strong>, va recevoir
-            un numéro définitif et un PDF figé. Il ne pourra plus être modifié : toute correction créera une nouvelle version.
+            Le devis pour <strong>{customer}</strong>, d'un montant de <strong className="tabular">{formatEuros(ttc)} TTC</strong>, va recevoir un
+            numéro définitif et un PDF figé. Il ne pourra plus être modifié : toute correction créera une nouvelle version.
           </p>
           {estimated ? (
             <p className="rounded-md bg-warning-soft p-3">

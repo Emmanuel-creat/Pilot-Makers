@@ -5,9 +5,7 @@ import { useActionState } from "react";
 import { registerAction } from "@/app/actions";
 import { FormMessage, Submit } from "@/components/forms/Submit";
 
-const TRADES = ["Carreleur", "Peintre", "Plombier", "Électricien", "Maçon", "Plaquiste", "Menuisier", "Couvreur", "Chauffagiste", "Multiservice", "Autre"];
-
-export function RegisterForm() {
+export function RegisterForm({ professions }: { professions: string[] }) {
   const [state, action] = useActionState(registerAction, null);
   return (
     <form action={action} className="space-y-4">
@@ -29,7 +27,7 @@ export function RegisterForm() {
         </label>
         <select id="trade" name="trade" className="field" defaultValue="">
           <option value="">Choisir</option>
-          {TRADES.map((t) => (
+          {professions.map((t) => (
             <option key={t}>{t}</option>
           ))}
         </select>

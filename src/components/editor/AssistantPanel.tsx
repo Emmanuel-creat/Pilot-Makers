@@ -12,6 +12,8 @@ interface Proposal {
   questions: string[];
   checklist: string[];
   warnings: string[];
+  explanations?: Record<string, string>;
+  trades?: { code: string; label: string }[];
 }
 
 /**
@@ -75,8 +77,8 @@ export function AssistantPanel({
   return (
     <Modal open={open} onClose={onClose} title="Assistant de préparation" wide>
       <p className="text-sm text-muted">
-        Décrivez le chantier avec vos mots. L'assistant réutilise d'abord votre catalogue, signale les quantités estimées et pose les
-        questions qui manquent. Vous vérifiez tout avant d'ajouter.
+        Décrivez le chantier avec vos mots. L'assistant réutilise d'abord votre catalogue, signale les quantités estimées et pose les questions qui
+        manquent. Vous vérifiez tout avant d'ajouter.
       </p>
       <textarea
         value={text}
@@ -96,6 +98,12 @@ export function AssistantPanel({
       {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       {proposal ? (
         <div className="mt-5 space-y-4">
+          {proposal.trades?.length ? (
+            <p className="text-sm">
+              <span className="text-muted">Métiers reconnus : </span>
+              {proposal.trades.map((t) => t.label).join(", ")}
+            </p>
+          ) : null}
           {proposal.warnings.length ? (
             <ul className="space-y-1 rounded-md border border-warning/40 bg-warning-soft p-3 text-sm">
               {proposal.warnings.map((w) => (
@@ -123,6 +131,7 @@ export function AssistantPanel({
                         <span className="font-medium">{l.label}</span>
                         {l.kind === "pending" ? <span className="ml-2 text-xs text-warning">à compléter</span> : null}
                         {l.estimated ? <span className="block text-xs text-warning">Estimation : {l.estimateNote}</span> : null}
+                        {proposal.explanations?.[l.id] ? <span className="block text-xs text-muted">{proposal.explanations[l.id]}</span> : null}
                       </span>
                       <span className="tabular shrink-0 text-right text-muted">
                         {l.quantity ? `${l.quantity} ${l.unit}` : "-"}

@@ -8,6 +8,7 @@
 
 import type { CalcResult } from "@/lib/calc/engine";
 import { formatPercent } from "@/lib/calc/format";
+import { isContractPlace, withdrawalApplies } from "./consumer";
 
 export const COMPLIANCE_RULES_VERSION = "2026-10-v1";
 
@@ -56,6 +57,8 @@ export interface ComplianceInput {
     site_city: string;
     validity_days: number;
     payment_terms: string;
+    deposit_percent?: string;
+    contract_place?: string;
   };
   lines: { kind: string; nature: string; label: string; estimated: boolean; vat_percent: string }[];
   calc: CalcResult;
@@ -131,7 +134,19 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
     for (const bp of reduced) {
       warn(
         "reduced_vat_" + bp,
-        `TVA à ${formatPercent(bp)} : vérifiez que les conditions du taux réduit sont remplies (logement achevé depuis plus de 2 ans, nature des travaux, attestation du client)`,
+        `TVA à ${formatPercent(bp)} : vérifiez que les conditions du taux réduit sont remplies (logement achevé depuis plus de 2 ans, nature des travaux). Le client les atteste en acceptant le devis.`,
+      );
+    }
+  }
+  // Contrat conclu hors établissement avec un consommateur
+  const place = isContractPlace(i.quote.contract_place) ? i.quote.contract_place : "auto";
+  if (i.customer && withdrawalApplies(place, i.customer.type)) {
+    const deposit = Number((i.quote.deposit_percent ?? "").replace(",", ".")) || 0;
+    if (deposit > 0) {
+      warn(
+        "withdrawal_deposit",
+        "Contrat hors établissement : aucun acompte ne peut être encaissé avant sept jours après la signature (article L221-10 du Code de la consommation)",
+        "deposit_percent",
       );
     }
   }

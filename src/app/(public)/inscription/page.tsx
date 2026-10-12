@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AuthCard } from "@/components/forms/AuthCard";
+import { PROFESSIONS } from "@/lib/library";
 import { RegisterForm } from "./RegisterForm";
 
 export const metadata = { title: "Créer un compte" };
@@ -18,7 +19,7 @@ export default function Page() {
         </>
       }
     >
-      <RegisterForm />
+      <RegisterForm professions={PROFESSIONS} />
     </AuthCard>
   );
 }

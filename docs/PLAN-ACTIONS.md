@@ -54,7 +54,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] D.5 Mise à jour groupée des tarifs (pourcentage)
 - [x] D.6 Historique des changements de prix
 - [x] D.7 Création d'un élément depuis un devis
-- [x] D.8 Bibliothèques de modèles fournies (tarifs indicatifs datés et sourcés)
+- [x] D.8 Bibliothèques fournies pour 15 métiers (tarifs indicatifs datés), celle du métier de l'entreprise en premier
 - [x] D.9 Coût interne jamais présent dans le PDF client
 - [x] D.10 Ouvrages composés : prix et coût recalculés depuis leurs composants
 
@@ -86,6 +86,8 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [~] G.1 Description libre vers sections et lignes proposées (moteur local à règles, remplaçable par un service externe d'analyse de texte)
 - [~] G.2 Questions de clarification et informations manquantes
 - [~] G.3 Quantités estimées toujours signalées comme à vérifier
+- [x] G.6 Reconnaissance de 15 métiers, questions et points de contrôle propres à chaque métier
+- [x] G.7 Explication de chaque ligne proposée (passage de la description, source du prix, conseil)
 - [x] G.4 Jamais d'émission automatique, quota d'usage par abonnement, mesure dans `usage_events`
 - [ ] G.5 Dictée vocale (V1.5)
 
@@ -130,7 +132,9 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] N.1 Contrôle des mentions obligatoires avant émission (erreurs bloquantes et avertissements)
 - [x] N.2 Mentions conditionnelles (assurance décennale, franchise de TVA, déplacement, taux horaire)
 - [x] N.3 Modèle de données prêt pour la facturation électronique (V2)
-- [x] N.4 Pages CGU, confidentialité, sous-traitants (modèles à faire valider par un juriste)
+- [x] N.4 Pages CGU, confidentialité, sous-traitants, mentions légales, cookies (modèles à faire valider par un juriste)
+- [x] N.5 Droit de rétractation de 14 jours pour les contrats hors établissement : mention, formulaire détachable, alerte sur l'acompte, demande de démarrage anticipé
+- [x] N.6 Attestation du client pour les taux réduits de TVA, sur le PDF et à l'acceptation en ligne, conservée dans les preuves
 
 ## O. Facturation
 - [x] O.1 Factures d'acompte (pourcentage, ventilation par taux de TVA)
@@ -148,3 +152,4 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 ## Feuille de route : actions réalisées
 Numéros de la feuille de route complète (360 actions).
 - Vague 1 (12/10/2026) : 22, 23, 24, 25, 29, 31, 59, 60, 61, 62, 123 (prêt, en attente d'une clé), 143 à 149, 215, 297.
+- Vague 2 (12/10/2026) : 41, 42, 43, 44, 86, 87, 106.

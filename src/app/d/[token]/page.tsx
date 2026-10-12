@@ -4,6 +4,7 @@ import { Notice } from "@/components/ui";
 import { getDb } from "@/lib/db";
 import { requestMeta } from "@/lib/server/session";
 import { recordClientView } from "@/lib/services/quotes";
+import { reducedVatAttestation } from "@/lib/services/consumer";
 import { ClientResponse } from "./ClientResponse";
 
 export const dynamic = "force-dynamic";
@@ -49,7 +50,14 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
       </div>
       {r.canRespond ? (
         <div className="mt-6">
-          <ClientResponse token={token} number={s.number} version={s.version} ttc={s.calc.totalTtcCents} />
+          <ClientResponse
+            token={token}
+            number={s.number}
+            version={s.version}
+            ttc={s.calc.totalTtcCents}
+            withdrawal={Boolean(s.consumer?.withdrawal)}
+            vatAttestation={s.consumer?.reducedVatBp.length ? reducedVatAttestation(s.consumer.reducedVatBp) : ""}
+          />
         </div>
       ) : null}
     </Frame>

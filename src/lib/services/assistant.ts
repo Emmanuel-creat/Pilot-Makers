@@ -18,7 +18,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { bpToInput, price4ToInput } from "@/lib/calc/format";
 import { badRequest } from "@/lib/http";
-import { LIBRARY, LIBRARY_DATE } from "@/lib/library";
+import { LIBRARY, LIBRARY_DATE, tradeForProfession, type LibraryTrade } from "@/lib/library";
 import { assertAiQuota } from "./billing";
 import { searchItems, type CatalogItem } from "./catalog";
 import type { Ctx } from "./context";
@@ -31,12 +31,16 @@ export interface AssistantProposal {
   questions: string[];
   checklist: string[];
   warnings: string[];
+  /** Pourquoi chaque ligne est proposée, par identifiant de ligne */
+  explanations: Record<string, string>;
+  /** Métiers reconnus dans la description */
+  trades: { code: LibraryTrade; label: string }[];
   detected: { surfaceM2: number | null; lengthMl: number | null; rooms: string[] };
 }
 
 export interface AssistantProvider {
   name: string;
-  propose(input: { text: string; catalog: CatalogItem[] }): Promise<AssistantProposal>;
+  propose(input: { text: string; catalog: CatalogItem[]; profession?: string }): Promise<AssistantProposal>;
 }
 
 const norm = (s: string) =>
@@ -55,72 +59,59 @@ export function detectMeasures(text: string) {
   const t = text.toLowerCase();
   const surfaces = [...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:m²|m2|metres? carres?|mètres? carrés?)/g)].map((m) => parseNumber(m[1]));
   const lengths = [...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:ml|metres? lineaires?|mètres? linéaires?)\b/g)].map((m) => parseNumber(m[1]));
-  const roomWords = ["salle de bains", "salle de bain", "cuisine", "séjour", "salon", "chambre", "wc", "toilettes", "couloir", "entrée", "terrasse", "garage", "buanderie", "hall"];
+  const roomWords = [
+    "salle de bains",
+    "salle de bain",
+    "cuisine",
+    "séjour",
+    "salon",
+    "chambre",
+    "wc",
+    "toilettes",
+    "couloir",
+    "entrée",
+    "terrasse",
+    "garage",
+    "buanderie",
+    "hall",
+  ];
   const rooms = roomWords.filter((r) => t.includes(r));
   return { surfaceM2: surfaces[0] ?? null, lengthMl: lengths[0] ?? null, rooms };
 }
 
-/** Mesure citée dans la même partie de phrase que la prestation (ex. « faïence murale sur 14 m² »). */
-export function measureNear(text: string, trigger: RegExp) {
-  for (const clause of text.split(/[;\n]|[.,](?!\d)|\bet\b|\bpuis\b/)) {
-    if (!trigger.test(norm(clause))) continue;
-    const m = detectMeasures(clause);
-    if (m.surfaceM2 !== null || m.lengthMl !== null) return m;
-  }
-  return null;
-}
-
-interface Intent {
-  section: string;
-  keywords: string[];
-  /** Mots de la description qui doivent figurer pour déclencher cette intention */
-  triggers: RegExp;
-  unitHint: string;
-  questions: string[];
-}
-
-const INTENTS: Intent[] = [
-  { section: "Préparation du chantier", triggers: /protect|bache/, keywords: ["protection"], unitHint: "forfait", questions: [] },
-  {
-    section: "Dépose et évacuation",
-    triggers: /depos|demol|enlev|retir|arrach/,
-    keywords: ["dépose", "démolition"],
-    unitHint: "m²",
-    questions: ["Quelle est la surface exacte à déposer ?", "L'évacuation des gravats est-elle à prévoir, et pour quel volume ?"],
-  },
-  { section: "Dépose et évacuation", triggers: /gravat|evacu|decheter/, keywords: ["gravats", "évacuation"], unitHint: "m³", questions: ["Quel volume de gravats faut-il évacuer ?"] },
-  { section: "Préparation des supports", triggers: /ragre|nivel|chape/, keywords: ["ragréage", "chape"], unitHint: "m²", questions: ["Quel est l'état du support (planéité, humidité) ?"] },
-  { section: "Préparation des supports", triggers: /etanch|douche/, keywords: ["étanchéité"], unitHint: "m²", questions: ["Quelle surface d'étanchéité faut-il traiter ?"] },
-  {
-    section: "Pose",
-    triggers: /carrel|revetement|sol/,
-    keywords: ["pose de carrelage", "carrelage"],
-    unitHint: "m²",
-    questions: ["Le carrelage est-il fourni par le client ou par l'entreprise ?", "Quel format de carreaux et quel type de pose (droite, diagonale) ?"],
-  },
-  { section: "Pose", triggers: /faience|mur|credence/, keywords: ["faïence"], unitHint: "m²", questions: ["Sur quelle hauteur faut-il poser la faïence ?"] },
-  { section: "Pose", triggers: /peint|peindre/, keywords: ["peinture"], unitHint: "m²", questions: ["Quelle surface de murs et de plafonds faut-il peindre ?", "Les murs nécessitent-ils une préparation (rebouchage, ponçage) ?"] },
-  { section: "Pose", triggers: /lavabo|vasque/, keywords: ["lavabo"], unitHint: "u", questions: [] },
-  { section: "Pose", triggers: /\bwc\b|toilette/, keywords: ["wc"], unitHint: "u", questions: [] },
-  { section: "Pose", triggers: /mitigeur|robinet/, keywords: ["mitigeur"], unitHint: "u", questions: [] },
-  { section: "Pose", triggers: /prise/, keywords: ["prise"], unitHint: "u", questions: ["Combien de prises faut-il créer ?"] },
-  { section: "Pose", triggers: /cloison|placo/, keywords: ["cloison"], unitHint: "m²", questions: ["Quelle est la surface de cloison à créer ?"] },
-  { section: "Finitions", triggers: /joint/, keywords: ["joints"], unitHint: "m²", questions: [] },
-  { section: "Finitions", triggers: /plinthe/, keywords: ["plinthes"], unitHint: "ml", questions: ["Quelle longueur de plinthes faut-il poser ?"] },
-  { section: "Finitions", triggers: /nettoy/, keywords: ["nettoyage"], unitHint: "forfait", questions: [] },
+const SECTION_ORDER = [
+  "Préparation du chantier",
+  "Dépose et évacuation",
+  "Terrassement",
+  "Préparation des supports",
+  "Gros œuvre",
+  "Charpente",
+  "Couverture",
+  "Zinguerie",
+  "Isolation",
+  "Réseaux",
+  "Travaux",
+  "Menuiseries",
+  "Pose",
+  "Peinture",
+  "Façade",
+  "Métallerie",
+  "Équipements",
+  "Agencement",
+  "Aménagement",
+  "Plantations",
+  "Entretien",
+  "Fournitures",
+  "Finitions",
 ];
 
-const SECTION_ORDER = ["Préparation du chantier", "Dépose et évacuation", "Préparation des supports", "Pose", "Finitions"];
+const REMOVAL = /\b(depose|demolition)\b/;
 
-function score(itemName: string, keywords: string[], text: string): number {
+/** Pertinence d'un élément du catalogue de l'entreprise pour une prestation de la bibliothèque. */
+function score(itemName: string, keywords: string[]): number {
   const n = norm(itemName);
   let s = 0;
   for (const k of keywords) if (n.includes(norm(k))) s += 3;
-  for (const w of norm(text).split(/\s+/)) if (w.length > 4 && n.includes(w)) s += 1;
-  // Une dépose ne doit jamais être proposée pour une pose, et inversement.
-  const isRemoval = /\b(depose|demolition)\b/.test(n);
-  const wantsRemoval = keywords.some((k) => /\b(depose|demolition)\b/.test(norm(k)));
-  if (isRemoval !== wantsRemoval) s -= 10;
   return s;
 }
 
@@ -144,107 +135,153 @@ function blankLine(p: Partial<DraftLine>): DraftLine {
   };
 }
 
+/** Découpe la description en parties de phrase ; une virgule décimale (14,5) ne coupe pas. */
+export function splitClauses(text: string): string[] {
+  return text
+    .split(/[;\n]|[.,](?!\d)|\bet\b|\bpuis\b|\bainsi que\b/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+}
+
+const NUMBER_WORDS: Record<string, number> = { deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, douze: 12 };
+
+/** Nombre d'unités cité dans une partie de phrase (« 4 prises », « trois radiateurs »), hors mesures. */
+export function countIn(clause: string): number | null {
+  const t = clause.toLowerCase();
+  const m = t.match(/(?:^|\s)(\d{1,3})\s+(?!m²|m2\b|m3\b|m³|m\b|ml\b|cm\b|mm\b|%|€|h\b|l\b|ans?\b|jours?\b|mois\b|semaines?\b|kw|euros?\b)/);
+  if (m) return Number(m[1]);
+  for (const [w, n] of Object.entries(NUMBER_WORDS)) if (new RegExp(`\\b${w}\\s+\\p{L}`, "u").test(t)) return n;
+  return null;
+}
+
+const plural = (n: number) => (n > 1 ? "s" : "");
+
 export const localProvider: AssistantProvider = {
   name: "local",
-  async propose({ text, catalog }) {
+  async propose({ text, catalog, profession }) {
     const t = norm(text);
     const measures = detectMeasures(text);
+    const clauses = splitClauses(text).map((raw) => ({ raw, n: norm(raw) }));
     const sections = new Map<string, DraftLine[]>();
+    const explanations: Record<string, string> = {};
     const questions = new Set<string>();
     const warnings: string[] = [];
-    const used = new Set<string>();
-    const libraryItems = Object.values(LIBRARY).flatMap((l) => l.items);
+    const usedNames = new Set<string>();
+    const usedCatalog = new Set<string>();
 
-    for (const intent of INTENTS) {
-      if (!intent.triggers.test(t)) continue;
-      intent.questions.forEach((q) => questions.add(q));
-      // 1. Catalogue de l'entreprise en priorité
-      const fromCatalog = catalog
-        .map((it) => ({ it, s: score(it.name + " " + it.subcategory, intent.keywords, text) }))
-        .filter((x) => x.s >= 3 && !used.has(x.it.name))
-        .sort((a, b) => b.s - a.s)[0];
-      // 2. Sinon bibliothèque, avec prix marqué comme estimation
-      const fromLibrary = fromCatalog
-        ? null
-        : libraryItems
-            .map((it) => ({ it, s: score(it.name, intent.keywords, text) }))
-            .filter((x) => x.s >= 3 && !used.has(x.it.name))
-            .sort((a, b) => b.s - a.s)[0];
-      const unit = fromCatalog?.it.unit ?? fromLibrary?.it.unit ?? intent.unitHint;
-      let quantity = "";
-      let estimated = false;
-      let estimateNote = "";
-      const near = measureNear(text, intent.triggers);
-      const surface = near?.surfaceM2 ?? measures.surfaceM2;
-      const length = near?.lengthMl ?? measures.lengthMl;
-      if (unit === "m²" && surface !== null) {
-        quantity = String(surface).replace(".", ",");
-        estimated = true;
-        estimateNote = `déduite de la description (${quantity} m²), à mesurer sur place`;
-      } else if (unit === "ml" && length !== null) {
-        quantity = String(length).replace(".", ",");
-        estimated = true;
-        estimateNote = `déduite de la description (${quantity} ml), à mesurer`;
-      } else if (unit === "forfait" || unit === "u") {
-        quantity = "1";
-        estimated = true;
-        estimateNote = "quantité par défaut, à confirmer";
+    const trades: LibraryTrade[] = (Object.keys(LIBRARY) as LibraryTrade[]).filter((c) => c !== "commun");
+    const detected = trades.filter((c) => LIBRARY[c].detect.test(t));
+    const preferred = profession ? tradeForProfession(profession) : null;
+    // Sans métier reconnu, toutes les bibliothèques sont consultées, celle du métier de l'entreprise d'abord.
+    const active = detected.length ? detected : preferred ? [preferred, ...trades.filter((c) => c !== preferred)] : trades;
+    if (preferred && detected.includes(preferred)) active.sort((a, b) => (a === preferred ? -1 : b === preferred ? 1 : 0));
+
+    for (const trade of ["commun" as LibraryTrade, ...active]) {
+      for (const lib of LIBRARY[trade].items) {
+        if (!lib.when || usedNames.has(lib.name)) continue;
+        const clause = clauses.find((c) => lib.when!.every((r) => r.test(c.n)));
+        if (!clause) continue;
+        usedNames.add(lib.name);
+
+        // 1. Catalogue de l'entreprise en priorité
+        const libRemoval = REMOVAL.test(norm(lib.name));
+        const need = 3 * Math.min(2, lib.keywords.length);
+        const fromCatalog = catalog
+          .filter((it) => !usedCatalog.has(it.id) && REMOVAL.test(norm(it.name)) === libRemoval)
+          .map((it) => ({ it, s: norm(it.name) === norm(lib.name) ? 100 : score(it.name + " " + it.subcategory, lib.keywords) }))
+          .filter((x) => x.s >= need)
+          .sort((a, b) => b.s - a.s)[0]?.it;
+
+        // 2. Quantité : mesure de la même partie de phrase, sinon de la description, toujours à vérifier
+        const unit = fromCatalog?.unit ?? lib.unit ?? "u";
+        const local = detectMeasures(clause.raw);
+        let quantity = "";
+        let qtyNote = "";
+        if (unit === "m²" && (local.surfaceM2 ?? measures.surfaceM2) !== null) {
+          quantity = String(local.surfaceM2 ?? measures.surfaceM2).replace(".", ",");
+          qtyNote = `déduite de la description (${quantity} m²), à mesurer sur place`;
+        } else if (unit === "ml" && (local.lengthMl ?? measures.lengthMl) !== null) {
+          quantity = String(local.lengthMl ?? measures.lengthMl).replace(".", ",");
+          qtyNote = `déduite de la description (${quantity} ml), à mesurer`;
+        } else if (unit === "u") {
+          const n = countIn(clause.raw);
+          quantity = String(n ?? 1);
+          qtyNote = n ? `${n} unité${plural(n)} citée${plural(n)} dans la description, à confirmer` : "quantité par défaut, à confirmer";
+        } else if (unit === "forfait") {
+          quantity = "1";
+          qtyNote = "quantité par défaut, à confirmer";
+        }
+
+        let line: DraftLine;
+        if (fromCatalog) {
+          usedCatalog.add(fromCatalog.id);
+          line = blankLine({
+            catalogItemId: fromCatalog.id,
+            nature: fromCatalog.category,
+            label: fromCatalog.name,
+            description: fromCatalog.description,
+            unit: fromCatalog.unit,
+            unitPrice: price4ToInput(fromCatalog.unit_price4),
+            unitCost: fromCatalog.unit_cost4 === null ? "" : price4ToInput(fromCatalog.unit_cost4),
+            vatPercent: bpToInput(fromCatalog.vat_bp),
+            quantity,
+            estimated: Boolean(quantity),
+            estimateNote: qtyNote,
+          });
+        } else {
+          line = blankLine({
+            nature: lib.category ?? "main_oeuvre",
+            label: lib.name,
+            description: lib.description ?? "",
+            unit,
+            unitPrice: String(lib.unit_price ?? ""),
+            vatPercent: String(lib.vat_percent ?? ""),
+            quantity,
+            estimated: true,
+            estimateNote: `prix indicatif de la bibliothèque (${LIBRARY_DATE}), absent de votre catalogue${qtyNote ? " ; quantité " + qtyNote : ""}`,
+          });
+          warnings.push(`« ${lib.name} » n'est pas dans votre catalogue : prix indicatif à remplacer par le vôtre.`);
+        }
+        if (!line.quantity) {
+          line.kind = "pending";
+          line.estimated = false;
+          questions.add(`Quelle quantité pour « ${line.label} » (${unit}) ?`);
+        }
+        const excerpt = clause.raw.length > 90 ? clause.raw.slice(0, 87) + "..." : clause.raw;
+        explanations[line.id] = [
+          `Proposée car la description mentionne « ${excerpt} ».`,
+          fromCatalog ? "Prix repris de votre catalogue." : "Prix indicatif de la bibliothèque, à remplacer par le vôtre.",
+          lib.tip ?? "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const section = lib.section;
+        const list = sections.get(section) ?? [];
+        list.push(line);
+        sections.set(section, list);
       }
-      let line: DraftLine;
-      if (fromCatalog) {
-        const it = fromCatalog.it;
-        used.add(it.name);
-        line = blankLine({
-          catalogItemId: it.id,
-          nature: it.category,
-          label: it.name,
-          description: it.description,
-          unit: it.unit,
-          unitPrice: price4ToInput(it.unit_price4),
-          unitCost: it.unit_cost4 === null ? "" : price4ToInput(it.unit_cost4),
-          vatPercent: bpToInput(it.vat_bp),
-          quantity,
-          estimated,
-          estimateNote,
-        });
-      } else if (fromLibrary) {
-        const it = fromLibrary.it;
-        used.add(it.name);
-        line = blankLine({
-          nature: it.category ?? "main_oeuvre",
-          label: it.name,
-          description: it.description ?? "",
-          unit: it.unit ?? unit,
-          unitPrice: String(it.unit_price ?? ""),
-          vatPercent: String(it.vat_percent ?? ""),
-          quantity,
-          estimated: true,
-          estimateNote: `prix indicatif de la bibliothèque (${LIBRARY_DATE}), absent de votre catalogue${estimateNote ? " ; quantité " + estimateNote : ""}`,
-        });
-        warnings.push(`« ${it.name} » n'est pas dans votre catalogue : prix indicatif à remplacer par le vôtre.`);
-      } else {
-        line = blankLine({ kind: "pending", label: intent.keywords[0][0].toUpperCase() + intent.keywords[0].slice(1), unit });
-      }
-      if (line.kind === "item" && !line.quantity) {
-        line.kind = "pending";
-        questions.add(`Quelle quantité pour « ${line.label} » ?`);
-      }
-      const list = sections.get(intent.section) ?? [];
-      if (!list.some((l) => l.label === line.label)) list.push(line);
-      sections.set(intent.section, list);
     }
 
     if (sections.size === 0) {
-      sections.set("Prestations", [blankLine({ kind: "pending", label: "Prestation à décrire" })]);
+      const line = blankLine({ kind: "pending", label: "Prestation à décrire" });
+      sections.set("Prestations", [line]);
+      explanations[line.id] = "Aucune prestation connue n'a été reconnue : complétez cette ligne ou détaillez la description.";
       questions.add("Pouvez-vous détailler les travaux à réaliser (nature, surfaces, fournitures) ?");
     }
-    if (measures.surfaceM2 === null && /m²|surface|sol|mur/.test(t)) questions.add("Quelles sont les surfaces exactes ?");
-    if (/fourni|materiau|materiel/.test(t) === false) questions.add("Les matériaux sont-ils fournis par l'entreprise ?");
+    if (detected.length) for (const c of detected) LIBRARY[c].questions.forEach((q) => questions.add(q));
+    if (/\bdepos|\bdemol/.test(t) && !/gravat|evacu|benne|decheter/.test(t))
+      questions.add("L'évacuation des gravats est-elle à prévoir, et pour quel volume ?");
+    if (measures.surfaceM2 === null && /m²|surface|\bsol\b|\bmurs?\b/.test(t)) questions.add("Quelles sont les surfaces exactes ?");
+    if (!/fourni|materiau|materiel/.test(t)) questions.add("Les matériaux sont-ils fournis par l'entreprise ?");
     if (!/acces|etage|ascenseur/.test(t)) questions.add("Y a-t-il des contraintes d'accès au chantier (étage, stationnement) ?");
     questions.add("Quel temps de main-d'œuvre prévoyez-vous ?");
 
-    const ordered = [...sections.entries()].sort((a, b) => SECTION_ORDER.indexOf(a[0]) - SECTION_ORDER.indexOf(b[0]));
-    const firstSentence = text.trim().split(/[.!?\n]/)[0].trim();
+    const rank = (title: string) => (SECTION_ORDER.includes(title) ? SECTION_ORDER.indexOf(title) : SECTION_ORDER.length);
+    const ordered = [...sections.entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
+    const firstSentence = text
+      .trim()
+      .split(/[.!?\n]/)[0]
+      .trim();
     return {
       summary: firstSentence.length > 140 ? firstSentence.slice(0, 137) + "..." : firstSentence,
       sections: ordered.map(([title, lines]) => ({ id: randomUUID(), title, description: "", lines })),
@@ -255,8 +292,11 @@ export const localProvider: AssistantProvider = {
         "Choisir le taux de TVA applicable à la situation du client",
         "Vérifier l'adresse du chantier et les coordonnées du client",
         "Relire la description des travaux",
+        ...detected.flatMap((c) => LIBRARY[c].checks),
       ],
       warnings,
+      explanations,
+      trades: detected.map((c) => ({ code: c, label: LIBRARY[c].label })),
       detected: measures,
     };
   },
@@ -270,9 +310,7 @@ const inputSchema = z.object({ text: z.string().trim().min(10, "Décrivez le cha
 
 /** Limite les données personnelles transmises : adresses e-mail et numéros de téléphone sont masqués. */
 export function minimizePersonalData(text: string): string {
-  return text
-    .replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, "[e-mail]")
-    .replace(/(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}/g, "[téléphone]");
+  return text.replace(/[^\s@]+@[^\s@]+\.[^\s@]+/g, "[e-mail]").replace(/(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}/g, "[téléphone]");
 }
 
 export async function proposeDraft(ctx: Ctx, raw: unknown): Promise<AssistantProposal> {
@@ -282,7 +320,8 @@ export async function proposeDraft(ctx: Ctx, raw: unknown): Promise<AssistantPro
   await assertAiQuota(ctx.db, ctx);
   const provider = getAssistantProvider();
   const catalog = await searchItems(ctx, { limit: 2000 });
-  const result = await provider.propose({ text: minimizePersonalData(parsed.data.text), catalog });
+  const org = await ctx.db.query<{ trade: string }>("SELECT trade FROM organizations WHERE id=$1", [ctx.orgId]);
+  const result = await provider.propose({ text: minimizePersonalData(parsed.data.text), catalog, profession: org[0]?.trade ?? "" });
   // Coût mesuré par compte : nul pour le moteur local, à renseigner pour un fournisseur externe.
   await recordUsage(ctx.db, ctx.orgId, ctx.userId, "ai", 1, provider.name === "local" ? 0 : 2000);
   return result;

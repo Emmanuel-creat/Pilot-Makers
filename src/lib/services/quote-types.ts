@@ -1,4 +1,5 @@
 import type { CalcResult, LineKind, LineNature } from "@/lib/calc/engine";
+import type { ConsumerTerms, ContractPlace } from "./consumer";
 
 export const QUOTE_STATUSES = {
   draft: "Brouillon",
@@ -60,6 +61,7 @@ export interface QuoteDraft {
   globalDiscount: string;
   template: string;
   internalNotes: string;
+  contractPlace: ContractPlace;
   sections: DraftSection[];
   draftRevision: number;
   currentVersion: number;
@@ -134,6 +136,8 @@ export interface QuoteSnapshot {
   calc: CalcResult;
   mentions: string[];
   warnings: string[];
+  /** Droit de rétractation et attestation de TVA réduite (absent des versions émises avant octobre 2026) */
+  consumer?: ConsumerTerms;
   /** Aperçu d'un brouillon : jamais enregistré, marqué comme tel sur le PDF */
   preview?: boolean;
 }

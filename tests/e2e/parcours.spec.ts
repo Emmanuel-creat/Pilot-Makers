@@ -30,6 +30,18 @@ test("une mauvaise connexion est refusée", async ({ page }) => {
   await expect(page).toHaveURL(/\/connexion/);
 });
 
+test("les pages légales sont accessibles sans compte", async ({ page }) => {
+  for (const [path, title] of [
+    ["/cgu", "Conditions"],
+    ["/confidentialite", "Politique de confidentialité"],
+    ["/mentions-legales", "Mentions légales"],
+    ["/cookies", "Cookies"],
+  ] as const) {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(title);
+  }
+});
+
 test("les pages principales s'affichent", async ({ page }) => {
   await login(page);
   for (const [path, title] of [
@@ -89,7 +101,9 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await expect(cp.getByText(number).first()).toBeVisible();
   await cp.getByRole("button", { name: "Accepter le devis" }).click();
   await cp.locator("#r-name").fill("Claire Dubois");
-  await cp.getByRole("checkbox").check();
+  await cp.getByRole("checkbox", { name: /Bon pour accord/ }).check();
+  // Prestations à 10 % : la cliente atteste les conditions du taux réduit.
+  await cp.getByRole("checkbox", { name: /taux réduit de TVA/ }).check();
   await cp.getByRole("button", { name: "Confirmer l'acceptation" }).click();
   await expect(cp.getByText(/accept/i).first()).toBeVisible();
   await client.close();
