@@ -10,7 +10,7 @@
  * - le taux de TVA est seulement proposé, jamais décidé.
  *
  * Le moteur fourni fonctionne localement, par règles, sans envoyer de données à
- * un tiers. Un fournisseur de modèle de langage peut le remplacer via
+ * un tiers. Un service externe d'analyse de texte peut le remplacer via
  * l'interface AssistantProvider, à condition de respecter le même contrat de sortie.
  */
 

@@ -24,7 +24,7 @@ export default function Page() {
       <h2>Minimisation et assistant</h2>
       <p>
         Le texte envoyé à l'assistant de préparation est limité à la description du chantier ; les adresses e-mail et numéros de téléphone y
-        sont masqués. Le moteur fourni fonctionne sans transmettre de données à un tiers. Tout fournisseur de modèle de langage branché
+        sont masqués. Le moteur fourni fonctionne sans transmettre de données à un tiers. Tout service externe d'analyse de texte branché
         ultérieurement sera listé parmi les sous-traitants, avec ses conditions de réutilisation et sa localisation.
       </p>
       <h2>Durées de conservation</h2>

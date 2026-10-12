@@ -77,7 +77,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] F.8 Jeu de tests de référence (cas 7.2 du cahier des charges)
 
 ## G. Assistant de préparation (V1.5)
-- [~] G.1 Description libre vers sections et lignes proposées (moteur local à règles, remplaçable par une API de modèle de langage)
+- [~] G.1 Description libre vers sections et lignes proposées (moteur local à règles, remplaçable par un service externe d'analyse de texte)
 - [~] G.2 Questions de clarification et informations manquantes
 - [~] G.3 Quantités estimées toujours signalées comme à vérifier
 - [x] G.4 Jamais d'émission automatique, quota d'usage par abonnement, mesure dans `usage_events`
@@ -116,7 +116,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 ## M. Administration
 - [x] M.1 Recherche de comptes, état d'abonnement, offres
 - [x] M.2 Journal technique et d'audit, erreurs PDF
-- [x] M.3 Coûts d'IA et d'e-mails par compte
+- [x] M.3 Coûts de l'assistant et des e-mails par compte
 - [x] M.4 Suspension documentée d'un compte
 - [x] M.5 Accès support aux données métier : justifié, limité dans le temps, journalisé
 
