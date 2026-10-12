@@ -9,6 +9,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] 0.3 Migrations SQL versionnées et exécutées au démarrage
 - [x] 0.4 Données de démonstration (entreprise, clients, catalogue, devis)
 - [x] 0.5 Tests automatisés (Vitest) et intégration continue GitHub Actions
+- [x] 0.8 Tests du parcours complet dans un vrai navigateur (Playwright), exécutés en intégration continue
 - [x] 0.6 Contrôle des textes : aucun tiret cadratin, aucun emoji dans le dépôt
 - [x] 0.7 Icônes dessinées en SVG, sans bibliothèque d'emojis
 
@@ -25,6 +26,8 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] A.10 Export des données du compte (JSON)
 - [x] A.11 Liste des sessions et appareils, révocation
 - [x] A.12 Limitation des tentatives de connexion
+- [x] A.15 Double authentification (application TOTP, codes de secours), obligatoire pour l'administration en production
+- [x] A.16 En-têtes de sécurité stricts (CSP, HSTS, COOP, Permissions-Policy)
 - [x] A.13 Isolation stricte par entreprise, contrôlée côté serveur sur chaque objet
 - [x] A.14 Rôles (propriétaire, administrateur, membre) et limites d'abonnement côté serveur
 
@@ -53,6 +56,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] D.7 Création d'un élément depuis un devis
 - [x] D.8 Bibliothèques de modèles fournies (tarifs indicatifs datés et sourcés)
 - [x] D.9 Coût interne jamais présent dans le PDF client
+- [x] D.10 Ouvrages composés : prix et coût recalculés depuis leurs composants
 
 ## E. Devis
 - [x] E.1 Informations générales (numéro, dates, validité, client, chantier, objet, auteur, conditions, acompte, durée, démarrage)
@@ -62,6 +66,8 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] E.5 Lignes à compléter et notes techniques non chiffrées
 - [x] E.6 Sauvegarde automatique du brouillon, alerte avant fermeture
 - [x] E.7 Duplication d'un devis
+- [x] E.11 Annuler et rétablir dans l'éditeur (Ctrl+Z, Ctrl+Maj+Z)
+- [x] E.12 Modèles de devis réutilisables
 - [x] E.8 Versions : émission figée, nouvelle version à la modification, comparaison entre versions
 - [x] E.9 Interdiction de modifier une version émise ou acceptée
 - [ ] E.10 Pièces jointes (stockage objet privé, V1.5)
@@ -90,7 +96,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 
 ## I. Envoi et suivi
 - [x] I.1 Statuts : brouillon, à compléter, prêt, envoyé, consulté (lien sécurisé seulement), accepté, refusé, expiré, annulé, remplacé
-- [~] I.2 Envoi par e-mail avec PDF (boîte d'envoi simulée, prestataire à brancher)
+- [~] I.2 Envoi par e-mail avec PDF : Brevo, Postmark ou Resend prêts (MAIL_PROVIDER, MAIL_API_KEY, MAIL_FROM), boîte d'envoi simulée tant qu'aucune clé n'est fournie ; suivi des événements par webhook
 - [x] I.3 Modèles de messages personnalisables
 - [x] I.4 Historique des envois et des événements
 - [x] I.5 Lien client sécurisé, temporaire et révocable
@@ -126,5 +132,19 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] N.3 Modèle de données prêt pour la facturation électronique (V2)
 - [x] N.4 Pages CGU, confidentialité, sous-traitants (modèles à faire valider par un juriste)
 
+## O. Facturation
+- [x] O.1 Factures d'acompte (pourcentage, ventilation par taux de TVA)
+- [x] O.2 Facture de solde avec déduction des acomptes
+- [x] O.3 Avoirs totaux ou partiels
+- [x] O.4 Encaissements (virement, chèque, espèces, carte), annulation tracée
+- [x] O.5 Envoi par e-mail avec PDF, relances automatiques des factures échues
+- [x] O.6 Numérotation continue sans trou, PDF figé et empreinte SHA-256
+- [x] O.7 Export FEC pour l'expert-comptable
+- [ ] O.8 Dépôt sur une plateforme agréée de facturation électronique (compte à ouvrir)
+
 ## V2 (non commencé)
-- [ ] Chantiers, acomptes, factures, avoirs, achats, marges réelles, équipe, synchronisation comptable, plateforme agréée
+- [ ] Chantiers, achats, marges réelles, équipe, synchronisation bancaire et comptable
+
+## Feuille de route : actions réalisées
+Numéros de la feuille de route complète (360 actions).
+- Vague 1 (12/10/2026) : 22, 23, 24, 25, 29, 31, 59, 60, 61, 62, 123 (prêt, en attente d'une clé), 143 à 149, 215, 297.

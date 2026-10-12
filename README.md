@@ -53,6 +53,7 @@ Comptes de démonstration (mot de passe `Demo2026Pilot`) :
 
 ```bash
 npm run verify      # textes, types, tests
+npm run build && npm run test:e2e   # parcours complet dans un navigateur (Playwright)
 npm run build       # build de production
 ```
 
