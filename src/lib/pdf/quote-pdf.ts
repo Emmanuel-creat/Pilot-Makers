@@ -156,11 +156,31 @@ export function pdfTotals(s: QuoteSnapshot) {
   };
 }
 
-export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
+/**
+ * Variante du document : le même gabarit sert aux factures, acomptes et avoirs,
+ * avec un autre titre, d'autres informations et sans zone d'acceptation.
+ */
+export interface PdfDocOptions {
+  /** Titre en haut à droite, ex. "FACTURE" */
+  title: string;
+  /** Nom court du document, ex. "Facture FA-2026-0001" (pied de page, pages suivantes) */
+  label: string;
+  /** Lignes d'information sous le titre ; la première est en gras */
+  meta: string[];
+  /** Lignes affichées sous le total TTC (acomptes déduits, net à payer) */
+  afterTotals?: [string, string, boolean][];
+  /** Blocs de texte après les totaux, à la place des conditions du devis */
+  sections: [string, string][];
+  /** Mot affiché devant le lieu d'exécution */
+  siteLabel?: string;
+}
+
+export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
-  doc.setTitle(`Devis ${s.number}`);
+  const label = opts?.label ?? `Devis ${s.number}`;
+  doc.setTitle(label);
   doc.setAuthor(s.org.trade_name);
-  doc.setSubject(`Devis ${s.number} version ${s.version}`);
+  doc.setSubject(opts ? label : `Devis ${s.number} version ${s.version}`);
   doc.setCreator("Pilot-Makers");
   doc.setProducer("Pilot-Makers");
   // Date fixe = date d'émission, pour que le même snapshot produise le même document.
@@ -210,7 +230,7 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
   let inTable = false;
   const w = new Writer(doc, f, (wr) => {
     if (wr.pages.length > 1) {
-      wr.text(`Devis ${s.number} (suite)`, M.left, wr.y - 10, 9, f.bold, GREY);
+      wr.text(`${label} (suite)`, M.left, wr.y - 10, 9, f.bold, GREY);
       wr.y -= 22;
       if (inTable) tableHeader(wr);
     }
@@ -251,18 +271,20 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
   // Bloc titre à droite
   let rightY = w.y;
   const rx = A4.w - M.right;
-  w.textRight("DEVIS", rx, rightY - 20, 22, f.bold, accent);
+  w.textRight(opts?.title ?? "DEVIS", rx, rightY - 20, 22, f.bold, accent);
   rightY -= 36;
-  const meta = [
-    `N° ${s.number}${s.version > 1 ? ` (version ${s.version})` : ""}`,
-    `Date : ${fmtDate(s.issueDate)}`,
-    `Valable jusqu'au : ${fmtDate(s.validUntil)}`,
-    s.author ? `Établi par : ${s.author}` : "",
-  ].filter(Boolean);
-  for (const l of meta) {
-    w.textRight(l, rx, rightY, 9, l.startsWith("N°") ? f.bold : f.regular);
+  const meta = (
+    opts?.meta ?? [
+      `N° ${s.number}${s.version > 1 ? ` (version ${s.version})` : ""}`,
+      `Date : ${fmtDate(s.issueDate)}`,
+      `Valable jusqu'au : ${fmtDate(s.validUntil)}`,
+      s.author ? `Établi par : ${s.author}` : "",
+    ]
+  ).filter(Boolean);
+  meta.forEach((l, i) => {
+    w.textRight(l, rx, rightY, 9, i === 0 ? f.bold : f.regular);
     rightY -= 12;
-  }
+  });
 
   // Client
   rightY -= 8;
@@ -298,7 +320,7 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
   w.text("Objet :", M.left, w.y - 10, 10, f.bold);
   w.text(s.quote.title, M.left + 42, w.y - 10, 10, f.bold, accent);
   w.y -= 14;
-  w.text(`Lieu d'exécution : ${siteText}`, M.left, w.y - 10, 9, f.regular, GREY);
+  w.text(`${opts?.siteLabel ?? "Lieu d'exécution"} : ${siteText}`, M.left, w.y - 10, 9, f.regular, GREY);
   w.y -= 14;
   const extra = [
     s.quote.estimatedStart ? `Démarrage estimé : ${s.quote.estimatedStart}` : "",
@@ -336,7 +358,10 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
       const labelW = cols.qty - cols.label - 30;
       const labelLines = wrapText(line.label || "", f.bold, 8.5, labelW);
       const descLines = line.description.trim() ? wrapText(line.description, f.regular, 7.5, labelW) : [];
-      const noteLines = line.kind === "item" && line.estimated ? wrapText("Quantité estimée, à confirmer sur place" + (line.estimateNote ? " : " + line.estimateNote : ""), f.italic, 7, labelW) : [];
+      const noteLines =
+        line.kind === "item" && line.estimated
+          ? wrapText("Quantité estimée, à confirmer sur place" + (line.estimateNote ? " : " + line.estimateNote : ""), f.italic, 7, labelW)
+          : [];
       const h = labelLines.length * 10.5 + descLines.length * 9 + noteLines.length * 8.5 + 6;
       w.ensure(Math.min(h, 120));
       let ly = w.y;
@@ -422,6 +447,15 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
   w.text("Total TTC", tx, w.y - 11, 11, f.bold, ttcColor);
   w.textRight(formatEuros(c.totalTtcCents), cols.total - 4, w.y - 11, 11, f.bold, ttcColor);
   w.y -= 26;
+  if (opts?.afterTotals?.length) {
+    w.ensure(opts.afterTotals.length * 14 + 6);
+    for (const [label, value, bold] of opts.afterTotals) {
+      w.y -= 14;
+      w.text(label, tx, w.y, bold ? 10 : 9, bold ? f.bold : f.regular);
+      w.textRight(value, cols.total - 4, w.y, bold ? 10 : 9, bold ? f.bold : f.regular);
+    }
+    w.y -= 6;
+  }
 
   // Conditions et mentions
   const section = (title: string, body: string, size = 8.5) => {
@@ -432,29 +466,36 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
     w.y -= 2;
     w.paragraph(body, M.left, CONTENT_W, size);
   };
-  section("Conditions de paiement", s.quote.paymentTerms);
-  section("Conditions particulières", s.quote.specialConditions);
-  section("Mentions", s.mentions.join("\n"));
-  section("Conditions générales", s.org.general_conditions, 7.5);
+  if (opts) {
+    for (const [title, body] of opts.sections) section(title, body);
+  } else {
+    section("Conditions de paiement", s.quote.paymentTerms);
+    section("Conditions particulières", s.quote.specialConditions);
+    section("Mentions", s.mentions.join("\n"));
+    section("Conditions générales", s.org.general_conditions, 7.5);
+  }
 
   // Zone d'acceptation : jamais coupée
-  w.ensure(110);
-  w.y -= 16;
-  const zoneH = 86;
-  w.page.drawRectangle({ x: M.left, y: w.y - zoneH, width: CONTENT_W, height: zoneH, borderColor: GREY, borderWidth: 0.8 });
-  w.text("Bon pour accord du client", M.left + 10, w.y - 14, 9.5, f.bold);
-  w.text("Date, nom et signature précédés de la mention « Bon pour accord » :", M.left + 10, w.y - 27, 8, f.regular, GREY);
-  w.text(`Pour ${s.org.trade_name}`, M.left + CONTENT_W / 2 + 10, w.y - 14, 9.5, f.bold);
-  if (signature) {
-    const scale = Math.min(150 / signature.width, 50 / signature.height, 1);
-    w.page.drawImage(signature, {
-      x: M.left + CONTENT_W / 2 + 10,
-      y: w.y - zoneH + 8,
-      width: signature.width * scale,
-      height: signature.height * scale,
-    });
+  if (!opts) acceptance();
+  function acceptance() {
+    w.ensure(110);
+    w.y -= 16;
+    const zoneH = 86;
+    w.page.drawRectangle({ x: M.left, y: w.y - zoneH, width: CONTENT_W, height: zoneH, borderColor: GREY, borderWidth: 0.8 });
+    w.text("Bon pour accord du client", M.left + 10, w.y - 14, 9.5, f.bold);
+    w.text("Date, nom et signature précédés de la mention « Bon pour accord » :", M.left + 10, w.y - 27, 8, f.regular, GREY);
+    w.text(`Pour ${s.org.trade_name}`, M.left + CONTENT_W / 2 + 10, w.y - 14, 9.5, f.bold);
+    if (signature) {
+      const scale = Math.min(150 / signature.width, 50 / signature.height, 1);
+      w.page.drawImage(signature, {
+        x: M.left + CONTENT_W / 2 + 10,
+        y: w.y - zoneH + 8,
+        width: signature.width * scale,
+        height: signature.height * scale,
+      });
+    }
+    w.y -= zoneH;
   }
-  w.y -= zoneH;
 
   // Pieds de page
   const footer = legalFooter(s);
@@ -466,7 +507,7 @@ export async function renderQuotePdf(s: QuoteSnapshot): Promise<Uint8Array> {
       p.drawText(l, { x: M.left, y: fy, size: 7, font: f.regular, color: GREY });
       fy -= 9;
     }
-    const pageTxt = `Devis ${s.number} v${s.version} - page ${i + 1}/${total}`;
+    const pageTxt = `${opts ? label : `Devis ${s.number} v${s.version}`} - page ${i + 1}/${total}`;
     p.drawText(sanitize(pageTxt, f.regular), {
       x: A4.w - M.right - f.regular.widthOfTextAtSize(pageTxt, 7),
       y: 34,

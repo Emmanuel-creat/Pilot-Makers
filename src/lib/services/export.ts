@@ -31,7 +31,14 @@ export async function exportAccountData(ctx: Ctx) {
     documentEvents: await q("SELECT quote_id, version, type, actor_type, data, created_at FROM document_events WHERE org_id=$1 ORDER BY created_at"),
     emails: await q("SELECT kind, to_address, subject, status, error, created_at FROM emails WHERE org_id=$1 ORDER BY created_at"),
     subscription: (await q("SELECT plan_code, status, billing_interval, current_period_end, trial_end FROM subscriptions WHERE org_id=$1"))[0],
-    invoices: await q("SELECT number, plan_code, amount_ht_cents, amount_ttc_cents, status, created_at FROM billing_invoices WHERE org_id=$1"),
+    subscriptionInvoices: await q("SELECT number, plan_code, amount_ht_cents, amount_ttc_cents, status, created_at FROM billing_invoices WHERE org_id=$1"),
+    customerInvoices: await q(
+      `SELECT id, quote_id, customer_id, kind, number, credited_invoice_id, title, issue_date, due_date, snapshot, pdf_sha256, snapshot_sha256,
+         total_ht_cents, total_vat_cents, total_ttc_cents, amount_due_cents, paid_cents, credited_cents, issued_at FROM invoices WHERE org_id=$1 ORDER BY issued_at`,
+    ),
+    payments: await q("SELECT invoice_id, amount_cents, paid_on, method, reference, canceled_at, created_at FROM invoice_payments WHERE org_id=$1 ORDER BY paid_on"),
+    quoteTemplates: await q("SELECT name, description, data, created_at FROM quote_templates WHERE org_id=$1"),
+    catalogComponents: await q("SELECT parent_id, child_id, position, quantity FROM catalog_components WHERE org_id=$1"),
   };
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "account.export", data: { scope: "organization" }, ip: ctx.ip });
   // Les entiers 64 bits sont convertis pour rester sérialisables.

@@ -11,6 +11,7 @@ const MAIN: NavItem[] = [
   { href: "/app", label: "Tableau de bord", icon: "home" },
   { href: "/app/devis", label: "Devis", icon: "quote" },
   { href: "/app/modeles", label: "Modèles de devis", icon: "copy" },
+  { href: "/app/factures", label: "Factures", icon: "euro" },
   { href: "/app/clients", label: "Clients", icon: "users" },
   { href: "/app/catalogue", label: "Catalogue", icon: "box" },
 ];

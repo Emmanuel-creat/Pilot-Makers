@@ -15,6 +15,8 @@ import { EDITABLE_STATUSES, PENDING_STATUSES } from "@/lib/services/quote-types"
 import { getDraft, getQuoteRow, getVersion, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
 import { archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
+import { QuoteBilling } from "./Billing";
+import { INVOICE_KINDS, INVOICE_STATUSES, listInvoices } from "@/lib/services/invoices";
 
 export const metadata = { title: "Devis" };
 
@@ -102,7 +104,8 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
   const versions = draft.currentVersion > 0 ? await listVersions(ctx, id) : [];
   const shownVersion = draft.acceptedVersion ?? draft.currentVersion;
   const current = shownVersion > 0 ? await getVersion(ctx.db, ctx.orgId, id, shownVersion) : null;
-  const [events, emails] = await Promise.all([quoteEvents(ctx, id), quoteEmails(ctx, id)]);
+  const [events, emails, invoices] = await Promise.all([quoteEvents(ctx, id), quoteEmails(ctx, id), listInvoices(ctx, { quoteId: id })]);
+  const hasFinal = invoices.some((i) => i.kind === "final" && i.status !== "canceled");
   const links = await ctx.db.query<{ n: unknown; viewed: Date | null }>(
     "SELECT count(*) AS n, max(first_viewed_at) AS viewed FROM share_links WHERE quote_id=$1 AND org_id=$2 AND revoked_at IS NULL AND expires_at > now()",
     [id, ctx.orgId],
@@ -195,6 +198,33 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
               </div>
             ) : null}
           </section>
+
+          {status === "accepted" || invoices.length ? (
+            <section className="card space-y-3 p-4">
+              <h2 className="text-sm font-semibold">Facturation</h2>
+              {invoices.length ? (
+                <ul className="divide-y divide-line text-sm">
+                  {invoices.map((i) => (
+                    <li key={i.id} className="py-2">
+                      <Link href={`/app/factures/${i.id}`} className="flex justify-between gap-2 hover:underline">
+                        <span>
+                          {INVOICE_KINDS[i.kind]} {i.number}
+                        </span>
+                        <span className="tabular">{formatEuros(i.kind === "credit_note" ? -i.amount_due_cents : i.amount_due_cents)}</span>
+                      </Link>
+                      <div className="text-xs text-muted">
+                        {INVOICE_STATUSES[i.status]}
+                        {i.kind !== "credit_note" && i.balance_cents > 0 && i.balance_cents !== i.amount_due_cents ? `, reste ${formatEuros(i.balance_cents)}` : ""}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted">Aucune facture pour ce devis.</p>
+              )}
+              {writable && status === "accepted" ? <QuoteBilling quoteId={id} defaultPercent={draft.depositPercent} hasFinal={hasFinal} /> : null}
+            </section>
+          ) : null}
 
           {writable && (pending || status === "expired") ? (
             <section className="card space-y-3 p-4">

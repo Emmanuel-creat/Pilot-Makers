@@ -5,6 +5,7 @@ import { getOrganization, organizationHistory, redactForRole } from "@/lib/servi
 import { readSettings } from "@/lib/services/reminders";
 import { OrgForm } from "./OrgForm";
 import { RemindersForm } from "./RemindersForm";
+import { InvoiceSettingsForm } from "./InvoiceSettingsForm";
 
 export const metadata = { title: "Entreprise" };
 
@@ -16,6 +17,7 @@ const TABS = [
   ["paiement", "Banque"],
   ["emails", "E-mails"],
   ["relances", "Relances"],
+  ["factures", "Factures"],
   ["historique", "Historique"],
 ] as const;
 
@@ -42,7 +44,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const org = redactForRole(await getOrganization(ctx), ctx.role);
   const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
   const tabs = TABS.filter(([k]) => k !== "paiement" || ctx.role !== "member");
-  const { created_at: _c, updated_at: _u, reminder_settings, ...values } = org;
+  const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, ...values } = org;
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader title="Entreprise" subtitle="Ces informations figurent sur vos devis. Une modification ne change jamais un devis déjà émis." />
@@ -57,7 +59,19 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           </Link>
         ))}
       </nav>
-      {tab === "relances" ? (
+      {tab === "factures" ? (
+        <InvoiceSettingsForm
+          canEdit={canEdit}
+          initial={{
+            invoice_prefix: org.invoice_prefix,
+            credit_prefix: org.credit_prefix,
+            invoice_due_days: Number(org.invoice_due_days),
+            late_penalty_text: org.late_penalty_text,
+            reminders_enabled: Boolean(invoice_reminder_settings?.enabled),
+            reminder_days: (invoice_reminder_settings?.days ?? [3, 15, 30]).join(", "),
+          }}
+        />
+      ) : tab === "relances" ? (
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "historique" ? (
         <History ctxPromise={organizationHistory(ctx)} />

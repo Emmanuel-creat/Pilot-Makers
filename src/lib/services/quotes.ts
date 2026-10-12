@@ -270,7 +270,7 @@ export async function listQuotes(ctx: Ctx, f: QuoteListFilters = {}) {
 /* Création et modification                                            */
 /* ------------------------------------------------------------------ */
 
-async function orgRow(q: Queryable, orgId: string): Promise<Organization> {
+export async function orgRow(q: Queryable, orgId: string): Promise<Organization> {
   return (await one<Organization>(q, "SELECT * FROM organizations WHERE id=$1", [orgId]))!;
 }
 
@@ -492,11 +492,11 @@ function complianceInput(
 /* Émission                                                            */
 /* ------------------------------------------------------------------ */
 
-function addDays(date: Date, days: number) {
+export function addDays(date: Date, days: number) {
   return new Date(date.getTime() + days * DAY);
 }
 
-function parisDate(d: Date): string {
+export function parisDate(d: Date): string {
   // Date civile à Paris (AAAA-MM-JJ), indépendante du fuseau du serveur.
   return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }

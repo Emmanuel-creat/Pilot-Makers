@@ -21,6 +21,9 @@ export interface MailMessage {
   subject: string;
   body: string;
   attachmentVersionId?: string | null;
+  /** Facture jointe (PDF figé) et facture concernée */
+  attachmentInvoiceId?: string | null;
+  invoiceId?: string | null;
   idempotencyKey?: string | null;
 }
 
@@ -71,8 +74,9 @@ export async function sendMail(q: Queryable, msg: MailMessage): Promise<SentMail
   const provider = getMailProvider();
   const row = (await one<{ id: string }>(
     q,
-    `INSERT INTO emails (org_id, quote_id, kind, to_address, subject, body, attachment_version_id, idempotency_key, provider)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+    `INSERT INTO emails (org_id, quote_id, kind, to_address, subject, body, attachment_version_id, idempotency_key, provider,
+       attachment_invoice_id, invoice_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
     [
       msg.orgId ?? null,
       msg.quoteId ?? null,
@@ -83,6 +87,8 @@ export async function sendMail(q: Queryable, msg: MailMessage): Promise<SentMail
       msg.attachmentVersionId ?? null,
       msg.idempotencyKey ?? null,
       provider.name,
+      msg.attachmentInvoiceId ?? null,
+      msg.invoiceId ?? null,
     ],
   ))!;
   let result: Awaited<ReturnType<MailProvider["deliver"]>>;
@@ -99,6 +105,13 @@ export async function sendMail(q: Queryable, msg: MailMessage): Promise<SentMail
         [msg.attachmentVersionId],
       );
       if (v) extra.attachment = { filename: `Devis-${v.number}-v${v.version}.pdf`, contentBase64: Buffer.from(v.pdf).toString("base64") };
+    }
+    if (msg.attachmentInvoiceId && provider !== outboxProvider) {
+      const inv = await one<{ number: string; kind: string; pdf: Uint8Array }>(q, "SELECT number, kind, pdf FROM invoices WHERE id=$1", [msg.attachmentInvoiceId]);
+      if (inv) {
+        const name = inv.kind === "credit_note" ? "Avoir" : "Facture";
+        extra.attachment = { filename: `${name}-${inv.number}.pdf`, contentBase64: Buffer.from(inv.pdf).toString("base64") };
+      }
     }
     result = await provider.deliver({ ...msg, ...extra, id: row.id });
   } catch (e) {

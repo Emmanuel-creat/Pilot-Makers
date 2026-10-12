@@ -30,6 +30,15 @@ import { updateOrganization } from "@/lib/services/organization";
 import { cancelQuote, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
 import { createQuoteFromTemplate, deleteTemplate, renameTemplate } from "@/lib/services/templates";
+import {
+  cancelPayment,
+  createCreditNote,
+  createDepositInvoice,
+  createFinalInvoice,
+  recordPayment,
+  saveInvoiceSettings,
+  sendInvoice,
+} from "@/lib/services/invoices";
 import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableTwoFactor, regenerateRecoveryCodes } from "@/lib/services/two-factor";
 import { acceptInvite, changeRole, inviteMember, removeMember, switchOrg } from "@/lib/services/team";
 import type { LibraryTrade } from "@/lib/library";
@@ -541,6 +550,90 @@ export async function releaseAction(_: ActionState, fd: FormData): Promise<Actio
     await withCtx((ctx) => addRelease(ctx, s(fd, "version"), s(fd, "notes")));
     revalidatePath("/admin/versions");
     return { ok: true };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Factures ---------------------------------------------------------- */
+
+export async function saveInvoiceSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      saveInvoiceSettings(ctx, {
+        invoice_prefix: s(fd, "invoice_prefix"),
+        credit_prefix: s(fd, "credit_prefix"),
+        invoice_due_days: s(fd, "invoice_due_days"),
+        late_penalty_text: s(fd, "late_penalty_text"),
+        reminders_enabled: fd.get("reminders_enabled") === "on",
+        reminder_days: s(fd, "reminder_days"),
+      }),
+    );
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Paramètres de facturation enregistrés." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function depositInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = (await withCtx((ctx) => createDepositInvoice(ctx, s(fd, "quoteId"), { percent: s(fd, "percent") }))).id;
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/factures/${id}`);
+}
+
+export async function finalInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = (await withCtx((ctx) => createFinalInvoice(ctx, s(fd, "quoteId")))).id;
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/factures/${id}`);
+}
+
+export async function creditNoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    const mode = s(fd, "mode");
+    const input =
+      mode === "partial"
+        ? { mode, label: s(fd, "label"), amountHt: s(fd, "amountHt"), vatPercent: s(fd, "vatPercent") }
+        : { mode: "full", reason: s(fd, "reason") };
+    id = (await withCtx((ctx) => createCreditNote(ctx, s(fd, "invoiceId"), input))).id;
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/factures/${id}`);
+}
+
+export async function paymentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      recordPayment(ctx, s(fd, "invoiceId"), { amount: s(fd, "amount"), paidOn: s(fd, "paidOn"), method: s(fd, "method"), reference: s(fd, "reference") }),
+    );
+    revalidatePath(`/app/factures/${s(fd, "invoiceId")}`);
+    return { ok: true, message: "Paiement enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function cancelPaymentAction(fd: FormData) {
+  await withCtx((ctx) => cancelPayment(ctx, s(fd, "id")));
+  revalidatePath(`/app/factures/${s(fd, "invoiceId")}`);
+}
+
+export async function sendInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => sendInvoice(ctx, s(fd, "invoiceId"), { to: s(fd, "to"), subject: s(fd, "subject"), body: s(fd, "body") }));
+    revalidatePath(`/app/factures/${s(fd, "invoiceId")}`);
+    if (r.status !== "sent") return { error: r.error ?? "L'envoi a échoué" };
+    return { ok: true, message: "Envoyé." };
   } catch (e) {
     return toState(e);
   }

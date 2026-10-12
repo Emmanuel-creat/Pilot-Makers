@@ -59,6 +59,11 @@ export interface Organization {
   mail_subject_template: string;
   mail_body_template: string;
   reminder_settings: Record<string, unknown>;
+  invoice_prefix: string;
+  credit_prefix: string;
+  invoice_due_days: number;
+  late_penalty_text: string;
+  invoice_reminder_settings: { enabled?: boolean; days?: number[] };
   status: string;
   suspended_reason: string | null;
   created_at: Date;

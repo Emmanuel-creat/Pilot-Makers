@@ -7,7 +7,16 @@ function frDate(isoDate: string) {
 }
 
 /** Rendu HTML d'une version figée, identique au PDF dans son contenu. */
-export function SnapshotView({ s }: { s: QuoteSnapshot }) {
+export function SnapshotView({
+  s,
+  heading,
+  afterTotals,
+}: {
+  s: QuoteSnapshot;
+  /** Titre et informations à la place de « Devis », pour une facture ou un avoir */
+  heading?: { title: string; lines: string[] };
+  afterTotals?: [string, string, boolean][];
+}) {
   const lines = new Map(s.calc.sections.flatMap((sec) => sec.lines.map((l) => [l.id, l] as const)));
   const subtotals = new Map(s.calc.sections.map((sec) => [sec.id, sec.subtotalCents]));
   const exempt = s.org.vat_regime === "franchise";
@@ -31,12 +40,25 @@ export function SnapshotView({ s }: { s: QuoteSnapshot }) {
           {s.org.siret ? <div className="text-muted">SIRET {s.org.siret}</div> : null}
         </div>
         <div className="text-sm sm:text-right">
-          <div className="text-xl font-semibold">Devis {s.number}</div>
-          <div className="text-muted">
-            Version {s.version} du {frDate(s.issueDate)}
-            <br />
-            Valable jusqu'au {frDate(s.validUntil)}
-          </div>
+          {heading ? (
+            <>
+              <div className="text-xl font-semibold">{heading.title}</div>
+              <div className="text-muted">
+                {heading.lines.filter(Boolean).map((l) => (
+                  <div key={l}>{l}</div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-xl font-semibold">Devis {s.number}</div>
+              <div className="text-muted">
+                Version {s.version} du {frDate(s.issueDate)}
+                <br />
+                Valable jusqu'au {frDate(s.validUntil)}
+              </div>
+            </>
+          )}
           <div className="mt-3 inline-block rounded-md border border-line p-3 text-left">
             <div className="text-xs text-muted">Client</div>
             <div className="font-medium">{s.customer.name}</div>
@@ -159,7 +181,7 @@ export function SnapshotView({ s }: { s: QuoteSnapshot }) {
       </div>
       <div className="grid gap-6 p-5 sm:grid-cols-[1fr_300px] sm:p-8">
         <div className="space-y-3 text-sm">
-          {s.quote.paymentTerms ? (
+          {s.quote.paymentTerms && !heading ? (
             <div>
               <div className="font-medium">Conditions de paiement</div>
               <p className="whitespace-pre-line text-muted">{s.quote.paymentTerms}</p>
@@ -210,7 +232,13 @@ export function SnapshotView({ s }: { s: QuoteSnapshot }) {
             <dt>Total TTC</dt>
             <dd className="tabular">{formatEuros(s.calc.totalTtcCents)}</dd>
           </div>
-          {s.quote.depositPercent && s.quote.depositPercent !== "0" ? (
+          {afterTotals?.map(([label, value, bold]) => (
+            <div key={label} className={`flex justify-between ${bold ? "font-semibold" : "text-muted"}`}>
+              <dt>{label}</dt>
+              <dd className="tabular">{value}</dd>
+            </div>
+          ))}
+          {!heading && s.quote.depositPercent && s.quote.depositPercent !== "0" ? (
             <div className="flex justify-between text-muted">
               <dt>Acompte demandé</dt>
               <dd>{s.quote.depositPercent} %</dd>
