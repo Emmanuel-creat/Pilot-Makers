@@ -1,6 +1,7 @@
 import { Icon } from "@/components/Icon";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
+import { DisplaySettings, InstallApp } from "@/components/app/Display";
 import { Notice, PageHeader, Section, fmtDate } from "@/components/ui";
 import { deviceName } from "@/lib/device";
 import { requirePageCtx } from "@/lib/server/session";
@@ -53,6 +54,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           </form>
         </Notice>
       ) : null}
+      <Section title="Affichage" description="Thème, taille du texte et contraste pour travailler confortablement, au bureau comme sur le chantier.">
+        <DisplaySettings />
+      </Section>
+      <Section title="Application sur le téléphone" description="Installez Pilot-Makers comme une application : icône sur l'écran d'accueil et plein écran.">
+        <InstallApp />
+      </Section>
       <Section title="Profil">
         <ActionForm action={preferencesAction}>
           <div className="grid gap-3 sm:grid-cols-2">

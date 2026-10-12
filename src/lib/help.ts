@@ -350,6 +350,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Ces contrôles aident mais ne remplacent pas un avis juridique adapté à votre métier."],
   },
   {
+    slug: "application-et-affichage",
+    category: "compte",
+    title: "Installer l'application et régler l'affichage",
+    summary: "Icône sur l'écran d'accueil, thème sombre, texte plus grand et boutons faciles à toucher sur le chantier.",
+    steps: [
+      "Ouvrez « Mon compte ». Dans « Application sur le téléphone », suivez l'indication de votre appareil pour installer Pilot-Makers.",
+      "Dans « Affichage », choisissez le thème : comme l'appareil, clair ou sombre.",
+      "Agrandissez le texte si besoin : toute l'interface suit, sans déborder de l'écran.",
+      "Le contraste renforcé assombrit les textes secondaires et agrandit les boutons, pratique en plein soleil ou avec des gants.",
+    ],
+    notes: ["Sans réseau, l'application installée affiche une page d'attente : rien n'est perdu, vos documents restent sur le serveur."],
+    link: { href: "/app/compte", label: "Ouvrir mon compte" },
+  },
+  {
     slug: "double-authentification",
     category: "compte",
     title: "Activer la double authentification",

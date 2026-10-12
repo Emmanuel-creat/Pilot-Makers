@@ -95,14 +95,54 @@ body {
 input,
 select,
 textarea {
-  font-size: 16px; /* évite le zoom automatique sur mobile */
+  font-size: 1rem; /* évite le zoom automatique sur mobile */
 }
 @media (min-width: 768px) {
   input,
   select,
   textarea {
-    font-size: 14px;
+    font-size: 0.875rem;
   }
+}
+
+/* Taille du texte réglable : toute l'interface est en rem et suit la racine. */
+:root[data-text="lg"] {
+  font-size: 112.5%;
+}
+:root[data-text="xl"] {
+  font-size: 125%;
+}
+
+/* Contraste renforcé : textes secondaires et bordures plus marqués, boutons plus grands. */
+:root[data-contrast="high"] {
+  --muted: #33383f;
+  --border: #7a828e;
+  --accent: #123a5e;
+  --accent-strong: #0b2740;
+}
+:root[data-contrast="high"][data-theme="dark"] {
+  --muted: #d0d4db;
+  --border: #8a929e;
+  --accent: #a9cdf2;
+  --accent-strong: #cfe3f8;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-contrast="high"]:not([data-theme="light"]) {
+    --muted: #d0d4db;
+    --border: #8a929e;
+    --accent: #a9cdf2;
+    --accent-strong: #cfe3f8;
+  }
+}
+:root[data-contrast="high"] .btn-primary,
+:root[data-contrast="high"] .btn-secondary,
+:root[data-contrast="high"] .btn-ghost,
+:root[data-contrast="high"] .btn-danger {
+  min-height: 3rem;
+  font-weight: 600;
+}
+:root[data-contrast="high"] :focus-visible {
+  outline-width: 3px;
 }
 .tabular {
   font-variant-numeric: tabular-nums;
