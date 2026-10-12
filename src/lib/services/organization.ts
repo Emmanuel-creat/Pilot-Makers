@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { one } from "@/lib/db";
 import { badRequest, notFound } from "@/lib/http";
+import { isSealed, open, seal } from "@/lib/secret-box";
 import {
   cleanId,
   validateEmail,
@@ -43,6 +44,8 @@ export interface Organization {
   insurance_decennale: boolean;
   bank_holder: string;
   bank_iban: string;
+  mediator_name: string;
+  mediator_url: string;
   bank_bic: string;
   vat_regime: "normal" | "franchise";
   default_vat_bp: number;
@@ -70,9 +73,19 @@ export interface Organization {
   updated_at: Date;
 }
 
+/** Coordonnées bancaires : chiffrées en base (AES-256-GCM), déchiffrées à la lecture. */
+const BANK_FIELDS = ["bank_iban", "bank_bic", "bank_holder"] as const;
+
+export function revealBank<T extends Record<string, unknown>>(row: T): T {
+  const out: Record<string, unknown> = { ...row };
+  for (const k of BANK_FIELDS) if (isSealed(out[k] as string)) out[k] = open(out[k] as string);
+  return out as T;
+}
+
 export async function getOrganization(ctx: Ctx): Promise<Organization> {
-  const org = await one<Organization>(ctx.db, "SELECT * FROM organizations WHERE id=$1", [ctx.orgId]);
-  if (!org) throw notFound();
+  const row = await one<Organization>(ctx.db, "SELECT * FROM organizations WHERE id=$1", [ctx.orgId]);
+  if (!row) throw notFound();
+  const org = revealBank(row as unknown as Record<string, unknown>) as unknown as Organization;
   return { ...org, default_vat_bp: Number(org.default_vat_bp), next_quote_seq: Number(org.next_quote_seq) };
 }
 
@@ -112,6 +125,8 @@ export const orgSchema = z.object({
   insurance_area: text(200),
   insurance_decennale: z.boolean().optional(),
   bank_holder: text(160),
+  mediator_name: text(200),
+  mediator_url: text(300),
   bank_iban: text(50),
   bank_bic: text(20),
   vat_regime: z.enum(["normal", "franchise"]).optional(),
@@ -178,7 +193,7 @@ export async function updateOrganization(ctx: Ctx, raw: unknown) {
   if (input.signature_data === "") input.signature_data = null;
 
   return ctx.db.transaction(async (tx) => {
-    const current = (await one<Record<string, unknown>>(tx, "SELECT * FROM organizations WHERE id=$1 FOR UPDATE", [ctx.orgId]))!;
+    const current = revealBank((await one<Record<string, unknown>>(tx, "SELECT * FROM organizations WHERE id=$1 FOR UPDATE", [ctx.orgId]))!);
     const changes: Record<string, { avant: unknown; apres: unknown }> = {};
     const sets: string[] = [];
     const values: unknown[] = [ctx.orgId];
@@ -187,7 +202,8 @@ export async function updateOrganization(ctx: Ctx, raw: unknown) {
       const before = current[key];
       const same = JSON.stringify(before) === JSON.stringify(value);
       if (same) continue;
-      values.push(key === "reminder_settings" ? JSON.stringify(value) : value);
+      const stored = SENSITIVE.has(key) && typeof value === "string" && value ? seal(value) : value;
+      values.push(key === "reminder_settings" ? JSON.stringify(value) : stored);
       sets.push(`${key} = $${values.length}`);
       // Les valeurs bancaires et les images ne sont pas recopiées dans l'historique.
       changes[key] = SENSITIVE.has(key) || IMAGES.has(key) ? { avant: "(modifié)", apres: "(modifié)" } : { avant: before, apres: value };

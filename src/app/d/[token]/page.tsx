@@ -41,7 +41,16 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
           Ce devis a été modifié depuis l'envoi de ce lien. Utilisez le dernier lien reçu pour répondre.
         </Notice>
       ) : null}
-      {r.status === "accepted" ? <Notice tone="success">Ce devis a été accepté. Merci pour votre confiance.</Notice> : null}
+      {r.status === "accepted" ? (
+        <Notice tone="success">
+          Ce devis a été accepté. Merci pour votre confiance.{" "}
+          {r.isCurrent ? (
+            <a href={`/api/public/quotes/${token}/pdf?signe=1`} className="link">
+              Télécharger l'exemplaire accepté
+            </a>
+          ) : null}
+        </Notice>
+      ) : null}
       {r.status === "refused" ? <Notice tone="info">Ce devis a été refusé.</Notice> : null}
       {r.status === "expired" ? <Notice tone="warning">La durée de validité de ce devis est dépassée.</Notice> : null}
       {r.status === "canceled" ? <Notice tone="warning">Ce devis a été annulé par l'entreprise.</Notice> : null}

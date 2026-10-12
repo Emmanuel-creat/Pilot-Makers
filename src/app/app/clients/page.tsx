@@ -60,7 +60,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           Vous pouvez aussi importer votre fichier clients au format CSV.
         </Empty>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-x-auto">
           <ul className="divide-y divide-line">
             {rows.map((c) => (
               <li key={c.id}>

@@ -394,7 +394,9 @@ export async function purgeDeletedAccounts(db: Database, now = new Date()) {
   );
   for (const u of due) {
     await db.transaction(async (tx) => {
-      // Les entreprises dont l'utilisateur est le seul membre sont supprimées avec leurs données.
+      // Les entreprises dont l'utilisateur est le seul membre sont supprimées avec leurs données,
+      // archives comprises : la protection des documents émis est levée pour cette seule transaction.
+      await tx.query("SELECT set_config('pilot.purge', 'on', true)");
       const orgs = await tx.query<{ org_id: string; n: unknown }>(
         `SELECT m.org_id, (SELECT count(*) FROM memberships x WHERE x.org_id = m.org_id) AS n
          FROM memberships m WHERE m.user_id=$1`,

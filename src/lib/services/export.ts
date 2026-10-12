@@ -2,6 +2,7 @@
 
 import type { Ctx } from "./context";
 import { audit } from "./context";
+import { revealBank } from "./organization";
 
 export async function exportAccountData(ctx: Ctx) {
   const user = await ctx.db.query(
@@ -16,7 +17,7 @@ export async function exportAccountData(ctx: Ctx) {
   const q = (sql: string) => ctx.db.query(sql, [ctx.orgId]);
   const data = {
     ...base,
-    organization: (await q("SELECT * FROM organizations WHERE id=$1"))[0],
+    organization: revealBank((await q("SELECT * FROM organizations WHERE id=$1"))[0]),
     organizationHistory: await q("SELECT changes, created_at FROM organization_history WHERE org_id=$1 ORDER BY created_at"),
     members: await q("SELECT u.email, u.name, m.role, m.created_at FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1"),
     customers: await q("SELECT * FROM customers WHERE org_id=$1 ORDER BY created_at"),

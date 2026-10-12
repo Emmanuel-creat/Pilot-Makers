@@ -73,7 +73,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
           Les factures se créent depuis un devis accepté : ouvrez-le et choisissez « Facturer l'acompte » ou « Facturer le solde ».
         </Empty>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-x-auto">
           <ul className="divide-y divide-line sm:hidden">
             {items.map((i) => (
               <li key={i.id}>

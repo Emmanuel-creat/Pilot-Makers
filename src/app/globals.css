@@ -136,7 +136,8 @@ textarea {
   @apply btn border border-danger/40 bg-surface text-danger hover:bg-danger-soft;
 }
 @utility link {
-  @apply text-accent underline-offset-2 hover:underline;
+  /* Toujours souligné : un lien ne se distingue pas par la seule couleur (RGAA 10.6). */
+  @apply text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent;
 }
 @utility table-head {
   @apply border-b border-line bg-surface-2 text-left text-xs font-semibold tracking-wide text-muted uppercase;

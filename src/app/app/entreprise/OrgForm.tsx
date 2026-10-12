@@ -62,6 +62,8 @@ const TABS: { key: string; label: string; fields: FieldDef[] }[] = [
       { k: "default_deposit_percent", label: "Acompte par défaut (%)" },
       { k: "hourly_rate", label: "Taux horaire et décompte du temps", hint: "Ex. : 45 € HT de l'heure, temps décompté par demi-heure" },
       { k: "travel_fee", label: "Frais de déplacement", hint: "Ex. : forfait de 35 € HT par intervention" },
+      { k: "mediator_name", label: "Médiateur de la consommation", hint: "Obligatoire pour les clients particuliers. Ex. : nom de l'organisme de médiation de votre fédération" },
+      { k: "mediator_url", label: "Site du médiateur", hint: "Adresse du site où le client peut déposer sa demande" },
       { k: "payment_terms", label: "Conditions de paiement par défaut", type: "textarea", wide: true, rows: 2 },
       { k: "general_conditions", label: "Conditions générales imprimées sur le devis", type: "textarea", wide: true, rows: 6 },
     ],

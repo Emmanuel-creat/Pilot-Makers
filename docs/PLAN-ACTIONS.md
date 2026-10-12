@@ -11,6 +11,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] 0.5 Tests automatisés (Vitest) et intégration continue GitHub Actions
 - [x] 0.8 Tests du parcours complet dans un vrai navigateur (Playwright), exécutés en intégration continue
 - [x] 0.9 Contrôle de l'apparence des PDF (empreintes de référence) et aperçus en image publiés par l'intégration continue (`npm run pdf:apercus`)
+- [x] 0.11 Accessibilité (analyse automatique WCAG 2.2 AA) et affichage sur petit téléphone testés dans le navigateur
 - [x] 0.10 Surveillance : erreurs journalisées, alertes regroupées vers un canal d'équipe (ALERT_WEBHOOK_URL), sonde `/api/health` détaillée avec HEALTH_TOKEN
 - [x] 0.6 Contrôle des textes : aucun tiret cadratin, aucun emoji dans le dépôt
 - [x] 0.7 Icônes dessinées en SVG, sans bibliothèque d'emojis
@@ -30,6 +31,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] A.12 Limitation des tentatives de connexion
 - [x] A.15 Double authentification (application TOTP, codes de secours), obligatoire pour l'administration en production
 - [x] A.16 En-têtes de sécurité stricts (CSP, HSTS, COOP, Permissions-Policy)
+- [x] A.17 Coordonnées bancaires chiffrées au repos (AES-256-GCM, clé dérivée de APP_SECRET)
 - [x] A.13 Isolation stricte par entreprise, contrôlée côté serveur sur chaque objet
 - [x] A.14 Rôles (propriétaire, administrateur, membre) et limites d'abonnement côté serveur
 
@@ -59,6 +61,7 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] D.8 Bibliothèques fournies pour 15 métiers (tarifs indicatifs datés), celle du métier de l'entreprise en premier
 - [x] D.9 Coût interne jamais présent dans le PDF client
 - [x] D.10 Ouvrages composés : prix et coût recalculés depuis leurs composants
+- [x] D.11 Recherche tolérante aux fautes de frappe et aux accents
 
 ## E. Devis
 - [x] E.1 Informations générales (numéro, dates, validité, client, chantier, objet, auteur, conditions, acompte, durée, démarrage)
@@ -105,6 +108,8 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] I.4 Historique des envois et des événements
 - [x] I.5 Lien client sécurisé, temporaire et révocable
 - [x] I.6 Acceptation ou refus en ligne rattachés à la version, preuves conservées (date, IP, navigateur, nom saisi)
+- [x] I.8 Exemplaire accepté du PDF : « Bon pour accord », nom, date et empreinte du devis, pour l'artisan et le client
+- [x] I.9 Avis à l'artisan à la première ouverture du devis par le client
 - [ ] I.7 Signature électronique via un prestataire (V1.5)
 
 ## J. Tableau de bord
@@ -137,6 +142,8 @@ Statut : [x] fait, [~] fait avec un service simulé (à brancher sur un vrai pre
 - [x] N.3 Modèle de données prêt pour la facturation électronique (V2)
 - [x] N.4 Pages CGU, confidentialité, sous-traitants, mentions légales, cookies (modèles à faire valider par un juriste)
 - [x] N.5 Droit de rétractation de 14 jours pour les contrats hors établissement : mention, formulaire détachable, alerte sur l'acompte, demande de démarrage anticipé
+- [x] N.7 Archive non modifiable : versions émises et factures protégées en base contre toute modification ou suppression
+- [x] N.8 Médiateur de la consommation imprimé sur les devis aux particuliers, alerte s'il manque
 - [x] N.6 Attestation du client pour les taux réduits de TVA, sur le PDF et à l'acceptation en ligne, conservée dans les preuves
 
 ## O. Facturation
@@ -157,3 +164,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 1 (12/10/2026) : 22, 23, 24, 25, 29, 31, 59, 60, 61, 62, 123 (prêt, en attente d'une clé), 143 à 149, 215, 297.
 - Vague 2 (12/10/2026) : 41, 42, 43, 44, 86, 87, 106.
 - Vague 3 (12/10/2026) : 10, 11, 298, 313 ; 311 et 312 (grille tarifaire, essai sans carte) existaient déjà.
+- Vague 4 (12/10/2026) : 176, 196, 197, 260, 279, 280, 389, 449 (contrôle automatique ; un audit manuel reste à prévoir).

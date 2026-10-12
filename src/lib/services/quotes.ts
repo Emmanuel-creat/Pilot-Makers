@@ -20,7 +20,7 @@ import type { Ctx } from "./context";
 import { audit, logError, recordUsage, requireWritable } from "./context";
 import { customerDisplayName, type Customer } from "./customers";
 import { appUrl, renderTemplate, sendMail } from "./mail";
-import type { Organization } from "./organization";
+import { revealBank, type Organization } from "./organization";
 import {
   EDITABLE_STATUSES,
   PENDING_STATUSES,
@@ -274,7 +274,7 @@ export async function listQuotes(ctx: Ctx, f: QuoteListFilters = {}) {
 /* ------------------------------------------------------------------ */
 
 export async function orgRow(q: Queryable, orgId: string): Promise<Organization> {
-  return (await one<Organization>(q, "SELECT * FROM organizations WHERE id=$1", [orgId]))!;
+  return revealBank((await one<Record<string, unknown>>(q, "SELECT * FROM organizations WHERE id=$1", [orgId]))!) as unknown as Organization;
 }
 
 export function emptySection(title = ""): DraftSection {
@@ -784,6 +784,35 @@ export async function getVersion(q: Queryable, orgId: string, quoteId: string, v
   };
 }
 
+/**
+ * Exemplaire accepté : le PDF de la version acceptée, avec le nom, la date et le mode
+ * d'acceptation reportés dans la zone « Bon pour accord ». Recalculé à la demande depuis
+ * le snapshot figé et l'événement d'acceptation, il est donc toujours identique.
+ */
+export async function acceptedCopy(q: Queryable, orgId: string, quoteId: string) {
+  const quote = await one<{ accepted_version: unknown }>(q, "SELECT accepted_version FROM quotes WHERE id=$1 AND org_id=$2", [quoteId, orgId]);
+  const version = numOrNull(quote?.accepted_version);
+  if (!version) throw conflict("Ce devis n'a pas été accepté");
+  const v = await getVersion(q, orgId, quoteId, version);
+  const ev = await one<{ data: Record<string, unknown>; created_at: Date }>(
+    q,
+    "SELECT data, created_at FROM document_events WHERE quote_id=$1 AND org_id=$2 AND version=$3 AND type='accepted' ORDER BY created_at DESC LIMIT 1",
+    [quoteId, orgId, version],
+  );
+  if (!ev) throw notFound("Acceptation introuvable");
+  const at = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" })
+    .format(new Date(ev.created_at))
+    .replace(" ", " à ");
+  const online = ev.data.via === "lien sécurisé";
+  const pdf = await renderQuotePdf(v.snapshot, undefined, {
+    name: online ? String(ev.data.name) : v.snapshot.customer.name,
+    at,
+    via: online ? "en ligne, par le lien sécurisé transmis au client" : `enregistré par l'entreprise : ${String(ev.data.proof ?? "")}`.slice(0, 200),
+    documentSha256: v.pdfSha256,
+  });
+  return { pdf, number: v.number, version: v.version };
+}
+
 /** Contrôle d'intégrité d'une version conservée : empreintes et totaux. */
 export async function verifyVersion(ctx: Ctx, quoteId: string, version: number) {
   const v = await getVersion(ctx.db, ctx.orgId, quoteId, version);
@@ -1019,6 +1048,18 @@ export async function recordClientView(q: Queryable, token: string, meta: { ip: 
       "INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data, ip, user_agent) VALUES ($1,$2,$3,'viewed','client','{}',$4,$5)",
       [r.link.org_id, r.link.quote_id, r.version.version, meta.ip, meta.userAgent.slice(0, 300)],
     );
+    // L'artisan est prévenu de la première ouverture de chaque lien.
+    const org = await one<{ email: string }>(q, "SELECT email FROM organizations WHERE id=$1", [r.link.org_id]);
+    if (org?.email) {
+      await sendMail(q, {
+        orgId: r.link.org_id,
+        quoteId: r.link.quote_id,
+        kind: "notification",
+        to: org.email,
+        subject: `Devis ${r.version.number} consulté par ${r.version.snapshot.customer.name}`,
+        body: `${r.version.snapshot.customer.name} vient d'ouvrir le devis ${r.version.number} (version ${r.version.version}).\n\n${appUrl("/app/devis/" + r.link.quote_id)}`,
+      });
+    }
   }
   return r;
 }

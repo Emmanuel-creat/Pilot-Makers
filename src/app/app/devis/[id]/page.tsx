@@ -155,7 +155,10 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
       {editable && !writable ? <Notice tone="warning">Ce brouillon est en lecture seule : {ctx.entitlements.notice}</Notice> : null}
       {status === "accepted" ? (
         <Notice tone="success" title={`Version ${draft.acceptedVersion} acceptée`}>
-          Ce devis est figé. Pour des travaux supplémentaires, dupliquez-le pour créer un nouveau devis (avenant).
+          Ce devis est figé. Pour des travaux supplémentaires, dupliquez-le pour créer un nouveau devis (avenant).{" "}
+          <a href={`/api/quotes/${id}/pdf?signe=1`} className="link" target="_blank" rel="noreferrer">
+            Exemplaire accepté (PDF)
+          </a>
         </Notice>
       ) : null}
       {status === "superseded" ? <Notice tone="info">Ce devis a été remplacé par un nouveau devis.</Notice> : null}

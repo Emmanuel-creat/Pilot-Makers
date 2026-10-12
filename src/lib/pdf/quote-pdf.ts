@@ -176,7 +176,17 @@ export interface PdfDocOptions {
   siteLabel?: string;
 }
 
-export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions): Promise<Uint8Array> {
+/** Acceptation reportée sur l'exemplaire accepté du devis (le PDF émis, lui, ne change jamais). */
+export interface PdfAcceptance {
+  name: string;
+  /** Date et heure lisibles, heure de Paris */
+  at: string;
+  via: string;
+  /** Empreinte SHA-256 du PDF émis que le client a accepté */
+  documentSha256: string;
+}
+
+export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, accepted?: PdfAcceptance): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const label = opts?.label ?? `Devis ${s.number}`;
   doc.setTitle(label);
@@ -495,7 +505,23 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions): Pr
     const zoneH = 86;
     w.page.drawRectangle({ x: M.left, y: w.y - zoneH, width: CONTENT_W, height: zoneH, borderColor: GREY, borderWidth: 0.8 });
     w.text("Bon pour accord du client", M.left + 10, w.y - 14, 9.5, f.bold);
-    w.text("Date, nom et signature précédés de la mention « Bon pour accord » :", M.left + 10, w.y - 27, 8, f.regular, GREY);
+    if (accepted) {
+      const half = CONTENT_W / 2 - 20;
+      let ay = w.y - 28;
+      for (const [txt, font] of [
+        [`« Bon pour accord », accepté par ${accepted.name}`, f.bold],
+        [`le ${accepted.at}`, f.regular],
+        [accepted.via, f.regular],
+        [`Empreinte du devis : ${accepted.documentSha256.slice(0, 32)}`, f.regular],
+      ] as const) {
+        for (const l of wrapText(txt, font, 8, half)) {
+          w.text(l, M.left + 10, ay, 8, font, font === f.bold ? BLACK : GREY);
+          ay -= 10;
+        }
+      }
+    } else {
+      w.text("Date, nom et signature précédés de la mention « Bon pour accord » :", M.left + 10, w.y - 27, 8, f.regular, GREY);
+    }
     w.text(`Pour ${s.org.trade_name}`, M.left + CONTENT_W / 2 + 10, w.y - 14, 9.5, f.bold);
     if (signature) {
       const scale = Math.min(150 / signature.width, 50 / signature.height, 1);
@@ -519,7 +545,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions): Pr
       p.drawText(l, { x: M.left, y: fy, size: 7, font: f.regular, color: GREY });
       fy -= 9;
     }
-    const pageTxt = `${opts ? label : `Devis ${s.number} v${s.version}`} - page ${i + 1}/${total}`;
+    const pageTxt = `${opts ? label : `Devis ${s.number} v${s.version}${accepted ? " accepté" : ""}`} - page ${i + 1}/${total}`;
     p.drawText(sanitize(pageTxt, f.regular), {
       x: A4.w - M.right - f.regular.widthOfTextAtSize(pageTxt, 7),
       y: 34,

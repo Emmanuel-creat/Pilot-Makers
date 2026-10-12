@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { fuzzyFilter } from "@/lib/fuzzy";
 import { Modal } from "@/components/Modal";
 import { formatPercent, formatUnitPrice } from "@/lib/calc/format";
 import type { CatalogItem } from "@/lib/services/catalog";
@@ -31,14 +32,15 @@ export function CatalogPicker({ open, onClose, onPick }: { open: boolean; onClos
       .catch((e) => setError(e.message));
   }, [open, items]);
 
-  const filtered = useMemo(() => {
-    const n = q.trim().toLowerCase();
-    return (items ?? []).filter(
-      (it) =>
-        (!cat || it.category === cat) &&
-        (!n || it.name.toLowerCase().includes(n) || it.reference.toLowerCase().includes(n) || it.description.toLowerCase().includes(n)),
-    );
-  }, [items, q, cat]);
+  const filtered = useMemo(
+    () =>
+      fuzzyFilter(
+        (items ?? []).filter((it) => !cat || it.category === cat),
+        q,
+        (it) => `${it.name} ${it.reference} ${it.subcategory} ${it.description}`,
+      ),
+    [items, q, cat],
+  );
 
   const toggle = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const confirm = () => {

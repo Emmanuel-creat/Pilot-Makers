@@ -40,6 +40,8 @@ export interface ComplianceInput {
     hourly_rate: string;
     travel_fee: string;
     trade: string;
+    mediator_name?: string;
+    mediator_url?: string;
   };
   customer: null | {
     type: string;
@@ -101,6 +103,9 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
     if (!i.customer.name.trim()) block("customer_name", "Nom du client manquant", "customer");
     if (!i.customer.billing_line1.trim() || !i.customer.billing_city.trim()) {
       block("customer_address", "Adresse du client incomplète", "customer");
+    }
+    if (i.customer.type === "particulier" && !(i.org.mediator_name ?? "").trim()) {
+      warn("mediator", "Client particulier : indiquez votre médiateur de la consommation dans le profil entreprise (article L616-1 du Code de la consommation)");
     }
     if (i.customer.type === "entreprise" && !i.customer.siren.trim()) {
       warn("customer_siren", "Client professionnel sans SIREN");
@@ -174,6 +179,12 @@ export function buildMentions(i: Pick<ComplianceInput, "org" | "customer"> & { v
   }
   if (i.depositPercent.trim() && i.depositPercent.trim() !== "0") {
     m.push(`Un acompte de ${i.depositPercent.trim().replace(".", ",")} % du montant TTC est demandé à la signature.`);
+  }
+  if (i.customer?.type === "particulier" && (i.org.mediator_name ?? "").trim()) {
+    const site = (i.org.mediator_url ?? "").trim();
+    m.push(
+      `En cas de litige, le client consommateur peut recourir gratuitement au médiateur de la consommation : ${i.org.mediator_name!.trim()}${site ? ", " + site : ""} (articles L611-1 et suivants du Code de la consommation).`,
+    );
   }
   if (i.customer && i.customer.type !== "particulier") {
     m.push(

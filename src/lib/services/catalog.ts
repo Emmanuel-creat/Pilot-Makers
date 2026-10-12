@@ -7,6 +7,7 @@ import { parseScaled } from "@/lib/calc/decimal";
 import { bpToInput, price4ToInput } from "@/lib/calc/format";
 import { parseCsv, toCsv } from "@/lib/csv";
 import { badRequest, conflict, notFound } from "@/lib/http";
+import { fuzzyFilter } from "@/lib/fuzzy";
 import { LIBRARY, LIBRARY_DATE, LIBRARY_NOTE, type LibraryTrade } from "@/lib/library";
 import type { Ctx } from "./context";
 import { audit, requireWritable } from "./context";
@@ -301,20 +302,20 @@ export async function searchItems(
     params.push(opts.category);
     where.push(`c.category=$${params.length}`);
   }
-  if (opts.q?.trim()) {
-    params.push(`%${opts.q.trim().toLowerCase()}%`);
-    const p = `$${params.length}`;
-    where.push(`(lower(c.name) LIKE ${p} OR lower(c.reference) LIKE ${p} OR lower(c.description) LIKE ${p} OR lower(c.subcategory) LIKE ${p} OR lower(c.supplier) LIKE ${p})`);
-  }
   const order =
     opts.sort === "usage" ? "c.favorite DESC, c.usage_count DESC, c.name" : opts.sort === "recent" ? "c.updated_at DESC" : "c.category, c.subcategory, c.name";
-  params.push(Math.min(opts.limit ?? 500, 2000));
+  const limit = Math.min(opts.limit ?? 500, 2000);
+  // Avec une recherche, le tri par pertinence tolérante aux fautes se fait sur tout le catalogue actif.
+  const q = opts.q?.trim() ?? "";
+  params.push(q ? 5000 : limit);
   const rows = await ctx.db.query(
     `SELECT c.*, u.name AS updated_by_name FROM catalog_items c LEFT JOIN users u ON u.id=c.updated_by
      WHERE ${where.join(" AND ")} ORDER BY ${order} LIMIT $${params.length}`,
     params,
   );
-  return rows.map(mapItem);
+  const items = rows.map(mapItem);
+  if (!q) return items;
+  return fuzzyFilter(items, q, (it) => `${it.name} ${it.reference} ${it.subcategory} ${it.supplier} ${it.description}`).slice(0, limit);
 }
 
 /** Mise à jour groupée : variation en pourcentage du prix de vente (ex. "3" ou "-2,5"). */

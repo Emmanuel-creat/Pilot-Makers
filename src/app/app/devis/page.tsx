@@ -100,7 +100,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           Modifiez les filtres ou créez un nouveau devis.
         </Empty>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="table-head">
               <tr>
