@@ -9,7 +9,7 @@ import { num, one } from "@/lib/db";
 import { badRequest, conflict, isUuid, notFound } from "@/lib/http";
 import { sha256 } from "@/lib/security";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, can, requirePermission, requireWritable } from "./context";
 import { imageType } from "./job-site";
 import { eurosToCents } from "./pricing";
 import { parisDate } from "./quotes";
@@ -129,7 +129,7 @@ const monthBounds = (month: string) => {
 /** Notes du mois : les siennes pour un membre, toute l'équipe pour l'encadrement. */
 export async function listExpenses(ctx: Ctx, opts: { month: string; team?: boolean }) {
   const { from, to } = monthBounds(opts.month);
-  const team = !!opts.team && ctx.role !== "member";
+  const team = !!opts.team && can(ctx, "staff");
   const rows = await ctx.db.query<Record<string, unknown>>(
     `${SELECT} WHERE e.org_id=$1 AND e.expense_date BETWEEN $2 AND $3 ${team ? "" : "AND e.user_id=$4"} ORDER BY e.expense_date DESC, e.created_at DESC`,
     team ? [ctx.orgId, from, to] : [ctx.orgId, from, to, ctx.userId],
@@ -139,7 +139,7 @@ export async function listExpenses(ctx: Ctx, opts: { month: string; team?: boole
 
 /** Notes en attente de validation, tous mois confondus (encadrement). */
 export async function pendingExpenses(ctx: Ctx) {
-  if (ctx.role === "member") return [];
+  if (!can(ctx, "staff")) return [];
   const rows = await ctx.db.query<Record<string, unknown>>(`${SELECT} WHERE e.org_id=$1 AND e.status='soumis' ORDER BY e.expense_date LIMIT 300`, [
     ctx.orgId,
   ]);
@@ -151,7 +151,7 @@ async function load(ctx: Ctx, id: string) {
   const r = await one<Record<string, unknown>>(ctx.db, `${SELECT} WHERE e.id=$1 AND e.org_id=$2`, [id, ctx.orgId]);
   if (!r) throw notFound("Note de frais introuvable");
   const e = mapExpense(r);
-  if (ctx.role === "member" && e.user_id !== ctx.userId) throw notFound("Note de frais introuvable");
+  if (!can(ctx, "staff") && e.user_id !== ctx.userId) throw notFound("Note de frais introuvable");
   return e;
 }
 
@@ -159,7 +159,7 @@ async function load(ctx: Ctx, id: string) {
 export async function deleteExpense(ctx: Ctx, id: string) {
   requireWritable(ctx);
   const e = await load(ctx, id);
-  if (ctx.role === "member" && (e.status === "valide" || e.status === "rembourse")) throw conflict("Note déjà validée : demandez à l'encadrement");
+  if (!can(ctx, "staff") && (e.status === "valide" || e.status === "rembourse")) throw conflict("Note déjà validée : demandez à l'encadrement");
   if (e.status === "rembourse") throw conflict("Note déjà remboursée : elle se conserve");
   await ctx.db.query("DELETE FROM expenses WHERE id=$1", [id]);
 }
@@ -174,7 +174,7 @@ export async function expensePhoto(ctx: Ctx, id: string) {
 /** Validation par l'encadrement : valider, refuser avec une raison, rouvrir ou marquer remboursé. */
 export async function reviewExpenses(ctx: Ctx, ids: string[], decision: "valide" | "refuse" | "soumis" | "rembourse", note = "") {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "staff");
   const valid = ids.filter(isUuid);
   if (!valid.length) throw badRequest("Sélectionnez au moins une note de frais");
   if (!["valide", "refuse", "soumis", "rembourse"].includes(decision)) throw badRequest("Décision inconnue");
@@ -242,7 +242,7 @@ export function expenseTotals(list: Expense[]) {
 
 /** Export du mois pour la comptabilité (encadrement). */
 export async function expensesCsv(ctx: Ctx, month: string) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "staff");
   const list = await listExpenses(ctx, { month, team: true });
   const eur = (c: number) => (c / 100).toFixed(2).replace(".", ",");
   return tableCsv(

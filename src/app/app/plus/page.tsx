@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { logoutAction } from "@/app/actions";
 import { unreadNewsCount } from "@/lib/services/news";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Plus" };
 
@@ -16,7 +17,7 @@ export default async function MorePage() {
     ["/app/planning", "Planning", "calendar"],
     ["/app/pointage", "Pointage", "clock"],
     ["/app/frais", "Notes de frais", "note"],
-    ...(ctx.role !== "member" ? [["/app/sous-traitants", "Sous-traitants", "shield"]] : []),
+    ...(can(ctx, "costs") ? [["/app/sous-traitants", "Sous-traitants", "shield"]] : []),
     ["/app/demandes", "Demandes", "inbox"],
     ["/app/rapports", "Rapports", "chart"],
     ["/app/modeles", "Modèles de devis", "copy"],

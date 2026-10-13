@@ -6,6 +6,7 @@ import type { Ctx } from "@/lib/services/context";
 import { logoutAction, stopSupportAction } from "@/app/actions";
 import { NavLinks, type NavItem } from "./NavLinks";
 import { ThemeToggle } from "./ThemeToggle";
+import { can } from "@/lib/services/context";
 
 const MAIN: NavItem[] = [
   { href: "/app", label: "Tableau de bord", icon: "home" },
@@ -54,7 +55,7 @@ export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; or
           </Link>
         </div>
         <nav className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3" aria-label="Navigation principale">
-          <NavLinks items={MAIN} />
+          <NavLinks items={MAIN.filter((i) => i.href !== "/app/sous-traitants" || can(ctx, "costs"))} />
           <div className="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-muted uppercase">Réglages</div>
           <NavLinks items={[...SETTINGS, news, ...admin]} />
         </nav>

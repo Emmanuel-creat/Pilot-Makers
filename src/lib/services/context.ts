@@ -3,6 +3,51 @@ import { forbidden } from "@/lib/http";
 
 export type Role = "owner" | "admin" | "member";
 
+/** Fonction dans l'entreprise : affine les droits du rôle. */
+export type JobFunction = "gerant" | "conducteur" | "secretariat" | "ouvrier";
+/**
+ * Droits par domaine :
+ * - settings : réglages de l'entreprise, équipe, abonnement, API, webhooks, export complet ;
+ * - billing : factures, paiements, relances, chiffre d'affaires ;
+ * - costs : coûts et marges des chantiers, achats, commandes fournisseurs, sous-traitants ;
+ * - staff : validation des heures et des notes de frais, paie.
+ */
+export type Permission = "settings" | "billing" | "costs" | "staff";
+
+export const JOB_FUNCTIONS: Record<JobFunction, { label: string; role: "admin" | "member"; permissions: Permission[]; description: string }> = {
+  gerant: {
+    label: "Gérant",
+    role: "admin",
+    permissions: ["settings", "billing", "costs", "staff"],
+    description: "Tous les droits.",
+  },
+  conducteur: {
+    label: "Conducteur de travaux",
+    role: "admin",
+    permissions: ["costs", "staff"],
+    description: "Devis, chantiers, planning, coûts, commandes, sous-traitants, validation des heures et des frais. Ni factures ni réglages.",
+  },
+  secretariat: {
+    label: "Secrétariat",
+    role: "admin",
+    permissions: ["billing", "staff"],
+    description: "Devis, clients, factures, paiements, relances, heures et frais pour la paie. Ni coûts ni marges, ni réglages.",
+  },
+  ouvrier: {
+    label: "Ouvrier ou compagnon",
+    role: "member",
+    permissions: [],
+    description: "Ses chantiers, le journal, son pointage et ses notes de frais.",
+  },
+};
+
+const PERMISSION_MESSAGES: Record<Permission, string> = {
+  settings: "Réservé au gérant : réglages de l'entreprise",
+  billing: "Votre fonction ne donne pas accès à la facturation",
+  costs: "Votre fonction ne donne pas accès aux coûts et aux marges",
+  staff: "Votre fonction ne permet pas de valider les heures ni les frais",
+};
+
 export interface PlanInfo {
   code: string;
   name: string;
@@ -27,6 +72,8 @@ export interface Ctx {
   userId: string;
   orgId: string;
   role: Role;
+  /** Fonction dans l'entreprise ; sans fonction, seuls les rôles s'appliquent */
+  jobFunction?: JobFunction | null;
   email: string;
   userName: string;
   isPlatformAdmin: boolean;
@@ -52,6 +99,20 @@ const ROLE_RANK: Record<Role, number> = { member: 1, admin: 2, owner: 3 };
 
 export function requireRole(ctx: Ctx, min: Role) {
   if (ROLE_RANK[ctx.role] < ROLE_RANK[min]) throw forbidden("Votre rôle ne permet pas cette action");
+}
+
+/** Le titulaire du compte a tous les droits ; sinon la fonction décide, ou à défaut le rôle (comportement historique). */
+export function can(ctx: Pick<Ctx, "role" | "jobFunction">, permission: Permission): boolean {
+  if (ctx.role === "owner") return true;
+  if (ctx.jobFunction) {
+    if (!JOB_FUNCTIONS[ctx.jobFunction].permissions.includes(permission)) return false;
+    return permission === "billing" || ROLE_RANK[ctx.role] >= ROLE_RANK.admin;
+  }
+  return permission === "billing" ? true : ROLE_RANK[ctx.role] >= ROLE_RANK.admin;
+}
+
+export function requirePermission(ctx: Ctx, permission: Permission) {
+  if (!can(ctx, permission)) throw forbidden(PERMISSION_MESSAGES[permission]);
 }
 
 export function requireWritable(ctx: Ctx) {

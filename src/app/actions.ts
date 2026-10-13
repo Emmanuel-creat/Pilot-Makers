@@ -78,7 +78,7 @@ import {
   sendInvoice,
 } from "@/lib/services/invoices";
 import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableTwoFactor, regenerateRecoveryCodes } from "@/lib/services/two-factor";
-import { acceptInvite, changeRole, inviteMember, removeMember, switchOrg } from "@/lib/services/team";
+import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction, switchOrg } from "@/lib/services/team";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -338,9 +338,19 @@ export async function saveRemindersAction(input: Record<string, unknown>): Promi
 
 export async function inviteAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    await withCtx((ctx) => inviteMember(ctx, { email: s(fd, "email"), role: s(fd, "role") }));
+    await withCtx((ctx) => inviteMember(ctx, { email: s(fd, "email"), role: s(fd, "role") || undefined, jobFunction: s(fd, "jobFunction") }));
     revalidatePath("/app/equipe");
     return { ok: true, message: "Invitation envoyée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function setFunctionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => setMemberFunction(ctx, s(fd, "userId"), s(fd, "jobFunction")));
+    revalidatePath("/app/equipe");
+    return { ok: true, message: "Fonction enregistrée." };
   } catch (e) {
     return toState(e);
   }

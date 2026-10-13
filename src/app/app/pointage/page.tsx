@@ -8,6 +8,7 @@ import { listMembers } from "@/lib/services/team";
 import { formatMinutes, weekDays } from "@/lib/services/timesheet-calc";
 import { ENTRY_STATUSES, listEntries, payroll, pointableJobs, runningEntry } from "@/lib/services/timesheets";
 import { DeleteEntry, EntryForm, ReviewList, TimerCard } from "./TimeForms";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Pointage" };
 
@@ -18,7 +19,7 @@ const hhmm = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minut
 export default async function TimesheetPage({ searchParams }: { searchParams: Promise<{ semaine?: string; vue?: string; mois?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const admin = ctx.role !== "member";
+  const admin = can(ctx, "staff");
   const team = admin && sp.vue === "equipe";
   const today = parisDate(new Date());
   const monday = mondayOf(/^\d{4}-\d{2}-\d{2}$/.test(sp.semaine ?? "") ? sp.semaine! : today);

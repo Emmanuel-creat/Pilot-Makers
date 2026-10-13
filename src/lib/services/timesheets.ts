@@ -11,7 +11,7 @@ import { toCsv } from "@/lib/csv";
 import { num, one, type Queryable } from "@/lib/db";
 import { badRequest, conflict, forbidden, isUuid, notFound } from "@/lib/http";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, requirePermission, requireWritable } from "./context";
 import { addDays, mondayOf, monthRange } from "./planning-dates";
 import { readPricing } from "./pricing";
 import { parisDate } from "./quotes";
@@ -144,7 +144,7 @@ export async function addEntry(ctx: Ctx, raw: unknown, now = new Date()) {
   const d = parseEntry(raw, parisDate(now));
   const userId = d.userId && d.userId !== ctx.userId ? d.userId : ctx.userId;
   if (userId !== ctx.userId) {
-    requireRole(ctx, "admin");
+    requirePermission(ctx, "staff");
     await checkMember(ctx.db, ctx.orgId, userId);
   }
   const jobId = await checkJob(ctx.db, ctx.orgId, d.jobId);
@@ -221,7 +221,7 @@ export async function listEntries(ctx: Ctx, f: { from: string; to: string; userI
 
 export async function reviewEntries(ctx: Ctx, ids: string[], decision: "valide" | "refuse" | "saisi", note = "") {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "staff");
   const valid = ids.filter(isUuid);
   if (!valid.length) throw badRequest("Sélectionnez au moins un pointage");
   if (decision === "refuse" && !note.trim()) throw badRequest("Indiquez la raison du refus");
@@ -237,7 +237,7 @@ export async function reviewEntries(ctx: Ctx, ids: string[], decision: "valide" 
 /** Qualification d'un membre (reprise des taux horaires de l'onglet Tarifs) : sert au coût des heures. */
 export async function setMemberQualification(ctx: Ctx, userId: string, qualification: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "staff");
   await checkMember(ctx.db, ctx.orgId, userId);
   const q = qualification.trim().slice(0, 60);
   if (q) {
@@ -312,7 +312,7 @@ export interface PayrollRow {
  * sont lues en entier pour respecter l'ordre des heures, seuls les jours du mois sont comptés.
  */
 export async function payroll(ctx: Ctx, month: string): Promise<PayrollRow[]> {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "staff");
   if (!/^\d{4}-\d{2}$/.test(month)) throw badRequest("Mois invalide");
   const { from, to } = monthRange(`${month}-01`);
   const rows = await ctx.db.query<{ user_id: string; work_date: unknown; status: string; minutes: unknown }>(
@@ -389,7 +389,7 @@ export async function payrollCsv(ctx: Ctx, month: string): Promise<string> {
 
 /** Détail des heures validées du mois, une ligne par pointage. */
 export async function timesheetDetailCsv(ctx: Ctx, month: string): Promise<string> {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "staff");
   if (!/^\d{4}-\d{2}$/.test(month)) throw badRequest("Mois invalide");
   const { from, to } = monthRange(`${month}-01`);
   const entries = await listEntries(ctx, { from, to, status: "valide" });

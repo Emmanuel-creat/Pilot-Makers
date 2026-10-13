@@ -3,7 +3,7 @@
 import { toCsv } from "@/lib/csv";
 import { zip, type ZipEntry } from "@/lib/zip";
 import type { Ctx } from "./context";
-import { audit, requireRole } from "./context";
+import { audit, can, requirePermission } from "./context";
 import { isSealed, open } from "@/lib/secret-box";
 import { revealBank } from "./organization";
 
@@ -13,7 +13,7 @@ export async function exportAccountData(ctx: Ctx) {
     [ctx.userId],
   );
   const base = { exportedAt: new Date().toISOString(), format: "pilot-makers-export-v1", user: user[0] };
-  if (ctx.role === "member") {
+  if (!can(ctx, "settings")) {
     await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "account.export", data: { scope: "user" }, ip: ctx.ip });
     return base;
   }
@@ -158,7 +158,7 @@ Les secrets techniques (mots de passe, clés de double authentification, secrets
 
 /** Archive ZIP complète (réversibilité) : JSON, tableaux CSV, PDF émis et photos. Réservée aux administrateurs. */
 export async function exportArchive(ctx: Ctx): Promise<Buffer> {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   const data = (await exportAccountData(ctx)) as Record<string, unknown>;
   const date = new Date();
   const entries: ZipEntry[] = [

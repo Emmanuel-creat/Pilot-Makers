@@ -334,3 +334,14 @@ test("notes de frais : ticket photographié puis validation et remboursement", a
   const csv = await page.request.get(`/api/expenses/export?mois=${new Date().toISOString().slice(0, 7)}`);
   expect(await csv.text()).toContain("Relais des Artisans");
 });
+
+test("équipe : invitation par fonction et description des droits", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/equipe");
+  await expect(page.getByText("Conducteur de travaux :")).toBeVisible();
+  await audit(page, "équipe et fonctions");
+  await page.getByLabel("Fonction", { exact: true }).selectOption("conducteur");
+  await page.getByLabel("Adresse e-mail").fill(`conducteur-${Date.now().toString(36)}@exemple.fr`);
+  await page.getByRole("button", { name: "Inviter" }).click();
+  await expect(page.getByText(/Invitation envoyée|limitée à/)).toBeVisible();
+});

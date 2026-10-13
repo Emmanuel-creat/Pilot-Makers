@@ -15,7 +15,7 @@ import {
 } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
 import { COEFFICIENT_FAMILIES, coefficientToBp, eurosToCents, LABOR_RATES_MAX, readPricing, type CoefficientFamily, type Pricing } from "./pricing";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, can, requirePermission, requireWritable } from "./context";
 
 export interface Organization {
   id: string;
@@ -181,7 +181,7 @@ const SENSITIVE = new Set(["bank_iban", "bank_bic", "bank_holder"]);
 const IMAGES = new Set(["logo_data", "signature_data"]);
 
 export async function updateOrganization(ctx: Ctx, raw: unknown) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   requireWritable(ctx);
   const parsed = orgSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message, parsed.error.issues);
@@ -212,11 +212,7 @@ export async function updateOrganization(ctx: Ctx, raw: unknown) {
     }
     if (sets.length === 0) return { changed: 0 };
     await tx.query(`UPDATE organizations SET ${sets.join(", ")}, updated_at=now() WHERE id=$1`, values);
-    await tx.query("INSERT INTO organization_history (org_id, user_id, changes) VALUES ($1,$2,$3)", [
-      ctx.orgId,
-      ctx.userId,
-      JSON.stringify(changes),
-    ]);
+    await tx.query("INSERT INTO organization_history (org_id, user_id, changes) VALUES ($1,$2,$3)", [ctx.orgId, ctx.userId, JSON.stringify(changes)]);
     await audit(tx, { orgId: ctx.orgId, userId: ctx.userId, action: "organization.update", data: Object.keys(changes), ip: ctx.ip });
     return { changed: sets.length };
   });
@@ -230,9 +226,9 @@ export async function organizationHistory(ctx: Ctx) {
   );
 }
 
-/** Les informations bancaires ne sont lisibles que par les rôles propriétaire et administrateur. */
-export function redactForRole<T extends Partial<Organization>>(org: T, role: Ctx["role"]): T {
-  if (role === "member") return { ...org, bank_iban: "", bank_bic: "", bank_holder: "" };
+/** Les informations bancaires ne sont lisibles que par le gérant, les administrateurs et le secrétariat. */
+export function redactForRole<T extends Partial<Organization>>(org: T, who: Pick<Ctx, "role" | "jobFunction">): T {
+  if (who.role === "member" || !(can(who, "settings") || can(who, "billing"))) return { ...org, bank_iban: "", bank_bic: "", bank_holder: "" };
   return org;
 }
 
@@ -250,7 +246,7 @@ export async function savePricing(
     coefficients?: Partial<Record<CoefficientFamily, string>>;
   },
 ): Promise<Pricing> {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   requireWritable(ctx);
   const cents = (v: string, label: string) => {
     try {

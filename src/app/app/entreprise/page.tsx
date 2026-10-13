@@ -16,6 +16,7 @@ import { hasFeature } from "@/lib/services/features";
 import { PricingForm } from "./PricingForm";
 import { listIndexValues } from "@/lib/services/revision";
 import { readPricing } from "@/lib/services/pricing";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Entreprise" };
 
@@ -54,13 +55,13 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.onglet) ? sp.onglet! : "identite";
   const ctx = await requirePageCtx();
-  const org = redactForRole(await getOrganization(ctx), ctx.role);
-  const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const org = redactForRole(await getOrganization(ctx), ctx);
+  const canEdit = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
   const webhooksOn = await hasFeature(ctx, "webhooks");
   const apiOn = await hasFeature(ctx, "api_publique");
   const tabs = TABS.filter(
     ([k]) =>
-      ((k !== "paiement" && k !== "webhooks" && k !== "api") || ctx.role !== "member") && (k !== "webhooks" || webhooksOn) && (k !== "api" || apiOn),
+      (k === "paiement" ? can(ctx, "settings") || can(ctx, "billing") : k === "webhooks" || k === "api" ? can(ctx, "settings") : true) && (k !== "webhooks" || webhooksOn) && (k !== "api" || apiOn),
   );
   const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
@@ -95,7 +96,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           <PricingForm initial={readPricing(pricing)} canEdit={canEdit} />
           <IndexValues values={await listIndexValues(ctx)} canEdit={canEdit} />
         </>
-      ) : tab === "webhooks" && ctx.role !== "member" && webhooksOn ? (
+      ) : tab === "webhooks" && can(ctx, "settings") && webhooksOn ? (
         <Webhooks
           canEdit={canEdit}
           events={WEBHOOK_EVENTS}
@@ -118,7 +119,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
             at: new Date(d.created_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" }),
           }))}
         />
-      ) : tab === "api" && ctx.role !== "member" && apiOn ? (
+      ) : tab === "api" && can(ctx, "settings") && apiOn ? (
         <ApiKeys
           canEdit={canEdit}
           endpoints={API_ENDPOINTS.map((e) => ({ method: e.method, path: e.path, summary: e.summary }))}

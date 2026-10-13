@@ -8,7 +8,7 @@ import { z } from "zod";
 import { num, one } from "@/lib/db";
 import { badRequest, isUuid, notFound } from "@/lib/http";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, can, requirePermission, requireWritable } from "./context";
 import { getJob } from "./jobs";
 import { eurosToCents } from "./pricing";
 import { jobHours } from "./timesheets";
@@ -48,7 +48,7 @@ const purchaseSchema = z.object({
 /** Achat affecté au chantier (montant HT ; négatif pour un avoir fournisseur). */
 export async function addPurchase(ctx: Ctx, jobId: string, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await getJob(ctx, jobId);
   const p = purchaseSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);
@@ -86,7 +86,7 @@ export async function addPurchase(ctx: Ctx, jobId: string, raw: unknown) {
 
 export async function deletePurchase(ctx: Ctx, id: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const r = await ctx.db.query("DELETE FROM job_purchases WHERE id=$1 AND org_id=$2 RETURNING id", [isUuid(id) ? id : null, ctx.orgId]);
   if (!r.length) throw notFound("Achat introuvable");
 }
@@ -118,7 +118,7 @@ export function budgetAlert(plannedCents: number, realCents: number, thresholdBp
 
 /** Bilan prévu et réel du chantier, globalement et ligne par ligne. */
 export async function jobCosts(ctx: Ctx, jobId: string) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const { job, tasks, progressBp } = await getJob(ctx, jobId);
   const [purchases, hours, threshold] = await Promise.all([
     listPurchases(ctx, jobId),
@@ -172,7 +172,7 @@ export async function jobCosts(ctx: Ctx, jobId: string) {
 
 export async function setBudgetThreshold(ctx: Ctx, jobId: string, percent: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const n = Number(percent);
   if (!Number.isInteger(n) || n < 50 || n > 150) throw badRequest("Seuil entre 50 et 150 %");
   const r = await ctx.db.query("UPDATE jobs SET budget_alert_bp=$3 WHERE id=$1 AND org_id=$2 RETURNING id", [
@@ -185,7 +185,7 @@ export async function setBudgetThreshold(ctx: Ctx, jobId: string, percent: strin
 
 /** Chantiers ouverts dont le budget est presque consommé ou dépassé, pour le tableau de bord. */
 export async function budgetAlerts(ctx: Ctx) {
-  if (ctx.role === "member") return [];
+  if (!can(ctx, "costs")) return [];
   const jobs = await ctx.db.query<{ id: string }>(
     `SELECT DISTINCT j.id FROM jobs j
      WHERE j.org_id=$1 AND j.status IN ('a_planifier', 'en_cours', 'termine')

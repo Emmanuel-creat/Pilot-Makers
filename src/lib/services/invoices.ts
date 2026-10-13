@@ -19,7 +19,7 @@ import { hitRate } from "@/lib/rate-limit";
 import { renderQuotePdf, type PdfDocOptions } from "@/lib/pdf/quote-pdf";
 import { canonicalJson, sha256 } from "@/lib/security";
 import type { Ctx } from "./context";
-import { audit, logError, requireWritable } from "./context";
+import { audit, logError, requirePermission, requireWritable } from "./context";
 import type { Customer } from "./customers";
 import { appUrl, renderTemplate, sendMail } from "./mail";
 import type { Organization } from "./organization";
@@ -549,6 +549,7 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
 
 async function withIssue<T>(ctx: Ctx, fn: (tx: Queryable) => Promise<T>): Promise<T> {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   try {
     return await ctx.db.transaction(fn);
   } catch (e) {
@@ -936,6 +937,7 @@ async function refreshPaid(q: Queryable, invoiceId: string) {
 
 export async function recordPayment(ctx: Ctx, invoiceId: string, raw: unknown) {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   const parsed = paymentSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
   const p = parsed.data;
@@ -986,6 +988,7 @@ export async function recordPayment(ctx: Ctx, invoiceId: string, raw: unknown) {
 
 export async function cancelPayment(ctx: Ctx, paymentId: string) {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   await ctx.db.transaction(async (tx) => {
     const p = await one<{ invoice_id: string }>(
       tx,
@@ -1018,6 +1021,7 @@ const scheduleSchema = z.object({
 /** Répartit le reste à payer d'une facture en échéances mensuelles égales. */
 export async function setInvoiceSchedule(ctx: Ctx, invoiceId: string, raw: unknown) {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   const parsed = scheduleSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
   const { count, firstDate, everyMonths } = parsed.data;
@@ -1041,6 +1045,7 @@ export async function setInvoiceSchedule(ctx: Ctx, invoiceId: string, raw: unkno
 
 export async function clearInvoiceSchedule(ctx: Ctx, invoiceId: string) {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   const r = await ctx.db.query("UPDATE invoices SET schedule=NULL WHERE id=$1 AND org_id=$2 AND schedule IS NOT NULL RETURNING id", [invoiceId, ctx.orgId]);
   if (!r.length) throw notFound("Échéancier introuvable");
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "invoice.schedule_clear", target: invoiceId, ip: ctx.ip });
@@ -1080,6 +1085,7 @@ const sendSchema = z.object({
 
 export async function sendInvoice(ctx: Ctx, invoiceId: string, raw: unknown) {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   const parsed = sendSchema.safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
   await hitRate(ctx.db, "mail.send", ctx.orgId);
@@ -1228,6 +1234,7 @@ export async function saveInvoiceSettings(
   },
 ) {
   requireWritable(ctx);
+  requirePermission(ctx, "billing");
   const prefix = (v: string | undefined, label: string) => {
     if (v === undefined) return undefined;
     const t = v.trim().toUpperCase();

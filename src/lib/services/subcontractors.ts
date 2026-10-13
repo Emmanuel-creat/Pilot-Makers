@@ -14,7 +14,7 @@ import { badRequest, conflict, isUuid, notFound } from "@/lib/http";
 import { sha256 } from "@/lib/security";
 import { cleanId, validateSiret } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, can, requirePermission, requireWritable } from "./context";
 import { getJob } from "./jobs";
 import { sendMail } from "./mail";
 import { eurosToCents } from "./pricing";
@@ -118,7 +118,7 @@ function parseSub(raw: unknown) {
 
 export async function createSubcontractor(ctx: Ctx, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const d = parseSub(raw);
   const n = await one<{ n: unknown }>(ctx.db, "SELECT count(*) AS n FROM subcontractors WHERE org_id=$1", [ctx.orgId]);
   if (num(n?.n) >= 500) throw conflict("500 sous-traitants au plus");
@@ -134,7 +134,7 @@ export async function createSubcontractor(ctx: Ctx, raw: unknown) {
 
 export async function updateSubcontractor(ctx: Ctx, id: string, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const d = parseSub(raw);
   const r = await ctx.db.query(
     `UPDATE subcontractors SET name=$3, siret=$4, trade=$5, contact_name=$6, email=$7, phone=$8, notes=$9, auto_remind=$10
@@ -146,7 +146,7 @@ export async function updateSubcontractor(ctx: Ctx, id: string, raw: unknown) {
 
 export async function setSubcontractorArchived(ctx: Ctx, id: string, archived: boolean) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const r = await ctx.db.query(`UPDATE subcontractors SET archived_at=${archived ? "now()" : "NULL"} WHERE id=$1 AND org_id=$2 RETURNING id`, [
     isUuid(id) ? id : null,
     ctx.orgId,
@@ -194,7 +194,7 @@ export interface Subcontractor {
 }
 
 export async function listSubcontractors(ctx: Ctx, opts: { archived?: boolean } = {}, now = new Date()) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const rows = await ctx.db.query<Subcontractor>(
     `SELECT id, name, siret, trade, contact_name, email, phone, notes, auto_remind, last_reminder_at, archived_at
      FROM subcontractors WHERE org_id=$1 AND archived_at IS ${opts.archived ? "NOT NULL" : "NULL"} ORDER BY lower(name)`,
@@ -210,7 +210,7 @@ export async function listSubcontractors(ctx: Ctx, opts: { archived?: boolean } 
 }
 
 export async function getSubcontractor(ctx: Ctx, id: string, now = new Date()) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   if (!isUuid(id)) throw notFound("Sous-traitant introuvable");
   const sub = await one<Subcontractor>(
     ctx.db,
@@ -253,7 +253,7 @@ export async function addDocument(
   now = new Date(),
 ) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await getSubcontractor(ctx, subId, now);
   if (!(input.kind in DOC_KINDS)) throw badRequest("Type de document inconnu");
   const kind = input.kind as DocKind;
@@ -298,7 +298,7 @@ export async function addDocument(
 
 export async function deleteDocument(ctx: Ctx, docId: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const r = await ctx.db.query("DELETE FROM subcontractor_documents WHERE id=$1 AND org_id=$2 RETURNING subcontractor_id", [
     isUuid(docId) ? docId : null,
     ctx.orgId,
@@ -307,7 +307,7 @@ export async function deleteDocument(ctx: Ctx, docId: string) {
 }
 
 export async function documentFile(ctx: Ctx, docId: string) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const r = await one<{ file: Uint8Array | null; file_type: string; file_name: string; kind: DocKind }>(
     ctx.db,
     "SELECT file, file_type, file_name, kind FROM subcontractor_documents WHERE id=$1 AND org_id=$2",
@@ -323,7 +323,7 @@ export async function documentFile(ctx: Ctx, docId: string) {
 
 export async function addToJob(ctx: Ctx, jobId: string, raw: { subcontractorId: string; scope?: string; amount?: string }) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await getJob(ctx, jobId);
   if (!isUuid(raw.subcontractorId)) throw badRequest("Choisissez un sous-traitant");
   const sub = await one(ctx.db, "SELECT 1 FROM subcontractors WHERE id=$1 AND org_id=$2 AND archived_at IS NULL", [raw.subcontractorId, ctx.orgId]);
@@ -355,7 +355,7 @@ export async function addToJob(ctx: Ctx, jobId: string, raw: { subcontractorId: 
 
 export async function removeFromJob(ctx: Ctx, jobId: string, subId: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await ctx.db.query("DELETE FROM job_subcontractors WHERE job_id=$1 AND subcontractor_id=$2 AND org_id=$3", [
     isUuid(jobId) ? jobId : null,
     isUuid(subId) ? subId : null,
@@ -365,7 +365,7 @@ export async function removeFromJob(ctx: Ctx, jobId: string, subId: string) {
 
 /** Sous-traitants d'un chantier, avec l'état de leurs documents et l'obligation de vigilance. */
 export async function jobSubcontractors(ctx: Ctx, jobId: string, now = new Date()) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const rows = await ctx.db.query<{ id: string; name: string; trade: string; scope: string; amount_ht_cents: unknown }>(
     `SELECT s.id, s.name, s.trade, js.scope, js.amount_ht_cents FROM job_subcontractors js JOIN subcontractors s ON s.id=js.subcontractor_id
      WHERE js.job_id=$1 AND js.org_id=$2 ORDER BY lower(s.name)`,
@@ -389,7 +389,7 @@ export async function jobSubcontractors(ctx: Ctx, jobId: string, now = new Date(
 
 /** Sous-traitants actifs dont un document exigé manque, expire bientôt ou a expiré. */
 export async function subcontractorAlerts(ctx: Ctx, now = new Date()) {
-  if (ctx.role === "member") return [];
+  if (!can(ctx, "costs")) return [];
   const subs = await listSubcontractors(ctx, {}, now);
   return subs
     .filter((s) => s.compliance.status !== "valide")
@@ -420,7 +420,7 @@ function reminderBody(orgName: string, contact: string, items: Compliance["requi
 /** Demande des documents à jour au sous-traitant, par e-mail. */
 export async function requestDocuments(ctx: Ctx, subId: string, now = new Date()) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const { sub, compliance: c } = await getSubcontractor(ctx, subId, now);
   if (!sub.email) throw badRequest("Indiquez l'adresse e-mail du sous-traitant");
   const items = c.required.filter((r) => r.status !== "valide");

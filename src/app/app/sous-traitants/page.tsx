@@ -5,16 +5,17 @@ import { requirePageCtx } from "@/lib/server/session";
 import { listSubcontractors } from "@/lib/services/subcontractors";
 import { StatusBadge } from "./StatusBadge";
 import { SubcontractorForm } from "./SubForms";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Sous-traitants" };
 
 export default async function SubcontractorsPage({ searchParams }: { searchParams: Promise<{ archives?: string }> }) {
   const ctx = await requirePageCtx();
-  if (ctx.role === "member") {
+  if (!can(ctx, "costs")) {
     return (
       <div className="mx-auto max-w-4xl">
         <PageHeader title="Sous-traitants" />
-        <Notice title="Réservé à l'encadrement">
+        <Notice title="Réservé au gérant et à la conduite de travaux">
           Les fiches des sous-traitants et leurs documents sont gérés par le gérant et les administrateurs.
         </Notice>
       </div>

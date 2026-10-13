@@ -11,7 +11,7 @@ import { badRequest, conflict, forbidden, HttpError, tooMany, unauthorized } fro
 import { hitRate } from "@/lib/rate-limit";
 import { randomToken, sha256 } from "@/lib/security";
 import { computeEntitlements, createInitialSubscription } from "./billing";
-import type { Ctx, Role } from "./context";
+import type { Ctx, JobFunction, Role } from "./context";
 import { audit } from "./context";
 import { appUrl, sendMail } from "./mail";
 import { createLoginChallenge } from "./two-factor";
@@ -276,9 +276,9 @@ export async function buildContext(
     ));
   if (!user) return null;
   // Le rôle est toujours relu depuis l'adhésion : une session ne donne jamais accès à une entreprise dont l'utilisateur n'est plus membre.
-  const m = await one<{ org_id: string; role: Role; status: string }>(
+  const m = await one<{ org_id: string; role: Role; job_function: JobFunction | null; status: string }>(
     db,
-    `SELECT m.org_id, m.role, o.status FROM memberships m JOIN organizations o ON o.id = m.org_id
+    `SELECT m.org_id, m.role, m.job_function, o.status FROM memberships m JOIN organizations o ON o.id = m.org_id
      WHERE m.user_id=$1 AND ($2::uuid IS NULL OR m.org_id=$2) ORDER BY m.created_at LIMIT 1`,
     [userId, orgId],
   );
@@ -288,6 +288,7 @@ export async function buildContext(
     userId,
     orgId: m.org_id,
     role: m.role,
+    jobFunction: m.job_function,
     email: user.email,
     userName: user.name,
     isPlatformAdmin: user.is_platform_admin,

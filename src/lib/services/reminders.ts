@@ -13,7 +13,7 @@ import { num } from "@/lib/db";
 import { formatEuros } from "@/lib/calc/format";
 import { badRequest } from "@/lib/http";
 import type { Ctx } from "./context";
-import { requireRole, requireWritable } from "./context";
+import { requirePermission, requireWritable } from "./context";
 import { DEFAULT_REMINDERS } from "./accounts";
 import { appUrl, renderTemplate, sendMail } from "./mail";
 import { createShareLink, expireQuotes, frDate } from "./quotes";
@@ -39,7 +39,7 @@ export function readSettings(raw: unknown): ReminderSettings {
 }
 
 export async function saveReminderSettings(ctx: Ctx, raw: unknown) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "billing");
   requireWritable(ctx);
   if (!ctx.entitlements.plan.features.reminders) throw badRequest("Les relances automatiques sont incluses dans les offres Professionnel et Entreprise");
   const parsed = reminderSchema.safeParse(raw);

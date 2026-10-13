@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "droits-par-fonction",
+    date: "2026-10-13",
+    title: "Droits par fonction",
+    text: "Gérant, conducteur de travaux, secrétariat ou ouvrier : chacun accède à ce que demande son travail, ni plus ni moins.",
+    href: "/app/equipe",
+  },
+  {
     id: "notes-de-frais",
     date: "2026-10-13",
     title: "Notes de frais par photo",

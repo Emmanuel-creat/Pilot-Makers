@@ -4,6 +4,7 @@ import { centsToInput, formatEuros } from "@/lib/calc/format";
 import { requirePageCtx } from "@/lib/server/session";
 import { getReport, monthLabel, type Breakdown } from "@/lib/services/reports";
 import { GoalsForm, PrintButton } from "./ReportActions";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Rapports" };
 
@@ -68,7 +69,7 @@ function BreakdownTable({ rows, caption }: { rows: Breakdown[]; caption: string 
 export default async function ReportsPage() {
   const ctx = await requirePageCtx();
   const r = await getReport(ctx);
-  const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const canEdit = can(ctx, "billing") && !ctx.entitlements.readOnly && !ctx.supportAccess;
   const max = Math.max(1, ...r.months.map((m) => Math.max(m.signedHtCents, m.invoicedHtCents, m.collectedCents)));
   const total = r.months.reduce(
     (t, m) => ({ signed: t.signed + m.signedHtCents, invoiced: t.invoiced + m.invoicedHtCents, collected: t.collected + m.collectedCents }),

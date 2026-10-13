@@ -14,7 +14,7 @@ import { BLACK, fr, GREY, LEFT, Page, WIDTH } from "@/lib/pdf/reception-pdf";
 import { sanitize } from "@/lib/pdf/quote-pdf";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, requirePermission, requireWritable } from "./context";
 import { acceptedQuote } from "./invoices";
 import { getJob } from "./jobs";
 import { eurosToCents } from "./pricing";
@@ -137,7 +137,7 @@ async function draftOrder(q: Queryable, ctx: Ctx, id: string) {
  */
 export async function prepareOrders(ctx: Ctx, jobId: string): Promise<string[]> {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const { job, tasks } = await getJob(ctx, jobId);
   if (!job.quote_id) throw badRequest("Ce chantier n'a pas de devis : créez une commande vide");
   return ctx.db.transaction(async (tx) => {
@@ -215,7 +215,7 @@ export async function prepareOrders(ctx: Ctx, jobId: string): Promise<string[]> 
 
 export async function createOrder(ctx: Ctx, jobId: string, supplier = "") {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const { job } = await getJob(ctx, jobId);
   return ctx.db.transaction(async (tx) => {
     const number = await nextNumber(tx, ctx.orgId);
@@ -245,7 +245,7 @@ export async function listOrders(ctx: Ctx, jobId: string) {
 export type Matching = "aucune" | "conforme" | "ecart";
 
 export async function getOrder(ctx: Ctx, id: string) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const order = await loadOrder(ctx.db, ctx, id);
   const lines = (await ctx.db.query<Record<string, unknown>>("SELECT * FROM purchase_order_lines WHERE order_id=$1 ORDER BY position, id", [id])).map(
     mapLine,
@@ -287,7 +287,7 @@ const orderSchema = z.object({
 
 export async function updateOrder(ctx: Ctx, id: string, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await draftOrder(ctx.db, ctx, id);
   const p = orderSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);
@@ -308,7 +308,7 @@ const lineSchema = z.object({
 
 export async function saveLine(ctx: Ctx, orderId: string, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await draftOrder(ctx.db, ctx, orderId);
   const p = lineSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);
@@ -335,7 +335,7 @@ export async function saveLine(ctx: Ctx, orderId: string, raw: unknown) {
 
 export async function deleteLine(ctx: Ctx, orderId: string, lineId: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   await draftOrder(ctx.db, ctx, orderId);
   const r = await ctx.db.query("DELETE FROM purchase_order_lines WHERE id=$1 AND order_id=$2 RETURNING id", [
     isUuid(lineId) ? lineId : null,
@@ -350,7 +350,7 @@ export async function deleteLine(ctx: Ctx, orderId: string, lineId: string) {
 
 export async function sendOrder(ctx: Ctx, id: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const o = await draftOrder(ctx.db, ctx, id);
   if (!o.supplier) throw badRequest("Indiquez le fournisseur avant d'envoyer la commande");
   const n = await one<{ n: unknown }>(ctx.db, "SELECT count(*) AS n FROM purchase_order_lines WHERE order_id=$1", [id]);
@@ -361,7 +361,7 @@ export async function sendOrder(ctx: Ctx, id: string) {
 
 export async function cancelOrder(ctx: Ctx, id: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const o = await loadOrder(ctx.db, ctx, id);
   if (o.status === "recu" || o.status === "recu_partiel") throw conflict("Marchandises déjà reçues : la commande ne s'annule plus");
   if (o.status === "annule") return;
@@ -371,7 +371,7 @@ export async function cancelOrder(ctx: Ctx, id: string) {
 /** Réception : quantités reçues au total pour chaque ligne (cumul des livraisons). */
 export async function receiveOrder(ctx: Ctx, id: string, received: Record<string, string>) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const o = await loadOrder(ctx.db, ctx, id);
   if (!["envoye", "recu_partiel", "recu"].includes(o.status)) throw conflict("Envoyez la commande avant d'en saisir la réception");
   return ctx.db.transaction(async (tx) => {
@@ -402,7 +402,7 @@ const invoiceSchema = z.object({
 /** Facture du fournisseur rapprochée de la commande : elle devient un achat du chantier. */
 export async function recordSupplierInvoice(ctx: Ctx, id: string, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "costs");
   const o = await loadOrder(ctx.db, ctx, id);
   if (o.status === "brouillon" || o.status === "annule") throw conflict("Seule une commande envoyée peut recevoir une facture");
   const p = invoiceSchema.safeParse(raw);

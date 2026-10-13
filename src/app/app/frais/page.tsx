@@ -7,6 +7,7 @@ import { EXPENSE_CATEGORIES, EXPENSE_STATUSES, expenseTotals, listExpenses, PAYM
 import { parisDate } from "@/lib/services/quotes";
 import { pointableJobs } from "@/lib/services/timesheets";
 import { DeleteExpense, ExpenseForm, ExpenseReview } from "./ExpenseForms";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Notes de frais" };
 
@@ -20,7 +21,7 @@ const shiftMonth = (m: string, n: number) => {
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<{ vue?: string; mois?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const admin = ctx.role !== "member";
+  const admin = can(ctx, "staff");
   const team = admin && sp.vue === "equipe";
   const today = parisDate(new Date());
   const month = /^\d{4}-\d{2}$/.test(sp.mois ?? "") ? sp.mois! : today.slice(0, 7);

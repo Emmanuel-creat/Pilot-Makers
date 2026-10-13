@@ -4,6 +4,7 @@ import { formatEuros } from "@/lib/calc/format";
 import { requirePageCtx } from "@/lib/server/session";
 import { INVOICE_KINDS, invoiceSummary, listInvoices } from "@/lib/services/invoices";
 import { InvoiceBadge } from "@/components/InvoiceBadge";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Factures" };
 
@@ -45,7 +46,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
         </select>
         <button className="btn-secondary">Filtrer</button>
       </form>
-      {ctx.role !== "member" && !ctx.supportAccess ? (
+      {ctx.role !== "member" && can(ctx, "billing") && !ctx.supportAccess ? (
         <details className="card p-4 text-sm">
           <summary className="cursor-pointer font-medium">Export comptable (FEC)</summary>
           <form action="/api/exports/fec" method="get" className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">

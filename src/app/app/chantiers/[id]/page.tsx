@@ -20,6 +20,7 @@ import { PrepareOrders } from "./OrderForms";
 import { jobSubcontractors, listSubcontractors } from "@/lib/services/subcontractors";
 import { JobSubcontractorForm, RemoveJobSubcontractor } from "../../sous-traitants/SubForms";
 import { StatusBadge } from "../../sous-traitants/StatusBadge";
+import { can } from "@/lib/services/context";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -36,10 +37,11 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const { job, sections, progressBp } = data;
   const [journal, rec, hours] = await Promise.all([listJournal(ctx, id), getReception(ctx, id), jobHours(ctx, id)]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
-  const showCosts = ctx.role !== "member" && !!ctx.entitlements.plan.features.margin;
+  const costsAllowed = can(ctx, "costs");
+  const showCosts = costsAllowed && !!ctx.entitlements.plan.features.margin;
   const [costs, purchases] = showCosts ? await Promise.all([jobCosts(ctx, id), listPurchases(ctx, id)]) : [null, []];
-  const orders = ctx.role !== "member" ? await listOrders(ctx, id) : null;
-  const [subs, allSubs] = ctx.role !== "member" ? await Promise.all([jobSubcontractors(ctx, id), listSubcontractors(ctx)]) : [null, []];
+  const orders = costsAllowed ? await listOrders(ctx, id) : null;
+  const [subs, allSubs] = costsAllowed ? await Promise.all([jobSubcontractors(ctx, id), listSubcontractors(ctx)]) : [null, []];
   const address = [job.site_line1, job.site_line2, [job.site_postal_code, job.site_city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return (
     <div className="mx-auto max-w-5xl">
@@ -97,7 +99,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           <span>
             Heures pointées : <strong className="tabular">{formatMinutes(hours.minutes)}</strong>
             {hours.minutes ? ` dont ${formatMinutes(hours.validatedMinutes)} validées` : ""}
-            {ctx.role !== "member" && hours.costCents ? `, coût ${formatEuros(hours.costCents)}` : ""}
+            {costsAllowed && hours.costCents ? `, coût ${formatEuros(hours.costCents)}` : ""}
           </span>
           <Link href="/app/pointage" className="link">
             Pointer

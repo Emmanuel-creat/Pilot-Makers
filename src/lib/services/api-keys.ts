@@ -14,7 +14,7 @@ import { hitRate } from "@/lib/rate-limit";
 import { randomToken, sha256 } from "@/lib/security";
 import { buildContext, type RequestMeta } from "./accounts";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, can, requirePermission, requireWritable } from "./context";
 import { hasFeature, requireFeature } from "./features";
 
 export const API_SCOPES = { read: "Lecture", write: "Lecture et écriture" } as const;
@@ -41,7 +41,7 @@ const createSchema = z.object({
 
 export async function createApiKey(ctx: Ctx, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   await requireFeature(ctx, "api_publique");
   if (ctx.apiKey) throw forbidden("Une clé d'API ne peut pas créer d'autre clé");
   const p = createSchema.safeParse(raw);
@@ -63,7 +63,7 @@ export async function createApiKey(ctx: Ctx, raw: unknown) {
 }
 
 export async function listApiKeys(ctx: Ctx): Promise<ApiKeyRow[]> {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   return ctx.db.query<ApiKeyRow>(
     `SELECT k.id, k.name, k.prefix, k.scopes, k.created_at, k.last_used_at, k.revoked_at, coalesce(u.name, '') AS created_by_name
      FROM api_keys k LEFT JOIN users u ON u.id=k.created_by WHERE k.org_id=$1 ORDER BY k.revoked_at IS NOT NULL, k.created_at DESC`,
@@ -72,7 +72,7 @@ export async function listApiKeys(ctx: Ctx): Promise<ApiKeyRow[]> {
 }
 
 export async function revokeApiKey(ctx: Ctx, id: string) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   if (!isUuid(id)) throw notFound("Clé introuvable");
   const r = await ctx.db.query("UPDATE api_keys SET revoked_at=now() WHERE id=$1 AND org_id=$2 AND revoked_at IS NULL RETURNING id", [id, ctx.orgId]);
   if (!r.length) throw notFound("Clé introuvable");
@@ -103,7 +103,7 @@ export async function authenticateApiKey(db: Database, key: string, meta: Reques
   await hitRate(db, "api.key", k.id);
   const user = await one<{ status: string }>(db, "SELECT status FROM users WHERE id=$1", [k.created_by]);
   const base = user && user.status === "active" ? await buildContext(db, k.created_by, k.org_id, null, meta) : null;
-  if (!base || base.orgId !== k.org_id || base.role === "member")
+  if (!base || base.orgId !== k.org_id || !can(base, "settings"))
     throw unauthorized("Clé d'API inactive : son auteur n'administre plus l'entreprise");
   const ctx: Ctx = { ...base, apiKey: { id: k.id, scopes: k.scopes } };
   if (!(await hasFeature(ctx, "api_publique"))) throw forbidden("L'API publique n'est pas ouverte pour cette entreprise");

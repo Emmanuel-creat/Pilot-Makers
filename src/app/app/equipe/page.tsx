@@ -7,17 +7,21 @@ import { changeRoleAction, inviteAction, removeMemberAction, switchOrgAction } f
 import { getOrganization } from "@/lib/services/organization";
 import { readPricing } from "@/lib/services/pricing";
 import { QualificationForm } from "./QualificationForm";
+import { can, JOB_FUNCTIONS } from "@/lib/services/context";
+import { FunctionForm } from "./FunctionForm";
 
 export const metadata = { title: "Équipe" };
 
 const ROLES = { owner: "Propriétaire", admin: "Administrateur", member: "Membre" } as const;
+
+const FUNCTION_OPTIONS = Object.entries(JOB_FUNCTIONS).map(([k, v]) => [k, v.label] as [string, string]);
 
 export default async function TeamPage() {
   const ctx = await requirePageCtx();
   const [members, orgs, org] = await Promise.all([listMembers(ctx), listUserOrgs(ctx), getOrganization(ctx)]);
   const qualifications = readPricing(org.pricing).laborRates.map((r) => r.label);
   const max = ctx.entitlements.plan.maxUsers;
-  const canInvite = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const canInvite = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader title="Équipe" subtitle={`${members.length} utilisateur(s) sur ${max} inclus dans l'offre ${ctx.entitlements.plan.name}`} />
@@ -33,6 +37,17 @@ export default async function TeamPage() {
                 <div className="text-xs text-muted">
                   {m.email}, depuis le {fmtDate(m.created_at)}
                 </div>
+                {canInvite && m.user_id !== ctx.userId ? (
+                  <FunctionForm
+                    userId={m.user_id}
+                    name={m.name}
+                    value={m.job_function ?? ""}
+                    options={FUNCTION_OPTIONS}
+                    ownerOnlyGerant={m.role === "owner"}
+                  />
+                ) : m.job_function ? (
+                  <div className="text-xs text-muted">{JOB_FUNCTIONS[m.job_function].label}</div>
+                ) : null}
                 {canInvite && qualifications.length ? (
                   <QualificationForm userId={m.user_id} name={m.name} value={m.qualification} options={qualifications} />
                 ) : m.qualification ? (
@@ -62,9 +77,17 @@ export default async function TeamPage() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-muted">
-          Propriétaire : tous les droits, dont l'abonnement. Administrateur : profil, équipe, catalogue et devis. Membre : clients, catalogue et devis,
-          sans accès aux coordonnées bancaires. La qualification (taux de l'onglet Tarifs de l'entreprise) sert au coût des heures pointées.
+        <dl className="mt-3 space-y-1 text-xs text-muted">
+          {Object.values(JOB_FUNCTIONS).map((f) => (
+            <div key={f.label}>
+              <dt className="inline font-medium text-ink">{f.label} : </dt>
+              <dd className="inline">{f.description}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-2 text-xs text-muted">
+          Sans fonction précisée, le rôle s'applique : le propriétaire a tous les droits, dont l'abonnement ; un administrateur gère le profil, l'équipe et
+          les chantiers ; un membre prépare clients, catalogue et devis. La qualification (taux de l'onglet Tarifs) sert au coût des heures pointées.
         </p>
       </Section>
       {canInvite ? (
@@ -78,12 +101,15 @@ export default async function TeamPage() {
                 <input id="inv-email" name="email" type="email" className="field" required />
               </div>
               <div>
-                <label className="label" htmlFor="inv-role">
-                  Rôle
+                <label className="label" htmlFor="inv-function">
+                  Fonction
                 </label>
-                <select id="inv-role" name="role" className="field" defaultValue="member">
-                  <option value="member">Membre</option>
-                  <option value="admin">Administrateur</option>
+                <select id="inv-function" name="jobFunction" className="field" defaultValue="ouvrier">
+                  {FUNCTION_OPTIONS.map(([k, l]) => (
+                    <option key={k} value={k}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
               </div>
               <Submit>Inviter</Submit>

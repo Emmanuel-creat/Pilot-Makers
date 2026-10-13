@@ -14,7 +14,7 @@ import { badRequest, conflict, notFound } from "@/lib/http";
 import { hmacSha256, randomToken } from "@/lib/security";
 import { open, seal } from "@/lib/secret-box";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, requirePermission, requireWritable } from "./context";
 import { requireFeature } from "./features";
 
 export const WEBHOOK_EVENTS = {
@@ -110,7 +110,7 @@ export async function listEndpoints(ctx: Ctx): Promise<WebhookEndpoint[]> {
 /** Crée l'abonnement et renvoie la clé de signature, affichée une seule fois. */
 export async function createEndpoint(ctx: Ctx, raw: unknown) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   await requireFeature(ctx, "webhooks");
   const p = endpointSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);
@@ -136,7 +136,7 @@ export async function createEndpoint(ctx: Ctx, raw: unknown) {
 
 export async function deleteEndpoint(ctx: Ctx, id: string) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   const r = await ctx.db.query<{ id: string }>("DELETE FROM webhook_endpoints WHERE id=$1 AND org_id=$2 RETURNING id", [id, ctx.orgId]);
   if (!r.length) throw notFound("Adresse introuvable");
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "webhook.delete", target: id, ip: ctx.ip });
@@ -144,7 +144,7 @@ export async function deleteEndpoint(ctx: Ctx, id: string) {
 
 export async function setEndpointActive(ctx: Ctx, id: string, active: boolean) {
   requireWritable(ctx);
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   const r = await ctx.db.query<{ id: string }>("UPDATE webhook_endpoints SET active=$3 WHERE id=$1 AND org_id=$2 RETURNING id", [
     id,
     ctx.orgId,
@@ -321,7 +321,7 @@ export function webhookSamples() {
 }
 
 export async function sendTestWebhook(ctx: Ctx, endpointId: string, fetchImpl?: Fetch) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "settings");
   const n = await enqueueWebhook(ctx.db, ctx.orgId, "ping", { message: "Test de réception depuis Pilot-Makers" }, endpointId);
   if (!n) throw notFound("Adresse introuvable");
   return deliverWebhooks(ctx.db, { orgId: ctx.orgId, fetchImpl, limit: 10 });

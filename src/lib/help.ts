@@ -482,6 +482,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/frais", label: "Ouvrir les notes de frais" },
   },
   {
+    slug: "droits-par-fonction",
+    category: "compte",
+    title: "Donner à chacun les droits de sa fonction",
+    summary: "Gérant, conducteur de travaux, secrétariat, ouvrier : chacun voit ce dont il a besoin.",
+    steps: [
+      "Ouvrez « Équipe » et choisissez la fonction de chaque personne : elle est enregistrée aussitôt.",
+      "Conducteur de travaux : devis, chantiers, planning, coûts, commandes, sous-traitants, validation des heures et des frais, sans factures ni réglages.",
+      "Secrétariat : devis, clients, factures, paiements, relances, heures et frais pour la paie, sans coûts ni marges.",
+      "Ouvrier ou compagnon : ses chantiers, le journal, son pointage et ses notes de frais.",
+    ],
+    notes: [
+      "Le titulaire du compte garde toujours tous les droits. Sans fonction précisée, les droits du rôle s'appliquent comme avant.",
+      "Lors d'une invitation, la fonction choisie fixe aussi le rôle : administrateur pour le conducteur et le secrétariat, membre pour l'ouvrier.",
+    ],
+    link: { href: "/app/equipe", label: "Ouvrir l'équipe" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

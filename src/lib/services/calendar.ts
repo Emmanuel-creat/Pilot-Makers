@@ -11,7 +11,7 @@ import { hitRate } from "@/lib/rate-limit";
 import { randomToken, sha256 } from "@/lib/security";
 import { buildContext, type RequestMeta } from "./accounts";
 import type { Ctx } from "./context";
-import { audit, requireWritable } from "./context";
+import { audit, can, requireWritable } from "./context";
 
 export type FeedScope = "moi" | "entreprise";
 
@@ -146,13 +146,16 @@ export async function calendarEvents(ctx: Ctx, scope: FeedScope, origin = "", no
     });
   }
   if (!company) return events;
+  const billing = can(ctx, "billing");
 
-  const invoices = await ctx.db.query<Record<string, unknown>>(
-    `SELECT i.id, i.number, i.due_date, i.amount_due_cents - i.paid_cents - i.credited_cents AS rest, coalesce(nullif(c.company_name, ''), nullif(trim(c.first_name || ' ' || c.last_name), '')) AS customer_name
+  const invoices = !billing
+    ? []
+    : await ctx.db.query<Record<string, unknown>>(
+        `SELECT i.id, i.number, i.due_date, i.amount_due_cents - i.paid_cents - i.credited_cents AS rest, coalesce(nullif(c.company_name, ''), nullif(trim(c.first_name || ' ' || c.last_name), '')) AS customer_name
      FROM invoices i LEFT JOIN customers c ON c.id=i.customer_id
      WHERE i.org_id=$1 AND i.kind <> 'credit_note' AND i.amount_due_cents - i.paid_cents - i.credited_cents > 0 AND i.due_date BETWEEN $2 AND $3`,
-    [ctx.orgId, from, to],
-  );
+        [ctx.orgId, from, to],
+      );
   for (const i of invoices)
     events.push({
       uid: `facture-${i.id}`,
@@ -164,11 +167,13 @@ export async function calendarEvents(ctx: Ctx, scope: FeedScope, origin = "", no
       category: "Facture",
     });
 
-  const quotes = await ctx.db.query<Record<string, unknown>>(
-    `SELECT q.id, q.number, q.title, q.valid_until, coalesce(nullif(c.company_name, ''), nullif(trim(c.first_name || ' ' || c.last_name), '')) AS customer_name FROM quotes q LEFT JOIN customers c ON c.id=q.customer_id
+  const quotes = !billing
+    ? []
+    : await ctx.db.query<Record<string, unknown>>(
+        `SELECT q.id, q.number, q.title, q.valid_until, coalesce(nullif(c.company_name, ''), nullif(trim(c.first_name || ' ' || c.last_name), '')) AS customer_name FROM quotes q LEFT JOIN customers c ON c.id=q.customer_id
      WHERE q.org_id=$1 AND q.status IN ('sent', 'viewed') AND q.valid_until BETWEEN $2 AND $3`,
-    [ctx.orgId, from, to],
-  );
+        [ctx.orgId, from, to],
+      );
   for (const q of quotes)
     events.push({
       uid: `devis-${q.id}`,
@@ -196,11 +201,13 @@ export async function calendarEvents(ctx: Ctx, scope: FeedScope, origin = "", no
       category: "Réserve",
     });
 
-  const orders = await ctx.db.query<Record<string, unknown>>(
-    `SELECT o.id, o.job_id, o.number, o.supplier, o.delivery_date, o.delivery_address, j.title FROM purchase_orders o JOIN jobs j ON j.id=o.job_id
+  const orders = !can(ctx, "costs")
+    ? []
+    : await ctx.db.query<Record<string, unknown>>(
+        `SELECT o.id, o.job_id, o.number, o.supplier, o.delivery_date, o.delivery_address, j.title FROM purchase_orders o JOIN jobs j ON j.id=o.job_id
      WHERE o.org_id=$1 AND o.status IN ('envoye', 'recu_partiel') AND o.delivery_date BETWEEN $2 AND $3`,
-    [ctx.orgId, from, to],
-  );
+        [ctx.orgId, from, to],
+      );
   for (const o of orders)
     events.push({
       uid: `commande-${o.id}`,

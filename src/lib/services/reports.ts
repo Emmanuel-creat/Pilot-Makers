@@ -11,7 +11,7 @@ import { badRequest } from "@/lib/http";
 import { LIBRARY, type LibraryTrade } from "@/lib/library";
 import { centsToInput } from "@/lib/calc/format";
 import type { Ctx } from "./context";
-import { audit, requireRole, requireWritable } from "./context";
+import { audit, requirePermission, requireWritable } from "./context";
 import { eurosToCents } from "./pricing";
 import { parisDate } from "./quotes";
 
@@ -62,7 +62,7 @@ export function readGoals(raw: unknown): Goals {
 }
 
 export async function saveGoals(ctx: Ctx, input: { signed: string; sent: string }) {
-  requireRole(ctx, "admin");
+  requirePermission(ctx, "billing");
   requireWritable(ctx);
   let cents: number;
   try {
