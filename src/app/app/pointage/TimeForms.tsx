@@ -132,15 +132,7 @@ export function EntryForm({ jobs, members, today }: { jobs: Job[]; members: { id
         <label className="label" htmlFor="entry-duration">
           Durée
         </label>
-        <input
-          id="entry-duration"
-          name="duration"
-          className="field"
-          inputMode="decimal"
-          placeholder="7:30"
-          required
-          aria-describedby="entry-duration-help"
-        />
+        <input id="entry-duration" name="duration" className="field" inputMode="decimal" placeholder="7:30" required aria-describedby="entry-duration-help" />
         <p id="entry-duration-help" className="mt-1 text-xs text-muted">
           Par exemple 7:30, 7h30 ou 7,5
         </p>
@@ -204,12 +196,7 @@ export function ReviewList({ rows }: { rows: ReviewRow[] }) {
   return (
     <form action={act} className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn-ghost min-h-8 text-sm"
-          onClick={() => setChecked(new Set(pending.map((r) => r.id)))}
-          disabled={!pending.length}
-        >
+        <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => setChecked(new Set(pending.map((r) => r.id)))} disabled={!pending.length}>
           Tout cocher à valider ({pending.length})
         </button>
         <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => setChecked(new Set())} disabled={!checked.size}>

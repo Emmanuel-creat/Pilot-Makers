@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
-import { PageHeader, Section } from "@/components/ui";
+import { Notice, PageHeader, Section } from "@/components/ui";
+import { centsToInput, formatEuros } from "@/lib/calc/format";
+import { hasRates, type TravelRates } from "@/lib/travel";
+import { travelAllowances } from "@/lib/services/travel";
+import { TravelRatesForm } from "./TravelRatesForm";
 import { requirePageCtx } from "@/lib/server/session";
 import { addDays, mondayOf } from "@/lib/services/planning-dates";
 import { parisDate } from "@/lib/services/quotes";
@@ -12,8 +16,17 @@ import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Pointage" };
 
-const dayLabel = (iso: string) =>
-  new Date(`${iso}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
+function ratesValues(r: TravelRates): Record<string, string> {
+  const v = (c: number) => (c ? centsToInput(c) : "");
+  const out: Record<string, string> = { meal: v(r.meal), grand: v(r.grand) };
+  r.zones.forEach((z, i) => {
+    out[`transport${i + 1}`] = v(z.transport);
+    out[`trip${i + 1}`] = v(z.trip);
+  });
+  return out;
+}
+
+const dayLabel = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 const hhmm = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 
 export default async function TimesheetPage({ searchParams }: { searchParams: Promise<{ semaine?: string; vue?: string; mois?: string }> }) {
@@ -35,7 +48,7 @@ export default async function TimesheetPage({ searchParams }: { searchParams: Pr
   const days = weekDays(monday);
   const total = entries.reduce((a, e) => a + e.minutes, 0);
   const month = /^\d{4}-\d{2}$/.test(sp.mois ?? "") ? sp.mois! : today.slice(0, 7);
-  const recap = team ? await payroll(ctx, month) : [];
+  const [recap, travel] = team ? await Promise.all([payroll(ctx, month), travelAllowances(ctx, month)]) : [[], null];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -55,11 +68,7 @@ export default async function TimesheetPage({ searchParams }: { searchParams: Pr
             </Link>
             {admin ? (
               <>
-                <Link
-                  className={team ? "btn-secondary" : "btn-primary"}
-                  href={`/app/pointage?semaine=${monday}`}
-                  aria-current={team ? undefined : "page"}
-                >
+                <Link className={team ? "btn-secondary" : "btn-primary"} href={`/app/pointage?semaine=${monday}`} aria-current={team ? undefined : "page"}>
                   Mes heures
                 </Link>
                 <Link
@@ -182,6 +191,79 @@ export default async function TimesheetPage({ searchParams }: { searchParams: Pr
               <p className="text-sm text-muted">Aucune heure ce mois-ci.</p>
             )}
           </Section>
+          {travel ? (
+            <Section
+              title="Indemnités de déplacement"
+              description="Petits déplacements par zone de 10 km autour du dépôt, à vol d'oiseau, et grands déplacements au-delà de 50 km, sur les jours validés du mois."
+            >
+              {!travel.originKnown ? (
+                <div className="mb-3">
+                  <Notice tone="info" title="Dépôt non localisé">
+                    Les zones se mesurent depuis le dépôt. Localisez-le avec les chantiers depuis la page{" "}
+                    <Link className="link" href="/app/planning/trajets">
+                      Trajets
+                    </Link>
+                    .
+                  </Notice>
+                </div>
+              ) : null}
+              {!hasRates(travel.rates) ? (
+                <p className="mb-3 text-sm text-muted">Barème non saisi : les montants restent à zéro tant que vous ne l&apos;avez pas rempli ci-dessous.</p>
+              ) : null}
+              {travel.rows.length ? (
+                <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Indemnités de déplacement du mois">
+                  <table className="w-full text-sm">
+                    <thead className="table-head">
+                      <tr>
+                        <th className="px-3 py-2">Salarié</th>
+                        {[1, 2, 3, 4, 5].map((z) => (
+                          <th key={z} className="px-3 py-2 text-right">
+                            Zone {z}
+                          </th>
+                        ))}
+                        <th className="px-3 py-2 text-right">Grand dépl.</th>
+                        <th className="px-3 py-2 text-right">Sans zone</th>
+                        <th className="px-3 py-2 text-right">Montant</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {travel.rows.map((r) => (
+                        <tr key={r.userId} className="border-b border-line last:border-0">
+                          <td className="px-3 py-2">{r.name}</td>
+                          {r.zoneDays.map((d, i) => (
+                            <td key={i} className="tabular px-3 py-2 text-right">
+                              {d || ""}
+                            </td>
+                          ))}
+                          <td className="tabular px-3 py-2 text-right">{r.grandDays || ""}</td>
+                          <td className={`tabular px-3 py-2 text-right ${r.unknownDays ? "text-warning" : ""}`}>{r.unknownDays || ""}</td>
+                          <td className="tabular px-3 py-2 text-right font-medium">{formatEuros(r.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted">Aucun jour validé ce mois-ci.</p>
+              )}
+              <p className="mt-2 text-xs text-muted">
+                Jours sans zone : pointage sans chantier ou chantier non localisé. Le repas n&apos;est pas dû si le salarié déjeune chez lui ou si
+                l&apos;entreprise le prend en charge : ajustez alors sur la paie.
+              </p>
+              {canEdit ? (
+                <div className="mt-4 border-t border-line pt-4">
+                  <h3 className="text-sm font-semibold">Barème de l&apos;entreprise</h3>
+                  <p className="mt-2 text-xs text-muted">
+                    Montants fixés par l&apos;accord régional du bâtiment qui s&apos;applique à votre entreprise. Ils changent chaque année : reprenez ceux de
+                    votre fédération ou de votre cabinet de paie.
+                  </p>
+                  <div className="mt-3">
+                    <TravelRatesForm values={ratesValues(travel.rates)} />
+                  </div>
+                </div>
+              ) : null}
+            </Section>
+          ) : null}
         </>
       ) : (
         <Section title="Mes heures de la semaine">

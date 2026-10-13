@@ -1326,6 +1326,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=assurance", label: "Gérer mes labels" },
   },
   {
+    slug: "indemnites-de-deplacement",
+    category: "compte",
+    title: "Calculer les indemnités de déplacement",
+    summary: "Petits déplacements par zone et grands déplacements, depuis le pointage.",
+    steps: [
+      "Dans Pointage, vue Équipe, ouvrez « Barème de l'entreprise » et saisissez les montants de votre accord régional : repas, transport et trajet par zone, grand déplacement.",
+      "Vérifiez que le dépôt et les chantiers sont localisés, depuis la page Trajets du planning.",
+      "Chaque mois, le tableau donne pour chaque salarié les jours par zone et le montant dû, calculés sur les heures validées.",
+    ],
+    notes: [
+      "Les zones font 10 km chacune, mesurés à vol d'oiseau depuis le dépôt. Au-delà de 50 km, la journée compte en grand déplacement.",
+      "Un jour passé sur plusieurs chantiers compte pour celui où le salarié a le plus travaillé.",
+    ],
+    link: { href: "/app/pointage?vue=equipe", label: "Ouvrir le pointage de l'équipe" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

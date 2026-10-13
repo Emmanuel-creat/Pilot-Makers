@@ -252,3 +252,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 89 (13/10/2026) : ligne 316 (recouvrement amiable puis injonction de payer préparée : décompte, mise en demeure, dossier de requête)
 - Vague 90 (13/10/2026) : ligne 428 (origine des clients et coût d'acquisition par source de demandes)
 - Vague 91 (13/10/2026) : ligne 427 (labels RGE, Qualibat et autres mis en valeur sur la vitrine et les devis en ligne)
+- Vague 92 (13/10/2026) : ligne 367 (indemnités de petits et grands déplacements par zone, depuis le pointage validé)

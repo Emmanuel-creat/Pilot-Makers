@@ -71,6 +71,7 @@ import { saveBudget } from "@/lib/services/budget";
 import { setFormalNotice } from "@/lib/services/recovery";
 import { saveAcquisitionCosts, SOURCES, type Source } from "@/lib/services/acquisition";
 import { addLabel, deleteLabel, setLabelShown } from "@/lib/services/labels";
+import { saveTravelRates } from "@/lib/services/travel";
 import {
   cancelQuote,
   createAmendment,
@@ -2005,4 +2006,15 @@ export async function labelAction(fd: FormData) {
   const op = s(fd, "op");
   await withCtx((ctx) => (op === "delete" ? deleteLabel(ctx, id) : setLabelShown(ctx, id, op === "show")));
   revalidatePath("/app/entreprise");
+}
+
+export async function saveTravelRatesAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const keys = ["meal", "grand", ...[1, 2, 3, 4, 5].flatMap((z) => [`transport${z}`, `trip${z}`])];
+    await withCtx((ctx) => saveTravelRates(ctx, Object.fromEntries(keys.map((k) => [k, s(fd, k)]))));
+    revalidatePath("/app/pointage");
+    return { ok: true, message: "Barème enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
 }

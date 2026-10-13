@@ -803,6 +803,17 @@ test("entreprise : labels montrés aux clients", async ({ page }) => {
   await expect(page.getByText("Aucun label enregistré.")).toBeVisible();
 });
 
+test("pointage : barème des indemnités de déplacement", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/pointage?vue=equipe");
+  await expect(page.getByRole("heading", { name: "Indemnités de déplacement" })).toBeVisible();
+  await page.getByLabel("Repas, par jour en petit déplacement (€)").fill("11,20");
+  await page.getByLabel("Transport zone 2").fill("3,10");
+  await page.getByRole("button", { name: "Enregistrer le barème" }).click();
+  await expect(page.getByText("Barème enregistré.")).toBeVisible();
+  await audit(page, "indemnités de déplacement");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

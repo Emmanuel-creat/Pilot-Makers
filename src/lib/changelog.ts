@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "deplacements",
+    date: "2026-10-13",
+    title: "Indemnités de déplacement",
+    text: "Petits déplacements par zone et grands déplacements calculés chaque mois depuis le pointage validé, avec le barème de votre accord régional.",
+    href: "/aide/indemnites-de-deplacement",
+  },
+  {
     id: "labels",
     date: "2026-10-13",
     title: "Vos labels mis en valeur",
