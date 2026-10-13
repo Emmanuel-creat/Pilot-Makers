@@ -45,6 +45,8 @@ export interface CalcLineInput {
   nature?: LineNature;
   /** Ligne proposée en option : chiffrée, mais hors total tant que le client ne l'a pas choisie */
   optional?: boolean;
+  /** Prix unitaire signé : seulement pour une ligne générée (révision de prix à la baisse), jamais saisie */
+  signed?: boolean;
 }
 
 export interface CalcSectionInput {
@@ -224,7 +226,7 @@ export function computeQuote(input: CalcInput): CalcResult {
       });
       const price = parseField(line.unitPrice, PRICE_SCALE, "unitPrice", line.id, issues, {
         required: true,
-        min: 0n,
+        min: line.signed ? -MAX_PRICE : 0n,
         max: MAX_PRICE,
         label: "Prix unitaire",
       });

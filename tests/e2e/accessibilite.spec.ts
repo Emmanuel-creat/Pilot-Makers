@@ -46,6 +46,7 @@ test("écrans de l'application", async ({ page }) => {
     "/app/catalogue",
     "/app/factures",
     "/app/entreprise",
+    "/app/entreprise?onglet=tarifs",
     "/app/compte",
     "/app/assistance",
   ]) {

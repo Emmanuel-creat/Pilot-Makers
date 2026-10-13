@@ -26,6 +26,7 @@ import type { Organization } from "./organization";
 import { acceptedCalc, withChosenOptions } from "./options";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
 import { adaptedSteps, payerProfile, REMINDER_TEMPLATES, reminderTone } from "./dunning";
+import { applicableRevision, revisionAmount, revisionLabel, type AppliedRevision } from "./revision";
 import { nextInstallment, SCHEDULE_MAX, scheduleText, splitSchedule, type Schedule } from "./schedule";
 import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
 import type { DraftLine, DraftSection, QuoteDraft, QuoteSnapshot } from "./quote-types";
@@ -66,6 +67,8 @@ export interface InvoiceSnapshot extends QuoteSnapshot {
     retention?: { bp: number; cents: number };
     /** Facturation à l'avancement : rang de la situation et avancements cumulés, en points de base */
     progress?: { index: number; previousBp: number; cumulativeBp: number };
+    /** Révision de prix appliquée (index, valeurs et coefficient) */
+    revision?: AppliedRevision;
     amountDueCents: number;
     bank: { holder: string; iban: string; bic: string };
     latePenalty: string;
@@ -316,6 +319,7 @@ interface IssueArgs {
   /** Retenue de garantie à déduire, en points de base du TTC */
   retentionBp?: number;
   progress?: { index: number; previousBp: number; cumulativeBp: number };
+  revision?: AppliedRevision;
 }
 
 function invoiceMentions(org: Organization, a: IssueArgs, professional: boolean, dueDate: string): string[] {
@@ -483,6 +487,7 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
       deductions: a.deductions,
       ...(retention ? { retention } : {}),
       ...(a.progress ? { progress: a.progress } : {}),
+      ...(a.revision ? { revision: a.revision } : {}),
       amountDueCents: amountDue,
       bank: { holder: org.bank_holder, iban: org.bank_iban, bic: org.bank_bic },
       latePenalty: org.late_penalty_text,
@@ -599,8 +604,55 @@ function progressLines(s: QuoteSnapshot, quoteNumber: string, fromBp: number, to
   }));
 }
 
+/**
+ * Révision de prix d'une facture : une ligne par taux de TVA, égale à la base hors taxe des travaux
+ * facturés (avant remise globale, qui s'applique ensuite à la révision aussi) multipliée par (k - 1).
+ * Sans mois d'index ou sans clause au devis, les prix restent ceux du devis.
+ */
+async function withRevision(
+  tx: Queryable,
+  ctx: Ctx,
+  s: QuoteSnapshot,
+  sections: DraftSection[],
+  month: string | undefined,
+): Promise<{ sections: DraftSection[]; revision?: AppliedRevision }> {
+  const clause = s.quote.priceRevision;
+  if (!clause || !month) return { sections };
+  const applied = await applicableRevision(tx, ctx.orgId, clause, month);
+  const calc = computeQuote(draftToCalcInput({ sections, globalDiscount: "" }, quoteVatExempt(s.org, s.quote)));
+  const bases = new Map<number, number>();
+  for (const sec of calc.sections) for (const l of sec.lines) if (l.kind === "item" && !l.optional) bases.set(l.vatBp, (bases.get(l.vatBp) ?? 0) + l.netCents);
+  const groups = [...bases.entries()].filter(([, base]) => base > 0).sort((a, b) => b[0] - a[0]);
+  const lines: DraftLine[] = [];
+  for (const [vatBp, base] of groups) {
+    const amount = revisionAmount(base, applied.coefficient);
+    if (!amount) continue;
+    lines.push({
+      id: randomUUID(),
+      kind: "item",
+      catalogItemId: null,
+      nature: "autre",
+      label: revisionLabel(applied, groups.length > 1 ? vatBp : null),
+      description: `Base révisable : ${formatEuros(base)} HT${groups.length > 1 ? " à ce taux" : ""}`,
+      quantity: "1",
+      unit: "forfait",
+      unitPrice: centsToInput(amount),
+      unitCost: "",
+      discountPercent: "",
+      vatPercent: bpToInput(vatBp),
+      estimated: false,
+      estimateNote: "",
+      ...(amount < 0 ? { signed: true } : {}),
+    });
+  }
+  return {
+    sections: lines.length ? [...sections, { id: randomUUID(), title: "Révision de prix", description: "", lines }] : sections,
+    revision: applied,
+  };
+}
+
 /** Facture de situation : l'avancement cumulé atteint, moins ce qui a déjà été facturé. */
-export async function createProgressInvoice(ctx: Ctx, quoteId: string, input: { percent: string }) {
+export async function createProgressInvoice(ctx: Ctx, quoteId: string, input: { percent: string; revisionMonth?: string }) {
   let bp: number;
   try {
     bp = Number(parseScaled(String(input.percent ?? "").replace("%", "").trim(), 2));
@@ -621,6 +673,7 @@ export async function createProgressInvoice(ctx: Ctx, quoteId: string, input: { 
     const s = quote.snapshot;
     const index = previous.length + 1;
     const lines = progressLines(s, quote.number, previousBp, bp, (vat) => `Situation n° ${index} : avancement de ${formatPercent(previousBp)} à ${formatPercent(bp)}${vat}`);
+    const revised = await withRevision(tx, ctx, s, [{ id: randomUUID(), title: "", description: "", lines }], input.revisionMonth || undefined);
     const org = await orgRow(tx, ctx.orgId);
     const customer = await customerRow(tx, ctx, quote.customer_id, s.customer);
     return issueInvoiceTx(tx, ctx, {
@@ -629,7 +682,8 @@ export async function createProgressInvoice(ctx: Ctx, quoteId: string, input: { 
       customer,
       title: `Situation n° ${index} : ${s.quote.title}`,
       site: s.quote.site,
-      sections: [{ id: randomUUID(), title: "", description: "", lines }],
+      sections: revised.sections,
+      revision: revised.revision,
       globalDiscount: "",
       paymentTerms: s.quote.paymentTerms || org.payment_terms,
       deductions: [],
@@ -726,7 +780,7 @@ export async function createDepositInvoice(ctx: Ctx, quoteId: string, input: { p
 }
 
 /** Facture de solde : tous les travaux du devis accepté, acomptes déduits. */
-export async function createFinalInvoice(ctx: Ctx, quoteId: string) {
+export async function createFinalInvoice(ctx: Ctx, quoteId: string, opts: { revisionMonth?: string } = {}) {
   return withIssue(ctx, async (tx) => {
     const quote = await acceptedQuote(tx, ctx, quoteId);
     const existingFinal = await one(tx, "SELECT number FROM invoices WHERE quote_id=$1 AND kind='final' AND credited_cents < amount_due_cents", [
@@ -750,13 +804,15 @@ export async function createFinalInvoice(ctx: Ctx, quoteId: string) {
           },
         ]
       : s.sections.map((sec) => ({ ...sec, lines: sec.lines.filter((l) => l.kind !== "pending") }));
+    const revised = await withRevision(tx, ctx, s, sections, opts.revisionMonth || undefined);
     return issueInvoiceTx(tx, ctx, {
       kind: "final",
       quote,
       customer,
       title: s.quote.title,
       site: s.quote.site,
-      sections,
+      sections: revised.sections,
+      revision: revised.revision,
       globalDiscount: situations.length ? "" : s.quote.globalDiscount,
       paymentTerms: s.quote.paymentTerms || org.payment_terms,
       deductions,

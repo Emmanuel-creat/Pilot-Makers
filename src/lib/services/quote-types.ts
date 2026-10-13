@@ -41,6 +41,8 @@ export interface DraftLine {
   wastePercent?: string;
   /** Proposée en option : hors total tant que le client ne la choisit pas */
   optional?: boolean;
+  /** Montant pouvant être négatif : ligne de révision de prix générée à la facturation */
+  signed?: boolean;
 }
 
 export interface DraftSection {
@@ -48,6 +50,16 @@ export interface DraftSection {
   title: string;
   description: string;
   lines: DraftLine[];
+}
+
+/** Clause de révision : P = P0 x (fixe + (1 - fixe) x In / I0) */
+export interface PriceRevision {
+  /** Code de l'index, ex. BT01 */
+  index: string;
+  /** Mois de référence I0, au format AAAA-MM */
+  baseMonth: string;
+  /** Part fixe non révisable, en pourcentage (15 par défaut) */
+  fixedPercent: string;
 }
 
 export interface QuoteAmendment {
@@ -82,6 +94,8 @@ export interface QuoteDraft {
   retentionPercent: string;
   /** Avenant : devis accepté qu'il complète, absent pour un devis ordinaire */
   amendment?: QuoteAmendment;
+  /** Prix révisables selon un index BT, absent ou nul pour des prix fermes */
+  priceRevision?: PriceRevision | null;
   sections: DraftSection[];
   draftRevision: number;
   currentVersion: number;
@@ -154,6 +168,7 @@ export interface QuoteSnapshot {
     reverseCharge?: boolean;
     retentionPercent?: string;
     amendment?: Omit<QuoteAmendment, "parentId">;
+    priceRevision?: PriceRevision;
   };
   sections: DraftSection[];
   calc: CalcResult;

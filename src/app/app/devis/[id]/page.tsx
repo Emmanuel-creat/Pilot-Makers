@@ -18,6 +18,7 @@ import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuote
 import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
+import { listIndexValues } from "@/lib/services/revision";
 import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
 
 export const metadata = { title: "Devis" };
@@ -119,6 +120,8 @@ export default async function QuotePage({
   const hasFinal = invoices.some((i) => i.kind === "final" && i.status !== "canceled");
   const hasDeposits = invoices.some((i) => i.kind === "deposit" && i.status !== "canceled");
   const progress = await invoicedProgress(ctx, id);
+  const revisionIndex = draft.priceRevision?.index;
+  const revision = revisionIndex ? { index: revisionIndex, lastMonth: (await listIndexValues(ctx, revisionIndex))[0]?.month ?? "" } : null;
   const links = await ctx.db.query<{ n: unknown; viewed: Date | null }>(
     "SELECT count(*) AS n, max(first_viewed_at) AS viewed FROM share_links WHERE quote_id=$1 AND org_id=$2 AND revoked_at IS NULL AND expires_at > now()",
     [id, ctx.orgId],
@@ -288,7 +291,7 @@ export default async function QuotePage({
               ) : (
                 <p className="text-xs text-muted">Aucune facture pour ce devis.</p>
               )}
-              {writable && status === "accepted" ? <QuoteBilling quoteId={id} defaultPercent={draft.depositPercent} hasFinal={hasFinal} hasDeposits={hasDeposits} progress={progress} /> : null}
+              {writable && status === "accepted" ? <QuoteBilling quoteId={id} defaultPercent={draft.depositPercent} hasFinal={hasFinal} hasDeposits={hasDeposits} progress={progress} revision={revision} /> : null}
             </section>
           ) : null}
 

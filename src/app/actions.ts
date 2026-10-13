@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
 import {
@@ -598,6 +599,26 @@ export async function savePricingAction(_: ActionState, fd: FormData): Promise<A
   }
 }
 
+export async function saveIndexValueAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => saveIndexValue(ctx, { code: s(fd, "code"), month: s(fd, "month"), value: s(fd, "value") }));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: `Valeur de ${r.code} enregistrée.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteIndexValueAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteIndexValue(ctx, s(fd, "code"), s(fd, "month")));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Valeur supprimée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
 export async function saveInvoiceSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     await withCtx((ctx) =>
@@ -631,7 +652,7 @@ export async function depositInvoiceAction(_: ActionState, fd: FormData): Promis
 export async function progressInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
   let id: string;
   try {
-    id = (await withCtx((ctx) => createProgressInvoice(ctx, s(fd, "quoteId"), { percent: s(fd, "percent") }))).id;
+    id = (await withCtx((ctx) => createProgressInvoice(ctx, s(fd, "quoteId"), { percent: s(fd, "percent"), revisionMonth: s(fd, "revisionMonth") }))).id;
   } catch (e) {
     return toState(e);
   }
@@ -641,7 +662,7 @@ export async function progressInvoiceAction(_: ActionState, fd: FormData): Promi
 export async function finalInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
   let id: string;
   try {
-    id = (await withCtx((ctx) => createFinalInvoice(ctx, s(fd, "quoteId")))).id;
+    id = (await withCtx((ctx) => createFinalInvoice(ctx, s(fd, "quoteId"), { revisionMonth: s(fd, "revisionMonth") }))).id;
   } catch (e) {
     return toState(e);
   }

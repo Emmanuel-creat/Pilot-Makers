@@ -21,6 +21,7 @@ export function draftToCalcInput(d: Pick<QuoteDraft, "sections" | "globalDiscoun
         vatPercent: l.vatPercent,
         nature: l.nature,
         ...(l.optional && l.kind === "item" ? { optional: true } : {}),
+        ...(l.signed ? { signed: true } : {}),
       })),
     })),
   };

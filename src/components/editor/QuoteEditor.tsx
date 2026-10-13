@@ -19,6 +19,7 @@ import { AssistantPanel } from "./AssistantPanel";
 import { CatalogPicker } from "./CatalogPicker";
 import { CustomerForm } from "./CustomerForm";
 import { LineRow, UNITS } from "./LineRow";
+import { BT_INDEXES, DEFAULT_FIXED_PERCENT } from "@/lib/services/revision-labels";
 import { travelCostCents, travelLine, type Pricing, type TravelSettings } from "@/lib/services/pricing";
 
 export interface EditorCustomer {
@@ -94,6 +95,7 @@ function payload(d: QuoteDraft) {
     contractPlace: d.contractPlace,
     reverseCharge: d.reverseCharge,
     retentionPercent: d.retentionPercent,
+    priceRevision: d.priceRevision ?? null,
     sections: d.sections,
   };
 }
@@ -1009,6 +1011,69 @@ export function QuoteEditor({
                 </div>
               </div>
             ) : null}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="label" htmlFor="q-revision">
+                  Prix
+                </label>
+                <select
+                  id="q-revision"
+                  className="field"
+                  value={d.priceRevision?.index ?? ""}
+                  onChange={(e) =>
+                    set(
+                      "priceRevision",
+                      e.target.value
+                        ? {
+                            index: e.target.value,
+                            baseMonth: d.priceRevision?.baseMonth || new Date().toISOString().slice(0, 7),
+                            fixedPercent: d.priceRevision?.fixedPercent || DEFAULT_FIXED_PERCENT,
+                          }
+                        : null,
+                    )
+                  }
+                >
+                  <option value="">Fermes</option>
+                  {Object.entries(BT_INDEXES).map(([code, label]) => (
+                    <option key={code} value={code}>
+                      Révisables, {code} {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {d.priceRevision ? (
+                <>
+                  <div>
+                    <label className="label" htmlFor="q-revision-month">
+                      Mois de référence (I0)
+                    </label>
+                    <input
+                      id="q-revision-month"
+                      type="month"
+                      className="field"
+                      value={d.priceRevision.baseMonth}
+                      onChange={(e) => set("priceRevision", { ...d.priceRevision!, baseMonth: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="q-revision-fixed">
+                      Part fixe (%)
+                    </label>
+                    <input
+                      id="q-revision-fixed"
+                      inputMode="decimal"
+                      className="field"
+                      value={d.priceRevision.fixedPercent}
+                      onChange={(e) => set("priceRevision", { ...d.priceRevision!, fixedPercent: e.target.value })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted sm:col-span-3">
+                    Chantier long ou prix des matériaux instables : les factures de situation et de solde appliquent P = P0 x (fixe + (1 - fixe) x In / I0). La
+                    formule est imprimée sur le devis.
+                  </p>
+                </>
+              ) : null}
+            </div>
             <div>
               <label className="label" htmlFor="q-payment">
                 Conditions de paiement

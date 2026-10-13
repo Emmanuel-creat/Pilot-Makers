@@ -31,10 +31,12 @@ import {
   PENDING_STATUSES,
   type DraftLine,
   type DraftSection,
+  type PriceRevision,
   type QuoteDraft,
   type QuoteSnapshot,
   type QuoteStatus,
 } from "./quote-types";
+import { normalizeRevision, revisionMention } from "./revision";
 
 const DAY = 86_400_000;
 
@@ -90,6 +92,7 @@ export const draftSchema = z.object({
   contractPlace: z.enum(["auto", "hors_etablissement", "etablissement"]).default("auto"),
   reverseCharge: z.boolean().default(false),
   retentionPercent: str(10).refine((v) => retentionBp(v) !== null, "Retenue de garantie : 5 % au plus"),
+  priceRevision: z.object({ index: str(10), baseMonth: str(7), fixedPercent: str(10) }).nullable().optional().default(null),
   sections: z.array(sectionSchema).max(50),
 });
 
@@ -187,6 +190,7 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     contractPlace: isContractPlace(r.contract_place) ? r.contract_place : ("auto" as const),
     reverseCharge: r.reverse_charge === true,
     retentionPercent: String(r.retention_percent ?? ""),
+    priceRevision: (r.price_revision as PriceRevision | null) ?? null,
     ...(r.amends_quote_id
       ? {
           amendment: {
@@ -442,7 +446,9 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
     }
     const calc = computeQuote(draftToCalcInput({ sections: d.sections, globalDiscount: d.globalDiscount }, quoteVatExempt(org, d)));
     const status: QuoteStatus = calc.ok ? "draft" : "incomplete";
+    const revision = normalizeRevision(d.priceRevision);
     await writeSections(tx, id, ctx.orgId, d.sections);
+    await tx.query("UPDATE quotes SET price_revision=$3 WHERE id=$1 AND org_id=$2", [id, ctx.orgId, revision ? JSON.stringify(revision) : null]);
     await tx.query(
       `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
          validity_days=$10, payment_terms=$11, special_conditions=$12, deposit_percent=$13, estimated_duration=$14,
@@ -661,6 +667,7 @@ export function buildSnapshot(args: {
       ...(d.amendment
         ? { amendment: { index: d.amendment.index, parentNumber: d.amendment.parentNumber, parentAcceptedOn: d.amendment.parentAcceptedOn } }
         : {}),
+      ...(d.priceRevision ? { priceRevision: d.priceRevision } : {}),
     },
     // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
     sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, wastePercent: _waste, ...l }) => l) })),
@@ -675,6 +682,7 @@ export function buildSnapshot(args: {
         reverseCharge: d.reverseCharge,
         retentionPercent: d.retentionPercent,
       }),
+      ...(d.priceRevision ? [revisionMention(d.priceRevision)] : []),
     ],
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
     consumer: consumerTerms(d.contractPlace, customer.type, calc, org.vat_regime),
@@ -1369,6 +1377,7 @@ export async function createAmendment(ctx: Ctx, quoteId: string) {
       contractPlace: root.contractPlace,
       reverseCharge: root.reverseCharge,
       retentionPercent: root.retentionPercent,
+      priceRevision: root.priceRevision ?? null,
       template: root.template,
       sections: [{ id: randomUUID(), title: "Travaux supplémentaires", description: "", lines: [] }],
     },

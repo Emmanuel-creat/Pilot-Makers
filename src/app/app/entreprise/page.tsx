@@ -6,7 +6,9 @@ import { readSettings } from "@/lib/services/reminders";
 import { OrgForm } from "./OrgForm";
 import { RemindersForm } from "./RemindersForm";
 import { InvoiceSettingsForm } from "./InvoiceSettingsForm";
+import { IndexValues } from "./IndexValues";
 import { PricingForm } from "./PricingForm";
+import { listIndexValues } from "@/lib/services/revision";
 import { readPricing } from "@/lib/services/pricing";
 
 export const metadata = { title: "Entreprise" };
@@ -76,7 +78,10 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           }}
         />
       ) : tab === "tarifs" ? (
-        <PricingForm initial={readPricing(pricing)} canEdit={canEdit} />
+        <>
+          <PricingForm initial={readPricing(pricing)} canEdit={canEdit} />
+          <IndexValues values={await listIndexValues(ctx)} canEdit={canEdit} />
+        </>
       ) : tab === "relances" ? (
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "historique" ? (

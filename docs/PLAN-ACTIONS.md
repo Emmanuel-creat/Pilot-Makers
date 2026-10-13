@@ -182,3 +182,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 19 (12/10/2026) : 406, 407, 408, 409, 410, 411.
 - Vague 20 (12/10/2026) : 199 (Factur-X EN 16931, XML CII et UBL ; copie PDF non strictement PDF/A-3, à valider avec la plateforme retenue).
 - Vague 21 (13/10/2026) : 390 (application installable), 395 (contraste renforcé et grands boutons), 451 (thème et taille du texte réglables).
+- Vague 22 (13/10/2026) : 202 (révision de prix sur index BT : clause au devis, valeurs d'index saisies, ligne de révision par taux sur situations et solde).

@@ -247,6 +247,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Un devis signé n'est pas encore encaissé : les trois montants sont présentés séparément."],
   },
   {
+    slug: "revision-de-prix",
+    category: "factures",
+    title: "Prix révisables selon un index BT",
+    summary: "Répercuter l'évolution du coût de la construction sur un chantier long.",
+    steps: [
+      "Dans Mon entreprise, onglet Tarifs, saisissez les valeurs des index BT publiées par l'INSEE (mois de référence et mois facturés).",
+      "Dans le devis, choisissez « Prix : révisables » avec l'index du métier, le mois de référence et la part fixe (15 % par défaut). La formule est imprimée sur le devis.",
+      "Au moment de facturer une situation ou le solde, indiquez le mois de l'index : la révision s'ajoute en ligne séparée, par taux de TVA.",
+    ],
+    notes: [
+      "Formule : P = P0 x (fixe + (1 - fixe) x In / I0), coefficient arrondi à 4 décimales. Une baisse de l'index réduit la facture.",
+      "Les acomptes restent aux prix du devis. Laissez le mois vide pour facturer sans révision.",
+    ],
+  },
+  {
     slug: "factures-electroniques",
     category: "factures",
     title: "Factures aux formats électroniques (Factur-X, UBL)",

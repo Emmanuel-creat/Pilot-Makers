@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { depositInvoiceAction, progressInvoiceAction, finalInvoiceAction } from "@/app/actions";
 import { FormMessage, Submit } from "@/components/forms/Submit";
 
@@ -11,6 +11,7 @@ export function QuoteBilling({
   hasFinal,
   hasDeposits = false,
   progress = { count: 0, cumulativeBp: 0 },
+  revision = null,
 }: {
   quoteId: string;
   defaultPercent: string;
@@ -18,14 +19,29 @@ export function QuoteBilling({
   hasDeposits?: boolean;
   /** Situations déjà facturées et avancement cumulé (points de base) */
   progress?: { count: number; cumulativeBp: number };
+  /** Prix révisables : index du devis et dernier mois dont la valeur est connue */
+  revision?: { index: string; lastMonth: string } | null;
 }) {
+  const [month, setMonth] = useState(revision?.lastMonth ?? "");
   const [depState, depAction] = useActionState(depositInvoiceAction, null);
   const [proState, proAction] = useActionState(progressInvoiceAction, null);
   const done = (progress.cumulativeBp / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 });
   const [finState, finAction] = useActionState(finalInvoiceAction, null);
   if (hasFinal) return null;
+  const monthField = revision ? <input type="hidden" name="revisionMonth" value={month} /> : null;
   return (
     <div className="space-y-3">
+      {revision ? (
+        <div>
+          <label className="label" htmlFor="rev-month">
+            Révision de prix : mois de l'index {revision.index}
+          </label>
+          <input id="rev-month" type="month" className="field" value={month} onChange={(e) => setMonth(e.target.value)} />
+          <p className="mt-1 text-xs text-muted">
+            Appliqué à la situation et au solde, pas aux acomptes. Laissez vide pour facturer aux prix du devis.
+          </p>
+        </div>
+      ) : null}
       {progress.count ? (
         <p className="text-xs text-muted">
           {progress.count} situation{progress.count > 1 ? "s" : ""} facturée{progress.count > 1 ? "s" : ""}, avancement cumulé {done} %.
@@ -35,6 +51,7 @@ export function QuoteBilling({
         <>
           <form action={proAction} className="flex items-end gap-2">
             <input type="hidden" name="quoteId" value={quoteId} />
+            {monthField}
             <div className="w-28">
               <label className="label" htmlFor="pro-pct">
                 Avancement (%)
@@ -72,6 +89,7 @@ export function QuoteBilling({
         }}
       >
         <input type="hidden" name="quoteId" value={quoteId} />
+        {monthField}
         <Submit className="btn-primary w-full" pendingLabel="Émission...">
           Facturer le solde
         </Submit>
