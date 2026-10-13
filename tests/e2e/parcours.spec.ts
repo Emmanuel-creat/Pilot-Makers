@@ -115,6 +115,12 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   const cp = await client.newPage();
   await cp.goto(new URL(link).pathname);
   await expect(cp.getByText(number).first()).toBeVisible();
+  // Avant d'accepter, la cliente demande une modification sur une ligne précise.
+  await cp.getByRole("radio", { name: "Demande de modification sur une ligne" }).check();
+  await cp.getByLabel("Ligne concernée").selectOption({ label: "Ragréage du sol" });
+  await cp.getByLabel("Ce que vous souhaitez changer").fill("Pouvez-vous prévoir un ragréage fibré ?");
+  await cp.getByRole("button", { name: "Envoyer" }).click();
+  await expect(cp.getByText("Pouvez-vous prévoir un ragréage fibré ?")).toBeVisible();
   await cp.getByRole("button", { name: "Accepter le devis" }).click();
   await cp.locator("#r-name").fill("Claire Dubois");
   await cp.getByRole("checkbox", { name: /Bon pour accord/ }).check();
@@ -124,8 +130,9 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await expect(cp.getByText(/accept/i).first()).toBeVisible();
   await client.close();
 
-  // 5. Facture d'acompte de 30 %, puis facture de solde.
+  // 5. La demande apparaît sur le devis côté entreprise, puis facture d'acompte de 30 % et facture de solde.
   await page.goto(quoteUrl);
+  await expect(page.locator("#echanges").getByText("Pouvez-vous prévoir un ragréage fibré ?")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Facturation" })).toBeVisible();
   await page.locator("#dep-pct").fill("30");
   await page.getByRole("button", { name: "Facturer l'acompte" }).click();
@@ -154,4 +161,30 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await page.goto("/app/factures");
   await expect(page.getByRole("row", { name: new RegExp(`${final}.*Payée`) })).toBeVisible();
   await expect(page.getByRole("row", { name: new RegExp(`${deposit}.*acompte`) })).toBeVisible();
+});
+
+test("espace client : lien personnel, documents et message", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/clients");
+  await page.getByRole("link", { name: /Dubois/ }).first().click();
+  await page.waitForURL(/\/app\/clients\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: /Lien seul|Créer un lien/ }).click();
+  const link = (await page.getByTestId("lien-espace").textContent())!.trim();
+  expect(link).toMatch(/\/espace\//);
+
+  const client = await browser.newContext({ locale: "fr-FR" });
+  const cp = await client.newPage();
+  await cp.goto(new URL(link).pathname);
+  await expect(cp.getByRole("heading", { name: "Devis", exact: true })).toBeVisible();
+  await expect(cp.getByRole("heading", { name: "Factures", exact: true })).toBeVisible();
+  const quote = cp.locator("article").first();
+  const body = `Merci, à quelle date commencez-vous ? ${Date.now().toString(36)}`;
+  await quote.locator("details").evaluate((d) => ((d as HTMLDetailsElement).open = true));
+  await quote.getByLabel("Message", { exact: true }).fill(body);
+  await quote.getByRole("button", { name: "Envoyer" }).click();
+  await expect(quote.getByText(body)).toBeVisible();
+  await client.close();
+
+  await page.goto("/app");
+  await expect(page.getByText(/nouveau message du client|nouveaux messages du client/).first()).toBeVisible();
 });

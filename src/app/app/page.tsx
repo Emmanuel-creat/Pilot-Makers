@@ -7,6 +7,7 @@ import { EVENT_LABELS, getDashboard } from "@/lib/services/dashboard";
 import { leadsDue } from "@/lib/services/leads";
 import { budgetAlerts } from "@/lib/services/job-costs";
 import { subcontractorAlerts } from "@/lib/services/subcontractors";
+import { clientInbox } from "@/lib/services/client-space";
 import { pct } from "@/lib/services/jobs-labels";
 
 export const metadata = { title: "Tableau de bord" };
@@ -21,6 +22,7 @@ export default async function Dashboard() {
   const leadsToFollow = await leadsDue(ctx);
   const overBudget = ctx.entitlements.plan.features.margin ? await budgetAlerts(ctx) : [];
   const subAlerts = await subcontractorAlerts(ctx);
+  const inbox = await clientInbox(ctx);
   return (
     <>
       <PageHeader
@@ -48,6 +50,22 @@ export default async function Dashboard() {
           <Icon name="right" />
         </Link>
       ) : null}
+      {inbox.map((m) => (
+        <Link key={m.quote_id} href={`/app/devis/${m.quote_id}#echanges`} className="card mb-6 flex items-center gap-3 p-4 text-sm hover:border-accent">
+          <Icon name="inbox" className="text-accent" />
+          <span className="flex-1">
+            Devis {m.number ?? ""} {m.title ? `« ${m.title} »` : ""} :{" "}
+            {[
+              m.unread ? (m.unread > 1 ? `${m.unread} nouveaux messages du client` : "1 nouveau message du client") : "",
+              m.open_requests ? (m.open_requests > 1 ? `${m.open_requests} demandes de modification à traiter` : "1 demande de modification à traiter") : "",
+            ]
+              .filter(Boolean)
+              .join(", ")}
+            .
+          </span>
+          <Icon name="right" />
+        </Link>
+      ))}
       {overBudget.map((j) => (
         <Link
           key={j.id}

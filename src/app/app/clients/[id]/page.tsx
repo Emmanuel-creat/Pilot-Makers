@@ -12,6 +12,8 @@ import { InvoiceBadge } from "@/components/InvoiceBadge";
 import type { QuoteStatus } from "@/lib/services/quote-types";
 import { archiveCustomerAction } from "@/app/actions";
 import { EditCustomer } from "./EditCustomer";
+import { PortalLink } from "./PortalLink";
+import { portalLinkInfo } from "@/lib/services/client-space";
 
 export const metadata = { title: "Client" };
 
@@ -34,6 +36,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
      WHERE customer_id=$1 AND org_id=$2 AND site_line1 <> '' GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 LIMIT 20`,
     [id, ctx.orgId],
   );
+  const portal = await portalLinkInfo(ctx, id);
   const { id: _id, org_id: _o, archived_at, created_at: _c, updated_at: _u, last_activity_at: _l, ...form } = c;
   return (
     <>
@@ -147,6 +150,17 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               </ul>
             </section>
           ) : null}
+          <section className="card p-4">
+            <h2 className="mb-1 text-sm font-semibold">Espace client</h2>
+            <p className="mb-2 text-xs text-muted">Devis, factures, procès-verbaux et échanges au même endroit, par un lien personnel valable six mois.</p>
+            <PortalLink
+              customerId={c.id}
+              hasEmail={!!c.email}
+              active={portal.active}
+              lastUsed={portal.lastUsed ? fmtDate(portal.lastUsed) : null}
+              canEdit={!ctx.entitlements.readOnly && !ctx.supportAccess}
+            />
+          </section>
           <section className="card p-4">
             <h2 className="mb-2 text-sm font-semibold">Historique des devis</h2>
             {quotes.length === 0 ? <p className="text-sm text-muted">Aucun devis pour ce client.</p> : null}

@@ -11,6 +11,7 @@ import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } f
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
 import { createFeed, deleteFeed } from "@/lib/services/calendar";
+import { createPortalLink, replyToClient, revokePortalLinks, setRequestHandled } from "@/lib/services/client-space";
 import {
   addToJob,
   createSubcontractor,
@@ -990,6 +991,52 @@ export async function removeJobSubcontractorAction(_: ActionState, fd: FormData)
     await withCtx((ctx) => removeFromJob(ctx, jobId, s(fd, "subcontractorId")));
     revalidatePath(`/app/chantiers/${jobId}`);
     return { ok: true, message: "Sous-traitant retiré du chantier." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Espace client et échanges ----------------------------------------- */
+
+export async function replyToClientAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const quoteId = s(fd, "quoteId");
+    const r = await withCtx((ctx) => replyToClient(ctx, quoteId, s(fd, "body")));
+    revalidatePath(`/app/devis/${quoteId}`);
+    return { ok: true, message: r.emailed ? "Réponse envoyée par e-mail." : "Réponse enregistrée : le client la verra sur sa page." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function requestHandledAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => setRequestHandled(ctx, s(fd, "id"), s(fd, "handled") === "1"));
+    revalidatePath(`/app/devis/${s(fd, "quoteId")}`);
+    return { ok: true, message: "Demande mise à jour." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function portalLinkAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const customerId = s(fd, "customerId");
+    const send = s(fd, "send") === "1";
+    const r = await withCtx((ctx) => createPortalLink(ctx, customerId, { send }));
+    revalidatePath(`/app/clients/${customerId}`);
+    return { ok: true, message: send ? `Lien envoyé par e-mail. ${r.url}` : r.url };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function revokePortalAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const customerId = s(fd, "customerId");
+    await withCtx((ctx) => revokePortalLinks(ctx, customerId));
+    revalidatePath(`/app/clients/${customerId}`);
+    return { ok: true, message: "Liens désactivés : l'espace client n'est plus accessible." };
   } catch (e) {
     return toState(e);
   }

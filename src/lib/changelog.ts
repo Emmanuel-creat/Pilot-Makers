@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "espace-client",
+    date: "2026-10-13",
+    title: "Espace client et échanges sur les devis",
+    text: "Vos clients vous écrivent ou demandent une modification de ligne depuis le devis, et retrouvent devis, factures et réceptions dans leur espace personnel.",
+    href: "/app/clients",
+  },
+  {
     id: "droits-par-fonction",
     date: "2026-10-13",
     title: "Droits par fonction",

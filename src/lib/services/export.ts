@@ -76,6 +76,9 @@ export async function exportAccountData(ctx: Ctx) {
       `SELECT id, user_id, job_id, expense_date, merchant, category, amount_ttc_cents, vat_cents, payment, note, photo_type, photo_sha256, status,
          review_note, reviewed_by, reviewed_at, reimbursed_at, created_at FROM expenses WHERE org_id=$1 ORDER BY expense_date`,
     ),
+    quoteMessages: await q("SELECT * FROM quote_messages WHERE org_id=$1 ORDER BY created_at"),
+    // Les liens d'espace client ne sont exportés que par leurs métadonnées, jamais par leur jeton.
+    portalLinks: await q("SELECT id, customer_id, expires_at, revoked_at, last_used_at, created_at FROM customer_portal_links WHERE org_id=$1"),
     // Les secrets de signature ne sont jamais exportés.
     webhookEndpoints: await q("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1"),
   };
@@ -137,6 +140,8 @@ const CSV_TABLES: [string, string][] = [
   ["documents-sous-traitants", "subcontractorDocuments"],
   ["sous-traitants-chantiers", "jobSubcontractors"],
   ["notes-de-frais", "expenses"],
+  ["echanges-clients", "quoteMessages"],
+  ["liens-espace-client", "portalLinks"],
 ];
 
 const README = `Export complet Pilot-Makers

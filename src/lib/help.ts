@@ -499,6 +499,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/equipe", label: "Ouvrir l'équipe" },
   },
   {
+    slug: "espace-client-et-echanges",
+    category: "devis",
+    title: "Échanger avec vos clients et leur ouvrir un espace",
+    summary: "Questions et demandes de modification rattachées au devis, et un espace où le client retrouve tous ses documents.",
+    steps: [
+      "Sur la page du devis qu'il a reçu, votre client peut vous écrire ou demander la modification d'une ligne précise. Vous recevez un e-mail.",
+      "Le tableau de bord signale les nouveaux messages. Sur le devis, la section « Échanges avec le client » affiche le fil : répondez, le client reçoit votre réponse par e-mail.",
+      "Une demande de modification reste ouverte tant que vous ne l'avez pas marquée comme traitée, par exemple après l'envoi d'une nouvelle version du devis.",
+      "Sur la fiche client, « Espace client » crée un lien personnel valable plusieurs mois : envoyez-le par e-mail ou copiez-le. Le client y retrouve ses devis, factures, procès-verbaux de réception et vos échanges.",
+    ],
+    notes: [
+      "Depuis son espace, le client peut répondre à un devis en attente : un lien de réponse neuf est créé à chaque fois.",
+      "Vous pouvez désactiver tous les liens d'espace d'un client en un geste. Les échanges sont inclus dans l'export complet de vos données.",
+    ],
+    link: { href: "/app/clients", label: "Ouvrir les clients" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

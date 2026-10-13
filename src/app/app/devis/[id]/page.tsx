@@ -18,6 +18,8 @@ import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuote
 import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
+import { ClientThread } from "./ClientThread";
+import { listQuoteMessages } from "@/lib/services/client-space";
 import { CreateJob } from "./CreateJob";
 import { jobForQuote } from "@/lib/services/jobs";
 import { listIndexValues } from "@/lib/services/revision";
@@ -121,6 +123,7 @@ export default async function QuotePage({
   const shownVersion = draft.acceptedVersion ?? draft.currentVersion;
   const current = shownVersion > 0 ? await getVersion(ctx.db, ctx.orgId, id, shownVersion) : null;
   const [events, emails, invoices] = await Promise.all([quoteEvents(ctx, id), quoteEmails(ctx, id), listInvoices(ctx, { quoteId: id })]);
+  const messages = draft.currentVersion > 0 ? await listQuoteMessages(ctx, id) : [];
   const hasFinal = invoices.some((i) => i.kind === "final" && i.status !== "canceled");
   const hasDeposits = invoices.some((i) => i.kind === "deposit" && i.status !== "canceled");
   const progress = await invoicedProgress(ctx, id);
@@ -437,6 +440,27 @@ export default async function QuotePage({
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {draft.currentVersion > 0 ? (
+            <section className="card p-4" id="echanges">
+              <h2 className="mb-2 text-sm font-semibold">Échanges avec le client</h2>
+              <ClientThread
+                quoteId={id}
+                canEdit={!ctx.entitlements.readOnly && !ctx.supportAccess}
+                customerEmail={current?.snapshot.customer.email ?? ""}
+                messages={messages.map((m) => ({
+                  id: m.id,
+                  author_type: m.author_type,
+                  author_name: m.author_name,
+                  kind: m.kind,
+                  line_label: m.line_label,
+                  body: m.body,
+                  handled: !!m.handled_at,
+                  at: new Date(m.created_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" }),
+                }))}
+              />
             </section>
           ) : null}
 

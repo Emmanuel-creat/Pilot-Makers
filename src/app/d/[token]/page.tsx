@@ -8,6 +8,8 @@ import { recordClientView } from "@/lib/services/quotes";
 import { reducedVatAttestation } from "@/lib/services/consumer";
 import { publicOptionSource } from "@/lib/services/options";
 import { ClientResponse } from "./ClientResponse";
+import { ClientMessages } from "@/components/ClientMessages";
+import { publicThread, requestableLines } from "@/lib/services/client-space";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Votre devis", robots: { index: false, follow: false } };
@@ -38,6 +40,8 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
     );
   }
   const s = r.version.snapshot;
+  const thread = await publicThread(await getDb(), r.link.org_id, r.link.quote_id);
+  const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
   return (
     <Frame>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -83,6 +87,29 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
             vatAttestation={s.consumer?.reducedVatBp.length ? reducedVatAttestation(s.consumer.reducedVatBp) : ""}
           />
         </div>
+      ) : null}
+      {!r.revoked && r.status !== "canceled" ? (
+        <section className="card mt-6 p-5" aria-labelledby="echanges">
+          <h2 id="echanges" className="mb-1 text-lg font-semibold">
+            Une question, une modification ?
+          </h2>
+          <p className="mb-4 text-sm text-muted">Écrivez directement à {s.org.trade_name} : votre message est rattaché à ce devis.</p>
+          <ClientMessages
+            endpoint={`/api/public/quotes/${token}/messages`}
+            orgName={s.org.trade_name}
+            lines={r.canRespond ? requestableLines(s).map((l) => ({ id: l.id, label: l.label })) : []}
+            thread={thread.map((m) => ({
+              id: m.id,
+              author_type: m.author_type,
+              author_name: m.author_name,
+              kind: m.kind,
+              line_label: m.line_label,
+              body: m.body,
+              handled: !!m.handled_at,
+              at: when(m.created_at),
+            }))}
+          />
+        </section>
       ) : null}
     </Frame>
   );
