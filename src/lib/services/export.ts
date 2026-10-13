@@ -26,7 +26,9 @@ export async function exportAccountData(ctx: Ctx) {
     customers: await q("SELECT * FROM customers WHERE org_id=$1 ORDER BY created_at"),
     leads: await q("SELECT * FROM leads WHERE org_id=$1 ORDER BY created_at"),
     catalog: await q("SELECT * FROM catalog_items WHERE org_id=$1 ORDER BY reference"),
-    catalogPriceHistory: await q("SELECT item_id, old_price4, new_price4, old_cost4, new_cost4, created_at FROM catalog_price_history WHERE org_id=$1"),
+    catalogPriceHistory: await q(
+      "SELECT item_id, old_price4, new_price4, old_cost4, new_cost4, created_at FROM catalog_price_history WHERE org_id=$1",
+    ),
     quotes: await q("SELECT * FROM quotes WHERE org_id=$1 ORDER BY created_at"),
     quoteSections: await q("SELECT * FROM quote_sections WHERE org_id=$1 ORDER BY quote_id, position"),
     quoteLines: await q("SELECT * FROM quote_lines WHERE org_id=$1 ORDER BY quote_id, position"),
@@ -36,12 +38,16 @@ export async function exportAccountData(ctx: Ctx) {
     documentEvents: await q("SELECT quote_id, version, type, actor_type, data, created_at FROM document_events WHERE org_id=$1 ORDER BY created_at"),
     emails: await q("SELECT kind, to_address, subject, status, error, created_at FROM emails WHERE org_id=$1 ORDER BY created_at"),
     subscription: (await q("SELECT plan_code, status, billing_interval, current_period_end, trial_end FROM subscriptions WHERE org_id=$1"))[0],
-    subscriptionInvoices: await q("SELECT number, plan_code, amount_ht_cents, amount_ttc_cents, status, created_at FROM billing_invoices WHERE org_id=$1"),
+    subscriptionInvoices: await q(
+      "SELECT number, plan_code, amount_ht_cents, amount_ttc_cents, status, created_at FROM billing_invoices WHERE org_id=$1",
+    ),
     customerInvoices: await q(
       `SELECT id, quote_id, customer_id, kind, number, credited_invoice_id, title, issue_date, due_date, schedule, snapshot, pdf_sha256, snapshot_sha256,
          total_ht_cents, total_vat_cents, total_ttc_cents, amount_due_cents, paid_cents, credited_cents, issued_at FROM invoices WHERE org_id=$1 ORDER BY issued_at`,
     ),
-    payments: await q("SELECT invoice_id, amount_cents, paid_on, method, reference, canceled_at, created_at FROM invoice_payments WHERE org_id=$1 ORDER BY paid_on"),
+    payments: await q(
+      "SELECT invoice_id, amount_cents, paid_on, method, reference, canceled_at, created_at FROM invoice_payments WHERE org_id=$1 ORDER BY paid_on",
+    ),
     quoteTemplates: await q("SELECT name, description, data, created_at FROM quote_templates WHERE org_id=$1"),
     catalogComponents: await q("SELECT parent_id, child_id, position, quantity FROM catalog_components WHERE org_id=$1"),
     priceIndexes: await q("SELECT code, month, value_centi, updated_at FROM price_indexes WHERE org_id=$1 ORDER BY code, month"),
@@ -57,6 +63,15 @@ export async function exportAccountData(ctx: Ctx) {
     jobReserves: await q("SELECT * FROM job_reserves WHERE org_id=$1 ORDER BY job_id, position"),
     vehicles: await q("SELECT id, name, plate, created_at FROM org_vehicles WHERE org_id=$1 ORDER BY name"),
     assignments: await q("SELECT * FROM job_assignments WHERE org_id=$1 ORDER BY start_date"),
+    timeEntries: await q("SELECT * FROM time_entries WHERE org_id=$1 ORDER BY work_date, created_at"),
+    jobPurchases: await q("SELECT * FROM job_purchases WHERE org_id=$1 ORDER BY purchase_date"),
+    purchaseOrders: await q("SELECT * FROM purchase_orders WHERE org_id=$1 ORDER BY created_at"),
+    purchaseOrderLines: await q("SELECT * FROM purchase_order_lines WHERE org_id=$1 ORDER BY order_id, position"),
+    subcontractors: await q("SELECT * FROM subcontractors WHERE org_id=$1 ORDER BY name"),
+    subcontractorDocuments: await q(
+      "SELECT id, subcontractor_id, kind, label, valid_until, file_name, file_type, file_sha256, uploaded_at FROM subcontractor_documents WHERE org_id=$1",
+    ),
+    jobSubcontractors: await q("SELECT * FROM job_subcontractors WHERE org_id=$1"),
     // Les secrets de signature ne sont jamais exportés.
     webhookEndpoints: await q("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1"),
   };
@@ -110,6 +125,13 @@ const CSV_TABLES: [string, string][] = [
   ["planning", "assignments"],
   ["vehicules", "vehicles"],
   ["indices-prix", "priceIndexes"],
+  ["pointages", "timeEntries"],
+  ["achats-chantier", "jobPurchases"],
+  ["commandes-fournisseurs", "purchaseOrders"],
+  ["lignes-commandes", "purchaseOrderLines"],
+  ["sous-traitants", "subcontractors"],
+  ["documents-sous-traitants", "subcontractorDocuments"],
+  ["sous-traitants-chantiers", "jobSubcontractors"],
 ];
 
 const README = `Export complet Pilot-Makers
@@ -124,6 +146,7 @@ Ce dossier contient l'ensemble des données de l'entreprise dans des formats ouv
 - factures/ : chaque facture et avoir émis, au format PDF, avec son empreinte d'intégrité dans donnees.json.
 - receptions/ : les procès-verbaux de réception de chantier signés, au format PDF.
 - photos/ : les photos du journal de chantier, rangées par chantier.
+- sous-traitants/ : les attestations, assurances et contrats des sous-traitants.
 
 Les secrets techniques (mots de passe, clés de double authentification, secrets des webhooks) ne sont jamais exportés.
 `;
@@ -174,6 +197,14 @@ export async function exportArchive(ctx: Ctx): Promise<Buffer> {
       data: p.photo,
       date: taken,
     });
+  }
+  for (const d of await q<{ id: string; name: string; kind: string; file: Uint8Array; file_type: string; uploaded_at: Date }>(
+    `SELECT d.id, s.name, d.kind, d.file, d.file_type, d.uploaded_at FROM subcontractor_documents d JOIN subcontractors s ON s.id=d.subcontractor_id
+     WHERE d.org_id=$1 AND d.file IS NOT NULL ORDER BY d.uploaded_at`,
+  )) {
+    const ext = d.file_type === "image/png" ? "png" : d.file_type === "image/jpeg" ? "jpg" : "pdf";
+    const at = new Date(d.uploaded_at);
+    entries.push({ name: unique(`sous-traitants/${fileName(d.name)}/${d.kind}-${at.toISOString().slice(0, 10)}.${ext}`), data: d.file, date: at });
   }
   return zip(entries);
 }

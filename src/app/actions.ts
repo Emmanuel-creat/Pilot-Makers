@@ -11,6 +11,15 @@ import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } f
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
 import { createFeed, deleteFeed } from "@/lib/services/calendar";
+import {
+  addToJob,
+  createSubcontractor,
+  deleteDocument,
+  removeFromJob,
+  requestDocuments,
+  setSubcontractorArchived,
+  updateSubcontractor,
+} from "@/lib/services/subcontractors";
 import { appUrl } from "@/lib/services/mail";
 import { addEntry, deleteEntry, reviewEntries, setMemberQualification, startTimer, stopTimer } from "@/lib/services/timesheets";
 import { formatMinutes } from "@/lib/services/timesheet-calc";
@@ -883,6 +892,93 @@ export async function deleteCalendarFeedAction(_: ActionState): Promise<ActionSt
     await withCtx((ctx) => deleteFeed(ctx));
     revalidatePath("/app/planning");
     return { ok: true, message: "Lien supprimé : l'agenda ne se met plus à jour." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Sous-traitants ---------------------------------------------------- */
+
+const subFields = (fd: FormData) => ({
+  name: s(fd, "name"),
+  siret: s(fd, "siret"),
+  trade: s(fd, "trade"),
+  contactName: s(fd, "contactName"),
+  email: s(fd, "email"),
+  phone: s(fd, "phone"),
+  notes: s(fd, "notes"),
+  autoRemind: fd.get("autoRemind") === "on",
+});
+
+export async function createSubcontractorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createSubcontractor(ctx, subFields(fd)));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/sous-traitants/${id}`);
+}
+
+export async function updateSubcontractorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    await withCtx((ctx) => updateSubcontractor(ctx, id, subFields(fd)));
+    revalidatePath("/app/sous-traitants", "layout");
+    return { ok: true, message: "Fiche enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function archiveSubcontractorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const archived = s(fd, "archived") === "1";
+    await withCtx((ctx) => setSubcontractorArchived(ctx, s(fd, "id"), archived));
+    revalidatePath("/app/sous-traitants", "layout");
+    return { ok: true, message: archived ? "Sous-traitant archivé." : "Sous-traitant réactivé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteSubDocumentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteDocument(ctx, s(fd, "docId")));
+    revalidatePath("/app/sous-traitants", "layout");
+    return { ok: true, message: "Document supprimé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function requestSubDocumentsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => requestDocuments(ctx, s(fd, "id")));
+    revalidatePath("/app/sous-traitants", "layout");
+    return { ok: true, message: "Demande envoyée par e-mail." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function addJobSubcontractorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => addToJob(ctx, jobId, { subcontractorId: s(fd, "subcontractorId"), scope: s(fd, "scope"), amount: s(fd, "amount") }));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Sous-traitant ajouté au chantier." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function removeJobSubcontractorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => removeFromJob(ctx, jobId, s(fd, "subcontractorId")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Sous-traitant retiré du chantier." };
   } catch (e) {
     return toState(e);
   }

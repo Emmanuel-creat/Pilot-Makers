@@ -6,6 +6,7 @@ import { requirePageCtx } from "@/lib/server/session";
 import { EVENT_LABELS, getDashboard } from "@/lib/services/dashboard";
 import { leadsDue } from "@/lib/services/leads";
 import { budgetAlerts } from "@/lib/services/job-costs";
+import { subcontractorAlerts } from "@/lib/services/subcontractors";
 import { pct } from "@/lib/services/jobs-labels";
 
 export const metadata = { title: "Tableau de bord" };
@@ -19,6 +20,7 @@ export default async function Dashboard() {
   const profileIncomplete = !org[0]?.siret || !org[0]?.address_line1;
   const leadsToFollow = await leadsDue(ctx);
   const overBudget = ctx.entitlements.plan.features.margin ? await budgetAlerts(ctx) : [];
+  const subAlerts = await subcontractorAlerts(ctx);
   return (
     <>
       <PageHeader
@@ -59,6 +61,23 @@ export default async function Dashboard() {
           <Icon name="right" />
         </Link>
       ))}
+      {subAlerts.length ? (
+        <Link
+          href={subAlerts.length === 1 ? `/app/sous-traitants/${subAlerts[0].id}` : "/app/sous-traitants"}
+          className="card mb-6 flex items-center gap-3 border-warning/40 bg-warning-soft p-4 text-sm"
+        >
+          <Icon name="shield" className="text-warning" />
+          <span className="flex-1">
+            Documents de sous-traitants à mettre à jour :{" "}
+            {subAlerts
+              .map((s) => s.name)
+              .slice(0, 3)
+              .join(", ")}
+            {subAlerts.length > 3 ? ` et ${subAlerts.length - 3} autre(s)` : ""}.
+          </span>
+          <Icon name="right" />
+        </Link>
+      ) : null}
       {total === 0 ? (
         <Empty
           icon="quote"
@@ -74,16 +93,38 @@ export default async function Dashboard() {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat label="Brouillons" value={c.draft + c.incomplete} hint={c.incomplete ? `dont ${c.incomplete} à compléter` : undefined} href="/app/devis?status=drafts" />
+            <Stat
+              label="Brouillons"
+              value={c.draft + c.incomplete}
+              hint={c.incomplete ? `dont ${c.incomplete} à compléter` : undefined}
+              href="/app/devis?status=drafts"
+            />
             <Stat label="À envoyer" value={c.ready} href="/app/devis?status=ready" />
-            <Stat label="En attente de réponse" value={c.sent + c.viewed} hint={c.viewed ? `dont ${c.viewed} consulté(s)` : undefined} href="/app/devis?status=pending" />
+            <Stat
+              label="En attente de réponse"
+              value={c.sent + c.viewed}
+              hint={c.viewed ? `dont ${c.viewed} consulté(s)` : undefined}
+              href="/app/devis?status=pending"
+            />
             <Stat label="Acceptés" value={c.accepted} href="/app/devis?status=accepted" />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Montant des devis en cours" value={formatEuros(d.pendingAmountTtcCents)} hint="TTC, devis émis sans réponse" />
-            <Stat label={`Devis acceptés (${d.periodDays} j)`} value={formatEuros(d.acceptedAmountHtCents)} hint="HT. Ce n'est pas du chiffre d'affaires encaissé." />
-            <Stat label="Taux d'acceptation" value={d.acceptanceRate === null ? "-" : `${String(d.acceptanceRate).replace(".", ",")} %`} hint={`Sur ${d.periodDays} jours, acceptés / (acceptés + refusés)`} />
-            <Stat label="Délai moyen de réponse" value={d.averageResponseDays === null ? "-" : `${String(d.averageResponseDays).replace(".", ",")} j`} hint="Entre l'envoi et la réponse" />
+            <Stat
+              label={`Devis acceptés (${d.periodDays} j)`}
+              value={formatEuros(d.acceptedAmountHtCents)}
+              hint="HT. Ce n'est pas du chiffre d'affaires encaissé."
+            />
+            <Stat
+              label="Taux d'acceptation"
+              value={d.acceptanceRate === null ? "-" : `${String(d.acceptanceRate).replace(".", ",")} %`}
+              hint={`Sur ${d.periodDays} jours, acceptés / (acceptés + refusés)`}
+            />
+            <Stat
+              label="Délai moyen de réponse"
+              value={d.averageResponseDays === null ? "-" : `${String(d.averageResponseDays).replace(".", ",")} j`}
+              hint="Entre l'envoi et la réponse"
+            />
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <Section title="Arrivent à expiration" description="Devis en attente dont la validité se termine sous 7 jours.">
@@ -176,7 +217,11 @@ export default async function Dashboard() {
             <ul className="divide-y divide-line">
               {d.recent.map((e, i) => (
                 <li key={i} className="flex items-center gap-3 py-2 text-sm">
-                  <Icon name={e.type === "accepted" ? "check" : e.type === "viewed" ? "eye" : e.type === "sent" ? "send" : "quote"} className="text-muted" size={16} />
+                  <Icon
+                    name={e.type === "accepted" ? "check" : e.type === "viewed" ? "eye" : e.type === "sent" ? "send" : "quote"}
+                    className="text-muted"
+                    size={16}
+                  />
                   <Link href={`/app/devis/${e.quoteId}`} className="min-w-0 flex-1 truncate hover:text-accent">
                     {EVENT_LABELS[e.type] ?? e.type} : {e.number ?? "brouillon"} {e.title}
                   </Link>

@@ -448,6 +448,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/planning", label: "Ouvrir le planning" },
   },
   {
+    slug: "suivre-ses-sous-traitants",
+    category: "clients",
+    title: "Suivre les documents de ses sous-traitants",
+    summary: "Attestation de vigilance URSSAF et assurance décennale à jour, avec alerte et relance avant expiration.",
+    steps: [
+      "Ouvrez « Sous-traitants » et créez la fiche : raison sociale, SIRET, interlocuteur et e-mail.",
+      "Ajoutez l'attestation de vigilance URSSAF et l'attestation d'assurance décennale, en PDF ou en photo, avec leur date de fin de validité.",
+      "Sur chaque chantier, indiquez les sous-traitants et le montant confié : au-delà de 5 000 euros HT, l'obligation de vigilance s'affiche si un document manque.",
+      "Touchez « Demander les documents à jour » pour envoyer la demande par e-mail, ou activez la relance automatique sur la fiche.",
+    ],
+    notes: [
+      "Sans date indiquée, l'attestation URSSAF est comptée valable six mois. Le tableau de bord signale les documents manquants, expirés ou qui expirent dans les 30 jours.",
+      "Le donneur d'ordre qui ne vérifie pas ces documents peut être tenu solidairement des cotisations impayées du sous-traitant.",
+    ],
+    link: { href: "/app/sous-traitants", label: "Ouvrir les sous-traitants" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

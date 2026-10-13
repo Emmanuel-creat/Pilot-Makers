@@ -16,6 +16,7 @@ const MAIN: NavItem[] = [
   { href: "/app/planning", label: "Planning", icon: "calendar" },
   { href: "/app/pointage", label: "Pointage", icon: "clock" },
   { href: "/app/clients", label: "Clients", icon: "users" },
+  { href: "/app/sous-traitants", label: "Sous-traitants", icon: "shield" },
   { href: "/app/demandes", label: "Demandes", icon: "inbox" },
   { href: "/app/rapports", label: "Rapports", icon: "chart" },
   { href: "/app/catalogue", label: "Catalogue", icon: "box" },

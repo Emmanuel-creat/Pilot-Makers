@@ -17,6 +17,9 @@ import { parisDate } from "@/lib/services/quotes";
 import { DeletePurchase, PurchaseForm, ThresholdForm } from "./CostForms";
 import { listOrders, ORDER_STATUSES } from "@/lib/services/purchase-orders";
 import { PrepareOrders } from "./OrderForms";
+import { jobSubcontractors, listSubcontractors } from "@/lib/services/subcontractors";
+import { JobSubcontractorForm, RemoveJobSubcontractor } from "../../sous-traitants/SubForms";
+import { StatusBadge } from "../../sous-traitants/StatusBadge";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -36,6 +39,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const showCosts = ctx.role !== "member" && !!ctx.entitlements.plan.features.margin;
   const [costs, purchases] = showCosts ? await Promise.all([jobCosts(ctx, id), listPurchases(ctx, id)]) : [null, []];
   const orders = ctx.role !== "member" ? await listOrders(ctx, id) : null;
+  const [subs, allSubs] = ctx.role !== "member" ? await Promise.all([jobSubcontractors(ctx, id), listSubcontractors(ctx)]) : [null, []];
   const address = [job.site_line1, job.site_line2, [job.site_postal_code, job.site_city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return (
     <div className="mx-auto max-w-5xl">
@@ -232,7 +236,10 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           <Section title="Coûts et marge" description="Achats affectés et heures pointées, comparés aux coûts prévus au devis.">
             {costs.alert !== "none" ? (
               <div className="mb-4">
-                <Notice tone={costs.alert === "over" ? "danger" : "warning"} title={costs.alert === "over" ? "Budget dépassé" : "Budget presque consommé"}>
+                <Notice
+                  tone={costs.alert === "over" ? "danger" : "warning"}
+                  title={costs.alert === "over" ? "Budget dépassé" : "Budget presque consommé"}
+                >
                   {pct(costs.consumedBp ?? 0)} % du coût prévu est déjà dépensé, pour un avancement de {pct(costs.progressBp)} %.
                 </Notice>
               </div>
@@ -271,7 +278,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                   <tr className="font-semibold">
                     <td className="px-3 py-2">Marge (vendu {formatEuros(costs.soldCents)} HT)</td>
                     <td className="tabular px-3 py-2 text-right">{formatEuros(costs.planned.marginCents)}</td>
-                    <td className={`tabular px-3 py-2 text-right ${costs.real.marginCents < costs.planned.marginCents ? "text-danger" : "text-success"}`}>
+                    <td
+                      className={`tabular px-3 py-2 text-right ${costs.real.marginCents < costs.planned.marginCents ? "text-danger" : "text-success"}`}
+                    >
                       {formatEuros(costs.real.marginCents)}
                     </td>
                     <td className="tabular px-3 py-2 text-right">{formatEuros(costs.real.marginCents - costs.planned.marginCents)}</td>
@@ -297,7 +306,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                       <tr key={t.id} className="border-b border-line last:border-0">
                         <td className="px-3 py-2">
                           {t.label}
-                          {t.nature === "main_oeuvre" ? <span className="block text-xs text-muted">Main-d'oeuvre : suivie par les heures pointées</span> : null}
+                          {t.nature === "main_oeuvre" ? (
+                            <span className="block text-xs text-muted">Main-d'oeuvre : suivie par les heures pointées</span>
+                          ) : null}
                         </td>
                         <td className="tabular px-3 py-2 text-right">{formatEuros(t.soldCents)}</td>
                         <td className="tabular px-3 py-2 text-right">{t.plannedCostCents === null ? "" : formatEuros(t.plannedCostCents)}</td>
@@ -366,12 +377,18 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       ) : null}
       {orders ? (
         <div className="mt-6">
-          <Section title="Commandes fournisseurs" description="Fournitures et sous-traitance du devis, commandées, reçues puis rapprochées de la facture.">
+          <Section
+            title="Commandes fournisseurs"
+            description="Fournitures et sous-traitance du devis, commandées, reçues puis rapprochées de la facture."
+          >
             {orders.length ? (
               <ul className="mb-4 divide-y divide-line text-sm">
                 {orders.map((o) => (
                   <li key={o.id}>
-                    <Link href={`/app/chantiers/${job.id}/commandes/${o.id}`} className="flex items-center justify-between gap-2 py-2 hover:bg-surface-2">
+                    <Link
+                      href={`/app/chantiers/${job.id}/commandes/${o.id}`}
+                      className="flex items-center justify-between gap-2 py-2 hover:bg-surface-2"
+                    >
                       <span className="min-w-0">
                         <span className="font-medium">{o.number}</span>
                         <span className="block truncate text-xs text-muted">
@@ -387,6 +404,51 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               <p className="mb-4 text-sm text-muted">Aucune commande pour ce chantier.</p>
             )}
             {canEdit ? <PrepareOrders jobId={job.id} hasQuote={!!job.quote_id} /> : null}
+          </Section>
+        </div>
+      ) : null}
+      {subs ? (
+        <div className="mt-6">
+          <Section title="Sous-traitants" description="Entreprises intervenant sur ce chantier et état de leurs documents.">
+            {subs.some((s) => s.vigilance && s.compliance.status !== "valide") ? (
+              <div className="mb-4">
+                <Notice tone="danger" title="Obligation de vigilance">
+                  Un marché d'au moins 5 000 euros HT impose une attestation URSSAF de moins de six mois : réclamez les documents manquants avant le
+                  démarrage.
+                </Notice>
+              </div>
+            ) : null}
+            {subs.length ? (
+              <ul className="mb-4 divide-y divide-line text-sm">
+                {subs.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-2 py-2">
+                    <span className="min-w-0">
+                      <Link className="link" href={`/app/sous-traitants/${s.id}`}>
+                        {s.name}
+                      </Link>
+                      <span className="block truncate text-xs text-muted">
+                        {[s.scope || s.trade, s.amount_ht_cents ? `${formatEuros(s.amount_ht_cents)} HT` : ""].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1">
+                      <StatusBadge status={s.compliance.status} />
+                      {canEdit ? <RemoveJobSubcontractor jobId={job.id} subId={s.id} name={s.name} /> : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mb-4 text-sm text-muted">Aucun sous-traitant sur ce chantier.</p>
+            )}
+            {canEdit ? (
+              allSubs.length ? (
+                <JobSubcontractorForm jobId={job.id} subs={allSubs.map((s) => ({ id: s.id, name: s.name }))} />
+              ) : (
+                <Link className="btn-secondary" href="/app/sous-traitants">
+                  Créer une fiche sous-traitant
+                </Link>
+              )
+            ) : null}
           </Section>
         </div>
       ) : null}

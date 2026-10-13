@@ -275,3 +275,29 @@ test("planning : lien d'abonnement d'agenda lisible sans session", async ({ page
   expect(await res.text()).toContain("BEGIN:VCALENDAR");
   await anon.close();
 });
+
+test("sous-traitants : fiche, attestation et vigilance sur le chantier", async ({ page }) => {
+  const name = `Plâtrerie Martin ${Date.now().toString(36)}`;
+  await login(page);
+  await page.goto("/app/sous-traitants");
+  await page.getByLabel("Raison sociale").fill(name);
+  await page.getByLabel("Métier").fill("Plâtrerie");
+  await page.getByLabel("E-mail", { exact: true }).fill("contact@platrerie-martin.fr");
+  await page.getByRole("button", { name: "Ajouter le sous-traitant" }).click();
+  await page.waitForURL(/\/app\/sous-traitants\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Document", { exact: true }).selectOption("urssaf");
+  await page.getByLabel(/^Fichier/).setInputFiles({ name: "vigilance.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n% essai\n") });
+  await page.getByRole("button", { name: "Ajouter le document" }).click();
+  await expect(page.getByText("Document ajouté.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Attestation de vigilance URSSAF" })).toBeVisible();
+  await audit(page, "fiche sous-traitant");
+  await page.getByRole("button", { name: "Demander les documents à jour" }).click();
+  await expect(page.getByText("Demande envoyée par e-mail.")).toBeVisible();
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Sous-traitant", { exact: true }).selectOption({ label: name });
+  await page.getByLabel("Montant HT", { exact: true }).fill("6000");
+  await page.getByRole("button", { name: "Ajouter au chantier" }).click();
+  await expect(page.getByText("Obligation de vigilance")).toBeVisible();
+});

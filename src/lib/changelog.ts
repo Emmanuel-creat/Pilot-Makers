@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "sous-traitants",
+    date: "2026-10-13",
+    title: "Suivi des sous-traitants",
+    text: "Fiches, attestations URSSAF et assurances décennales avec alerte avant expiration, relance par e-mail et obligation de vigilance sur chaque chantier.",
+    href: "/app/sous-traitants",
+  },
+  {
     id: "abonnement-agenda",
     date: "2026-10-13",
     title: "Le planning dans votre agenda",
