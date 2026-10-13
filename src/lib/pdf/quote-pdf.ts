@@ -570,6 +570,37 @@ export async function renderQuotePdf(
     w.y -= 6;
   }
 
+  // Photos annotées et croquis : deux par rangée, légende dessous, jamais coupés
+  if (!opts && s.media?.length) {
+    const gap = 12;
+    const cellW = (CONTENT_W - gap) / 2;
+    const maxH = 190;
+    const images = await Promise.all(s.media.map((m) => embedImage(doc, m.dataUrl)));
+    const items = s.media.map((m, i) => ({ m, img: images[i] })).filter((x) => x.img);
+    if (items.length) {
+      w.ensure(40);
+      w.y -= 16;
+      w.text(t("photos"), M.left, w.y, 9.5, f.bold, accent);
+      w.y -= 6;
+      for (let i = 0; i < items.length; i += 2) {
+        const row = items.slice(i, i + 2).map(({ m, img }) => {
+          const scale = Math.min(cellW / img!.width, maxH / img!.height, 1);
+          const caption = m.caption ? wrapText(m.caption, f.italic, 8, cellW).slice(0, 2) : [];
+          return { img: img!, w: img!.width * scale, h: img!.height * scale, caption };
+        });
+        const rowH = Math.max(...row.map((r) => r.h + r.caption.length * 10.5)) + 10;
+        w.ensure(rowH);
+        row.forEach((r, k) => {
+          const x = M.left + k * (cellW + gap);
+          w.page.drawImage(r.img, { x, y: w.y - r.h, width: r.w, height: r.h });
+          w.page.drawRectangle({ x, y: w.y - r.h, width: r.w, height: r.h, borderColor: LIGHT, borderWidth: 0.6 });
+          r.caption.forEach((line, n) => w.text(line, x, w.y - r.h - 10 - n * 10.5, 8, f.italic, GREY));
+        });
+        w.y -= rowH;
+      }
+    }
+  }
+
   // Conditions et mentions
   const section = (title: string, body: string, size = 8.5) => {
     if (!body.trim()) return;

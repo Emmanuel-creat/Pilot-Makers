@@ -757,6 +757,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/comptabilite", label: "Ouvrir la comptabilité" },
   },
   {
+    slug: "photos-et-croquis",
+    category: "devis",
+    title: "Joindre des photos annotées et des croquis",
+    summary: "Montrez l'existant ou les cotes au client : les images annotées sont imprimées dans le PDF sous les totaux.",
+    steps: [
+      "Dans le devis, section Photos et croquis, choisissez « Ajouter une photo » (l'appareil photo s'ouvre sur téléphone) ou « Dessiner un croquis ».",
+      "Annotez avec un trait libre, une flèche ou un texte, par exemple une cote. « Annuler » retire le dernier ajout.",
+      "Ajoutez une légende puis « Ajouter au devis ». Réordonnez ou retirez les images depuis la liste.",
+    ],
+    notes: [
+      "8 images au plus par devis. La position GPS et les informations de l'appareil sont retirées des photos.",
+      "Les images sont figées dans la version émise : pour les changer, créez une nouvelle version.",
+    ],
+    link: { href: "/app/devis", label: "Ouvrir mes devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

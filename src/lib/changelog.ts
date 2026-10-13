@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "photos-et-croquis",
+    date: "2026-10-13",
+    title: "Photos annotées et croquis dans le devis",
+    text: "Photographiez l'existant ou dessinez un croquis coté, annotez-le et il s'imprime dans le PDF envoyé au client.",
+    href: "/aide/photos-et-croquis",
+  },
+  {
     id: "espace-expert-comptable",
     date: "2026-10-13",
     title: "Accès expert-comptable et plan comptable",

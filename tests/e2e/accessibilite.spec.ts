@@ -671,3 +671,36 @@ test("comptabilité : plan comptable du cabinet et exports", async ({ page }) =>
   await page.getByRole("button", { name: "Enregistrer le plan comptable" }).click();
   await expect(page.getByText("Plan comptable enregistré.")).toBeVisible();
 });
+
+test("devis : croquis annoté joint et imprimé dans le PDF", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Ravalement de façade");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Dessiner un croquis" }).click();
+  const dialog = page.getByRole("dialog");
+  const canvas = dialog.getByTestId("annotation");
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + 30, box.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 200, box.y + 120, { steps: 8 });
+  await page.mouse.up();
+  await dialog.getByRole("button", { name: "Flèche" }).click();
+  await page.mouse.move(box.x + 250, box.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 120, box.y + 100, { steps: 6 });
+  await page.mouse.up();
+  await dialog.getByRole("button", { name: "Texte ou cote" }).click();
+  await dialog.getByLabel("Texte à placer (touchez l'image ensuite)").fill("2,40 m");
+  await canvas.click({ position: { x: 60, y: 60 } });
+  await dialog.getByLabel("Légende imprimée sous l'image").fill("Façade sud, cotes de l'échafaudage");
+  await audit(page, "croquis");
+  await dialog.getByRole("button", { name: "Ajouter au devis" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByTestId("photos-devis").getByRole("img", { name: "Façade sud, cotes de l'échafaudage" })).toBeVisible();
+  const pdf = await page.request.get(`${page.url().replace("/app/devis/", "/api/quotes/")}/preview-pdf`);
+  expect(pdf.status()).toBe(200);
+  await page.getByRole("button", { name: "Retirer l'image 1" }).click();
+  await expect(page.getByTestId("photos-devis")).toHaveCount(0);
+});

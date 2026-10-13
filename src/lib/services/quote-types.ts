@@ -1,4 +1,5 @@
 import type { EnergyAid } from "./aid-rules";
+import type { SnapshotMedia } from "./quote-media";
 import type { Measure } from "@/lib/calc/measure";
 import type { CalcResult, LineKind, LineNature } from "@/lib/calc/engine";
 import type { ConsumerTerms, ContractPlace } from "./consumer";
@@ -133,6 +134,8 @@ export interface QuoteSnapshot {
   font?: "times";
   /** Mention libre de l'entreprise en pied de page */
   footerNote?: string;
+  /** Photos annotées et croquis joints, dans l'ordre choisi */
+  media?: SnapshotMedia[];
   watermark: boolean;
   org: {
     trade_name: string;

@@ -19,6 +19,8 @@ import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuote
 import { acceptedCalc, snapshotOptions } from "@/lib/services/options";
 import { reducedVatAttestation } from "@/lib/services/consumer";
 import { SignOnSite } from "./SignOnSite";
+import { QuoteMedia } from "./QuoteMedia";
+import { listQuoteMedia } from "@/lib/services/quote-media";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
 import { ClientThread } from "./ClientThread";
@@ -122,6 +124,7 @@ export default async function QuotePage({
           openAssistant={sp.assistant === "1"}
           pricing={editorPricing(readPricing(org.pricing), !!ctx.entitlements.plan.features.margin)}
         />
+        <QuoteMedia quoteId={id} initial={await listQuoteMedia(ctx, id)} editable />
         {can(ctx, "costs") ? (
           <section className="card mt-6 p-4" id="sous-traitance">
             <h2 className="mb-1 text-sm font-semibold">Prix des sous-traitants</h2>

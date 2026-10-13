@@ -39,6 +39,7 @@ import {
   type QuoteStatus,
 } from "./quote-types";
 import { normalizeRevision, revisionMention } from "./revision";
+import { snapshotMedia, type SnapshotMedia } from "./quote-media";
 import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualifications, type EnergyAid, type RgeQualification } from "./aids";
 import { enqueueWebhook } from "./webhooks";
 
@@ -625,6 +626,8 @@ export function buildSnapshot(args: {
   now?: Date;
   /** Qualifications RGE de l'entreprise, citées quand le devis vise des aides à la rénovation */
   rge?: RgeQualification[];
+  /** Photos et croquis joints au devis */
+  media?: SnapshotMedia[];
 }): QuoteSnapshot {
   const { ctx, d, org, customer, calc, issues, number, version } = args;
   const aid = normalizeAid(d.energyAid);
@@ -646,6 +649,7 @@ export function buildSnapshot(args: {
     accentColor: org.accent_color,
     ...(org.pdf_font === "times" ? { font: "times" as const } : {}),
     ...(org.pdf_footer_note?.trim() ? { footerNote: org.pdf_footer_note.trim() } : {}),
+    ...(args.media?.length ? { media: args.media } : {}),
     watermark: Boolean(ctx.entitlements.plan.features.watermark),
     org: {
       trade_name: org.trade_name,
@@ -778,7 +782,8 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     }
 
     const now = new Date();
-    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now, rge });
+    const media = await snapshotMedia(tx, ctx.orgId, id);
+    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now, rge, media });
     const validUntil = snapshot.validUntil;
     const check = verifySnapshot(snapshot);
     if (!check.ok) throw new HttpError(500, "integrity", "Contrôle de cohérence échoué : " + check.reason, check.reason);
@@ -852,6 +857,7 @@ export async function previewPdf(ctx: Ctx, id: string, override?: QuoteDraft): P
     number: d.number ?? "BROUILLON",
     version: d.currentVersion + 1,
     rge: await rgeQualifications(ctx.db, ctx.orgId),
+    media: await snapshotMedia(ctx.db, ctx.orgId, id),
   });
   snapshot.preview = true;
   return renderQuotePdf(snapshot);

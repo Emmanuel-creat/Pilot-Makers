@@ -162,6 +162,7 @@ const T = {
   page: { fr: "page", en: "page", es: "página", pt: "página", de: "Seite" },
   continued: { fr: "(suite)", en: "(continued)", es: "(continuación)", pt: "(continuação)", de: "(Fortsetzung)" },
   recapLots: { fr: "Récapitulatif par lot", en: "Summary by section", es: "Resumen por lote", pt: "Resumo por lote", de: "Übersicht nach Losen" },
+  photos: { fr: "Photos et croquis", en: "Photos and sketches", es: "Fotos y croquis", pt: "Fotos e esboços", de: "Fotos und Skizzen" },
   recapAll: { fr: "Récapitulatif des lots", en: "Summary of sections", es: "Resumen de los lotes", pt: "Resumo dos lotes", de: "Übersicht der Lose" },
   detail: {
     fr: "Détail des prestations",
