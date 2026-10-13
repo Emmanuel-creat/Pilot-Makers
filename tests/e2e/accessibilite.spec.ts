@@ -435,3 +435,47 @@ test("équipe : invitation par fonction et description des droits", async ({ pag
   await page.getByRole("button", { name: "Inviter" }).click();
   await expect(page.getByText(/Invitation envoyée|limitée à/)).toBeVisible();
 });
+
+test("devis : signature du client sur l'écran de l'artisan", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  const customer = page.locator("select[name=customerId]");
+  const value = await customer.locator("option", { hasText: "Dubois" }).first().getAttribute("value");
+  await customer.selectOption(value!);
+  await page.locator("input[name=title]").fill("Faïence de la salle d'eau");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Catalogue", exact: true }).click();
+  const picker = page.getByRole("dialog");
+  await picker.getByPlaceholder("Rechercher une prestation").fill("carrelage au sol");
+  await picker.locator("li", { hasText: "Pose de carrelage au sol" }).locator("input[type=checkbox]").check();
+  await picker.getByRole("button", { name: "Ajouter au devis" }).click();
+  await expect(picker).toBeHidden();
+  await page.getByRole("button", { name: "Émettre" }).first().click();
+  const issue = page.getByRole("dialog");
+  await issue.getByRole("checkbox").check();
+  await issue.getByRole("button", { name: "Émettre" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^D-\d{4}-\d{4}$/);
+
+  await page.getByRole("button", { name: "Faire signer sur place" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Nom et prénom du signataire").fill("Claire Dubois");
+  await dialog.getByRole("checkbox", { name: /Bon pour accord/ }).check();
+  const attest = dialog.getByRole("checkbox", { name: /taux réduit de TVA/ });
+  if (await attest.count()) await attest.check();
+  const pad = dialog.getByRole("img", { name: "Signature du client : signez dans ce cadre" });
+  await pad.scrollIntoViewIfNeeded();
+  const box = (await pad.boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 120, box.y + 70, { steps: 8 });
+  await page.mouse.move(box.x + 200, box.y + 30, { steps: 8 });
+  await page.mouse.up();
+  await audit(page, "signature sur place");
+  await dialog.getByRole("button", { name: "Valider la signature" }).click();
+  await expect(dialog.getByText("Devis signé et accepté.")).toBeVisible();
+  await dialog.getByText("Fermer", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Faire signer sur place" })).toBeHidden();
+  const signed = await page.request.get(`${page.url().replace("/app/devis/", "/api/quotes/")}/pdf?signe=1`);
+  expect(signed.status()).toBe(200);
+});

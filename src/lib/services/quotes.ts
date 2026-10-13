@@ -893,12 +893,25 @@ export async function acceptedCopy(q: Queryable, orgId: string, quoteId: string)
     .format(new Date(ev.created_at))
     .replace(" ", " à ");
   const online = ev.data.via === "lien sécurisé";
+  const onsite = ev.data.via === "signature sur place";
+  const sig = onsite
+    ? await one<{ image: Uint8Array }>(
+        q,
+        "SELECT image FROM quote_signatures WHERE org_id=$1 AND quote_id=$2 AND version=$3 ORDER BY created_at DESC LIMIT 1",
+        [orgId, quoteId, version],
+      )
+    : null;
   const pdf = await renderQuotePdf(v.snapshot, undefined, {
-    name: online ? String(ev.data.name) : v.snapshot.customer.name,
+    name: online || onsite ? String(ev.data.name) : v.snapshot.customer.name,
     at,
-    via: online ? "en ligne, par le lien sécurisé transmis au client" : `enregistré par l'entreprise : ${String(ev.data.proof ?? "")}`.slice(0, 200),
+    via: online
+      ? "en ligne, par le lien sécurisé transmis au client"
+      : onsite
+        ? "signé à la main sur l'écran de l'entreprise, en présence du client"
+        : `enregistré par l'entreprise : ${String(ev.data.proof ?? "")}`.slice(0, 200),
     documentSha256: v.pdfSha256,
     options: acceptanceOptionsText(v.snapshot, (quote?.accepted_options as string[] | null) ?? []),
+    ...(sig ? { signaturePng: `data:image/png;base64,${Buffer.from(sig.image).toString("base64")}` } : {}),
   });
   return { pdf, number: v.number, version: v.version };
 }
@@ -1273,7 +1286,7 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
 }
 
 /** Données envoyées aux webhooks quand un devis est signé. */
-function acceptedPayload(quoteId: string, s: QuoteSnapshot, version: number, calc: { totalHtCents: number; totalTtcCents: number }, via: string) {
+export function acceptedPayload(quoteId: string, s: QuoteSnapshot, version: number, calc: { totalHtCents: number; totalTtcCents: number }, via: string) {
   return {
     quote_id: quoteId,
     number: s.number,

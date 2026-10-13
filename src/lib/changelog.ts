@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "signature-sur-place",
+    date: "2026-10-13",
+    title: "Signature sur place",
+    text: "Votre client signe le devis au doigt sur votre tablette ou votre téléphone ; il reçoit son exemplaire signé par e-mail.",
+    href: "/aide/signature-sur-place",
+  },
+  {
     id: "devis-traduit",
     date: "2026-10-13",
     title: "Devis traduits",

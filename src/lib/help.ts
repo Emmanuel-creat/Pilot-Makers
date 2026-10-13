@@ -601,6 +601,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Ouvrir les devis" },
   },
   {
+    slug: "signature-sur-place",
+    category: "devis",
+    title: "Faire signer le devis sur place, sur votre écran",
+    summary: "Le client signe au doigt sur votre tablette ou votre téléphone, chez lui ou au bureau, et reçoit son exemplaire signé par e-mail.",
+    steps: [
+      "Ouvrez le devis émis puis, dans « Réponse du client », touchez « Faire signer sur place ».",
+      "Tendez l'écran au client : il coche les options retenues, vérifie son nom, coche « Bon pour accord » et, si besoin, l'attestation de TVA réduite.",
+      "Il signe dans le cadre au doigt ou au stylet, puis valide. Le devis passe en accepté.",
+      "S'il a une adresse e-mail, il reçoit aussitôt le lien vers son exemplaire signé. Sinon, remettez-lui l'exemplaire accepté depuis la page du devis.",
+    ],
+    notes: [
+      "La signature dessinée est reportée sur l'exemplaire accepté, avec la date, l'heure et l'empreinte du devis. Elle est conservée avec sa propre empreinte dans l'historique.",
+      "Seule la dernière version émise, encore valable, peut être signée. Pour un particulier, le délai de rétractation de 14 jours s'applique comme pour une acceptation en ligne.",
+    ],
+    link: { href: "/app/devis", label: "Ouvrir les devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

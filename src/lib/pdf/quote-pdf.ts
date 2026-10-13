@@ -187,6 +187,8 @@ export interface PdfAcceptance {
   documentSha256: string;
   /** Options retenues et montant accepté, quand le devis proposait des options */
   options?: string;
+  /** Signature manuscrite du client recueillie sur l'écran de l'entreprise (image PNG) */
+  signaturePng?: string;
 }
 
 export async function renderQuotePdf(
@@ -217,6 +219,7 @@ export async function renderQuotePdf(
   };
   const accent = s.template === "sobre" ? BLACK : hexToRgb(s.accentColor);
   const logo = await embedImage(doc, s.org.logo_data);
+  const clientSignature = accepted?.signaturePng ? await embedImage(doc, accepted.signaturePng) : null;
   const signature = await embedImage(doc, s.org.signature_data);
 
   // Colonnes du tableau
@@ -579,7 +582,7 @@ export async function renderQuotePdf(
     w.page.drawRectangle({ x: M.left, y: w.y - zoneH, width: CONTENT_W, height: zoneH, borderColor: GREY, borderWidth: 0.8 });
     w.text(t("acceptance"), M.left + 10, w.y - 14, 9.5, f.bold);
     if (accepted) {
-      const half = CONTENT_W / 2 - 20;
+      const half = CONTENT_W / 2 - 20 - (clientSignature ? 115 : 0);
       let ay = w.y - 28;
       for (const [txt, font] of [
         [`« Bon pour accord », accepté par ${accepted.name}`, f.bold],
@@ -595,6 +598,15 @@ export async function renderQuotePdf(
       }
     } else {
       w.text(t("acceptanceHint"), M.left + 10, w.y - 27, 8, f.regular, GREY);
+    }
+    if (clientSignature) {
+      const scale = Math.min(110 / clientSignature.width, 42 / clientSignature.height, 1);
+      w.page.drawImage(clientSignature, {
+        x: M.left + CONTENT_W / 2 - 10 - clientSignature.width * scale,
+        y: w.y - zoneH + 6,
+        width: clientSignature.width * scale,
+        height: clientSignature.height * scale,
+      });
     }
     w.text(`${t("forOrg")} ${s.org.trade_name}`, M.left + CONTENT_W / 2 + 10, w.y - 14, 9.5, f.bold);
     if (signature) {

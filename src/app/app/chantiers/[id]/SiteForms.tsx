@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { deleteJournalAction, liftReserveAction, signReceptionAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { FormMessage, Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
+import { SignaturePad } from "@/components/SignaturePad";
 
 /* ------------------------------------------------------------------ */
 /* Journal                                                             */
@@ -116,73 +117,6 @@ export function DeleteJournal({ entryId }: { entryId: string }) {
 /* ------------------------------------------------------------------ */
 
 /** Zone de signature au doigt ou au stylet, enregistrée en PNG dans un champ caché. */
-function SignaturePad({ name, label }: { name: string; label: string }) {
-  const canvas = useRef<HTMLCanvasElement>(null);
-  const [value, setValue] = useState("");
-  const drawing = useRef(false);
-  useEffect(() => {
-    const c = canvas.current!;
-    const ratio = window.devicePixelRatio || 1;
-    c.width = c.offsetWidth * ratio;
-    c.height = c.offsetHeight * ratio;
-    const ctx = c.getContext("2d")!;
-    ctx.scale(ratio, ratio);
-    ctx.lineWidth = 2.2;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "#17191d";
-  }, []);
-  const point = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  };
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between">
-        <span className="label mb-0">{label}</span>
-        <button
-          type="button"
-          className="btn-ghost min-h-8 px-2 py-1 text-xs"
-          onClick={() => {
-            const c = canvas.current!;
-            c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
-            setValue("");
-          }}
-        >
-          Effacer
-        </button>
-      </div>
-      <canvas
-        ref={canvas}
-        role="img"
-        aria-label={`${label} : signez dans ce cadre`}
-        className="h-36 w-full touch-none rounded-md border border-line bg-white"
-        onPointerDown={(e) => {
-          drawing.current = true;
-          e.currentTarget.setPointerCapture(e.pointerId);
-          const ctx = e.currentTarget.getContext("2d")!;
-          const p = point(e);
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-        }}
-        onPointerMove={(e) => {
-          if (!drawing.current) return;
-          const ctx = e.currentTarget.getContext("2d")!;
-          const p = point(e);
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
-        }}
-        onPointerUp={(e) => {
-          drawing.current = false;
-          setValue(e.currentTarget.toDataURL("image/png"));
-        }}
-      />
-      <input type="hidden" name={name} value={value} />
-      {value ? null : <p className="mt-1 text-xs text-muted">Signature à faire au doigt ou au stylet.</p>}
-    </div>
-  );
-}
-
 type ReserveRow = { key: number; label: string; location: string; due: string };
 
 export function ReceptionForm({

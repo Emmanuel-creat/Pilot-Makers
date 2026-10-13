@@ -15,7 +15,9 @@ import { readPricing, type Pricing } from "@/lib/services/pricing";
 import { EDITABLE_STATUSES, PENDING_STATUSES, QUOTE_STATUSES } from "@/lib/services/quote-types";
 import { getDraft, getQuoteRow, getVersion, listAmendments, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
 import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
-import { snapshotOptions } from "@/lib/services/options";
+import { acceptedCalc, snapshotOptions } from "@/lib/services/options";
+import { reducedVatAttestation } from "@/lib/services/consumer";
+import { SignOnSite } from "./SignOnSite";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
 import { ClientThread } from "./ClientThread";
@@ -344,8 +346,20 @@ export default async function QuotePage({
             <section className="card space-y-3 p-4">
               <h2 className="text-sm font-semibold">Réponse du client</h2>
               <p className="text-xs text-muted">
-                Le client peut accepter en ligne via le lien. Si sa réponse vous arrive autrement, enregistrez-la ici.
+                Le client peut accepter en ligne via le lien, ou signer sur votre écran. Si sa réponse vous arrive autrement, enregistrez-la ici.
               </p>
+              {pending && current && current.version === draft.currentVersion ? (
+                <SignOnSite
+                  quoteId={id}
+                  number={current.number}
+                  version={current.version}
+                  baseTtcCents={acceptedCalc(current.snapshot, []).totalTtcCents}
+                  customerName={current.snapshot.customer.contact || (current.snapshot.customer.type === "particulier" ? current.snapshot.customer.name : "")}
+                  options={snapshotOptions(current.snapshot).map((o) => ({ id: o.id, label: o.label, ttcCents: o.ttcCents }))}
+                  vatAttestation={current.snapshot.consumer?.reducedVatBp.length ? reducedVatAttestation(current.snapshot.consumer.reducedVatBp) : ""}
+                  withdrawal={Boolean(current.snapshot.consumer?.withdrawal)}
+                />
+              ) : null}
               <ManualResponse
                 quoteId={id}
                 version={draft.currentVersion}
