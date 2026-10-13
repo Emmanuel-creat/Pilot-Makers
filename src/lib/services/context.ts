@@ -36,6 +36,8 @@ export interface Ctx {
   ip: string;
   userAgent: string;
   entitlements: Entitlements;
+  /** Requête de l'API publique : clé utilisée et droits accordés */
+  apiKey?: { id: string; scopes: string[] };
   /** Accès support en cours (administrateur de la plateforme dans l'espace d'un client) */
   supportAccess?: { reason: string; expiresAt: Date };
 }

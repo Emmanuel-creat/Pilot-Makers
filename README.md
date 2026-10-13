@@ -67,6 +67,10 @@ Les tests couvrent les calculs (arrondis, remises, TVA multiples, franchise, lim
 - `POST /api/cron/webhooks` : envoi des webhooks en attente et nouveaux essais (toutes les minutes) ;
 - `POST /api/cron/maintenance` : fin d'essai, échéances d'abonnement, purge des comptes supprimés (une fois par jour). Sur l'instance de démonstration publique, `DEMO_RESET=1` remet aussi le compte de démonstration à zéro à chaque passage.
 
+## API publique
+
+Les administrateurs créent des clés d'accès dans Entreprise, onglet API (lecture, ou lecture et écriture). Chaque requête porte `Authorization: Bearer pm_...` ; limite de 120 requêtes par minute et par clé. Adresses sous `/api/v1` (clients, devis et leurs PDF, factures et leurs PDF, catalogue, chantiers), description OpenAPI 3.1 sur `/api/v1/openapi.json`. Une clé agit au nom de l'administrateur qui l'a créée : elle cesse de fonctionner s'il quitte l'entreprise ou perd son rôle. Seule l'empreinte SHA-256 de la clé est enregistrée.
+
 ## Activation progressive des nouveautés
 
 Chaque nouveauté listée dans `src/lib/features.ts` s'ouvre à un pourcentage d'entreprises, toujours les mêmes (tirage stable). La variable `FEATURE_<CLE>` (par exemple `FEATURE_WEBHOOKS=25`, `on` ou `off`) change ce pourcentage sans redéploiement du code, et l'administration peut forcer une fonctionnalité pour un compte (page du compte, section Fonctionnalités). Le journal des nouveautés (`src/lib/changelog.ts`, page Nouveautés) n'affiche à chaque entreprise que ce qui lui est ouvert.

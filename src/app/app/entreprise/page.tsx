@@ -8,6 +8,9 @@ import { RemindersForm } from "./RemindersForm";
 import { InvoiceSettingsForm } from "./InvoiceSettingsForm";
 import { IndexValues } from "./IndexValues";
 import { Webhooks } from "./Webhooks";
+import { ApiKeys } from "./ApiKeys";
+import { listApiKeys } from "@/lib/services/api-keys";
+import { API_ENDPOINTS } from "@/lib/openapi";
 import { listDeliveries, listEndpoints, WEBHOOK_EVENTS } from "@/lib/services/webhooks";
 import { hasFeature } from "@/lib/services/features";
 import { PricingForm } from "./PricingForm";
@@ -27,6 +30,7 @@ const TABS = [
   ["relances", "Relances"],
   ["factures", "Factures"],
   ["webhooks", "Webhooks"],
+  ["api", "API"],
   ["historique", "Historique"],
 ] as const;
 
@@ -53,7 +57,11 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const org = redactForRole(await getOrganization(ctx), ctx.role);
   const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
   const webhooksOn = await hasFeature(ctx, "webhooks");
-  const tabs = TABS.filter(([k]) => ((k !== "paiement" && k !== "webhooks") || ctx.role !== "member") && (k !== "webhooks" || webhooksOn));
+  const apiOn = await hasFeature(ctx, "api_publique");
+  const tabs = TABS.filter(
+    ([k]) =>
+      ((k !== "paiement" && k !== "webhooks" && k !== "api") || ctx.role !== "member") && (k !== "webhooks" || webhooksOn) && (k !== "api" || apiOn),
+  );
   const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
     <div className="mx-auto max-w-4xl">
@@ -102,6 +110,21 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
             status: d.last_status,
             error: d.last_error,
             at: new Date(d.created_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" }),
+          }))}
+        />
+      ) : tab === "api" && ctx.role !== "member" && apiOn ? (
+        <ApiKeys
+          canEdit={canEdit}
+          endpoints={API_ENDPOINTS.map((e) => ({ method: e.method, path: e.path, summary: e.summary }))}
+          keys={(await listApiKeys(ctx)).map((k) => ({
+            id: k.id,
+            name: k.name,
+            prefix: k.prefix,
+            write: k.scopes.includes("write"),
+            createdBy: k.created_by_name,
+            createdAt: fmtDate(k.created_at),
+            lastUsed: k.last_used_at ? fmtDate(k.last_used_at) : "",
+            revoked: !!k.revoked_at,
           }))}
         />
       ) : tab === "relances" ? (

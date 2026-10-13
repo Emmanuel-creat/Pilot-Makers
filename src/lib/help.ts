@@ -352,6 +352,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/clients/import", label: "Importer des clients" },
   },
   {
+    slug: "api-publique",
+    category: "compte",
+    title: "Relier Pilot-Makers à d'autres logiciels avec l'API",
+    summary: "Clés d'accès, droits en lecture ou en écriture, 120 requêtes par minute.",
+    steps: [
+      "Ouvrez « Entreprise », onglet « API », donnez un nom à la clé et choisissez ses droits : lecture, ou lecture et écriture.",
+      "Copiez la clé affichée : elle ne sera plus montrée. Votre outil l'envoie dans l'en-tête « Authorization: Bearer ».",
+      "Lisez vos clients, devis, factures (avec leurs PDF), catalogue et chantiers ; créez des clients et des prestations avec une clé en écriture.",
+      "Révoquez une clé qui ne sert plus : elle cesse de fonctionner immédiatement.",
+    ],
+    notes: [
+      "Une clé agit au nom de l'administrateur qui l'a créée et cesse de fonctionner s'il quitte l'entreprise ou n'est plus administrateur.",
+      "La description complète, au format OpenAPI, est publiée sur /api/v1/openapi.json.",
+    ],
+    link: { href: "/app/entreprise?onglet=api", label: "Ouvrir l'onglet API" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

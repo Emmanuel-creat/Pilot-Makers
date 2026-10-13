@@ -40,6 +40,8 @@ export const RATE_RULES = {
   "assistant.burst": rule(10, 60, "Trop de demandes à l'assistant de préparation."),
   /** Imports et exports de fichiers, par entreprise */
   "files.transfer": rule(30, 3600, "Trop d'imports ou d'exports en peu de temps."),
+  /** API publique, par clé d'accès */
+  "api.key": rule(120, 60, "Trop de requêtes pour cette clé d'API : 120 par minute au plus."),
   /** Photos du journal de chantier, par entreprise */
   "job.photo": rule(300, 3600, "Trop de photos envoyées en peu de temps."),
 } as const;

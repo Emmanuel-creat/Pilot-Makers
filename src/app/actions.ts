@@ -9,6 +9,7 @@ import { addVehicle, assign, deleteAssignment, deleteVehicle, moveAssignment } f
 import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/job-site";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
+import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
 import {
@@ -824,6 +825,26 @@ export async function webhookCommandAction(_: ActionState, fd: FormData): Promis
     }
     revalidatePath("/app/entreprise");
     return { ok: true, message };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function createApiKeyAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => createApiKey(ctx, { name: s(fd, "name"), scope: s(fd, "scope") }));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: r.key };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function revokeApiKeyAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => revokeApiKey(ctx, s(fd, "id")));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Clé révoquée : elle ne fonctionne plus." };
   } catch (e) {
     return toState(e);
   }

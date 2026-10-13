@@ -17,6 +17,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "api-publique",
+    date: "2026-10-13",
+    title: "API publique",
+    text: "Créez des clés d'accès pour relier vos clients, devis, factures, catalogue et chantiers à vos autres logiciels.",
+    href: "/app/entreprise?onglet=api",
+    feature: "api_publique",
+  },
+  {
     id: "import-tableurs",
     date: "2026-10-13",
     title: "Import depuis Excel et les autres logiciels",

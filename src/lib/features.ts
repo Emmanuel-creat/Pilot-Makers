@@ -18,6 +18,7 @@ export const FEATURES = {
   },
   revision_prix: { label: "Révision de prix", description: "Prix révisables selon les index BT sur les devis et les factures.", rollout: 100 },
   factures_structurees: { label: "Factures structurées", description: "Téléchargement des factures en Factur-X, XML CII et UBL.", rollout: 100 },
+  api_publique: { label: "API publique", description: "Accès aux clients, devis, factures, catalogue et chantiers par clé d'accès.", rollout: 100 },
 } as const;
 
 export type FeatureKey = keyof typeof FEATURES;

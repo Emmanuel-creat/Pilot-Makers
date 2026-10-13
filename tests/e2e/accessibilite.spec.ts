@@ -175,3 +175,22 @@ test("import du catalogue depuis un fichier d'un autre logiciel", async ({ page 
   await page.getByRole("button", { name: "Importer 1 ligne(s)" }).click();
   await expect(page.getByText("1 ligne(s) importée(s)")).toBeVisible();
 });
+
+test("API publique : clé créée à l'écran puis utilisée", async ({ page, request }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=api");
+  await audit(page, "onglet API");
+  await page.getByLabel("Nom de la clé").fill("Essai navigateur");
+  await page.getByRole("button", { name: "Créer la clé" }).click();
+  const key = (await page.locator(".select-all").first().textContent())!.trim();
+  expect(key).toMatch(/^pm_/);
+  expect((await request.get("/api/v1/me")).status()).toBe(401);
+  const me = await request.get("/api/v1/me", { headers: { authorization: `Bearer ${key}` } });
+  expect(me.status()).toBe(200);
+  expect((await me.json()).scopes).toEqual(["read"]);
+  const customers = await request.get("/api/v1/customers?limit=2", { headers: { authorization: `Bearer ${key}` } });
+  expect((await customers.json()).data.length).toBeGreaterThan(0);
+  const write = await request.post("/api/v1/customers", { headers: { authorization: `Bearer ${key}` }, data: { last_name: "Essai" } });
+  expect(write.status()).toBe(403);
+  expect((await (await request.get("/api/v1/openapi.json")).json()).openapi).toBe("3.1.0");
+});

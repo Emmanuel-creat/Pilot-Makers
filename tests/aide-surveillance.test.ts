@@ -12,7 +12,7 @@ describe("centre d'aide", () => {
     for (const a of HELP_ARTICLES) {
       expect(HELP_CATEGORIES[a.category], a.slug).toBeDefined();
       expect(a.steps.length, a.slug).toBeGreaterThan(0);
-      if (a.link) expect(existsSync(`src/app${a.link.href}/page.tsx`), a.link.href).toBe(true);
+      if (a.link) expect(existsSync(`src/app${a.link.href.split("?")[0]}/page.tsx`), a.link.href).toBe(true);
     }
     for (const code of Object.keys(HELP_CATEGORIES))
       expect(
