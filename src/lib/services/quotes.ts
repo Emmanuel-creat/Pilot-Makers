@@ -37,6 +37,7 @@ import {
   type QuoteStatus,
 } from "./quote-types";
 import { normalizeRevision, revisionMention } from "./revision";
+import { enqueueWebhook } from "./webhooks";
 
 const DAY = 86_400_000;
 
@@ -1245,6 +1246,8 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
         meta.userAgent.slice(0, 300),
       ],
     );
+    if (accepted)
+      await enqueueWebhook(tx, r.link.org_id, "quote.accepted", acceptedPayload(r.link.quote_id, r.version.snapshot, r.version.version, finalCalc, "lien sécurisé"));
     const org = await one<{ email: string; trade_name: string }>(tx, "SELECT email, trade_name FROM organizations WHERE id=$1", [r.link.org_id]);
     if (org?.email) {
       await sendMail(tx, {
@@ -1258,6 +1261,21 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
     }
     return { status: accepted ? "accepted" : "refused" };
   });
+}
+
+/** Données envoyées aux webhooks quand un devis est signé. */
+function acceptedPayload(quoteId: string, s: QuoteSnapshot, version: number, calc: { totalHtCents: number; totalTtcCents: number }, via: string) {
+  return {
+    quote_id: quoteId,
+    number: s.number,
+    version,
+    title: s.quote.title,
+    customer_id: s.customer.id,
+    customer_name: s.customer.name,
+    total_ht_cents: calc.totalHtCents,
+    total_ttc_cents: calc.totalTtcCents,
+    accepted_via: via,
+  };
 }
 
 /** Acceptation ou refus enregistré par l'artisan (devis signé sur papier, accord écrit...). */
@@ -1307,6 +1325,7 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
       ...(accepted || !input.reasonCode ? {} : { reason_code: input.reasonCode }),
       ...(accepted && v.snapshot.calc.options ? { options: chosen } : {}),
     });
+    if (accepted) await enqueueWebhook(tx, ctx.orgId, "quote.accepted", acceptedPayload(quoteId, v.snapshot, input.version, finalCalc, "saisie par l'entreprise"));
     return { status: accepted ? "accepted" : "refused" };
   });
 }

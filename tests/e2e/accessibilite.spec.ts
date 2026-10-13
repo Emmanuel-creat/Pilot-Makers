@@ -47,6 +47,7 @@ test("écrans de l'application", async ({ page }) => {
     "/app/factures",
     "/app/entreprise",
     "/app/entreprise?onglet=tarifs",
+    "/app/entreprise?onglet=webhooks",
     "/app/compte",
     "/app/assistance",
   ]) {

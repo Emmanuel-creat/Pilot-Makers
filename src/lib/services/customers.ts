@@ -7,6 +7,7 @@ import { badRequest, notFound } from "@/lib/http";
 import { parseCsv, toCsv } from "@/lib/csv";
 import { cleanId, validateEmail, validatePostalCode, validateSiren, validateVatNumber } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
+import { enqueueWebhook } from "./webhooks";
 import { audit, requireWritable } from "./context";
 
 export const CUSTOMER_TYPES = {
@@ -197,7 +198,18 @@ export async function createCustomer(ctx: Ctx, raw: unknown, opts: { allowDuplic
       };
     }
   }
-  const id = await insertCustomer(ctx.db, ctx.orgId, input);
+  const id = await ctx.db.transaction(async (tx) => {
+    const id = await insertCustomer(tx, ctx.orgId, input);
+    await enqueueWebhook(tx, ctx.orgId, "customer.created", {
+      customer_id: id,
+      type: input.type,
+      name: customerDisplayName(input as unknown as Customer),
+      email: input.email,
+      phone: input.phone,
+      city: input.billing_city,
+    });
+    return id;
+  });
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "customer.create", target: id });
   return { id, duplicates: [] };
 }

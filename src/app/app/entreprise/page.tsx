@@ -7,6 +7,8 @@ import { OrgForm } from "./OrgForm";
 import { RemindersForm } from "./RemindersForm";
 import { InvoiceSettingsForm } from "./InvoiceSettingsForm";
 import { IndexValues } from "./IndexValues";
+import { Webhooks } from "./Webhooks";
+import { listDeliveries, listEndpoints, WEBHOOK_EVENTS } from "@/lib/services/webhooks";
 import { PricingForm } from "./PricingForm";
 import { listIndexValues } from "@/lib/services/revision";
 import { readPricing } from "@/lib/services/pricing";
@@ -23,6 +25,7 @@ const TABS = [
   ["emails", "E-mails"],
   ["relances", "Relances"],
   ["factures", "Factures"],
+  ["webhooks", "Webhooks"],
   ["historique", "Historique"],
 ] as const;
 
@@ -48,7 +51,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const ctx = await requirePageCtx();
   const org = redactForRole(await getOrganization(ctx), ctx.role);
   const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
-  const tabs = TABS.filter(([k]) => k !== "paiement" || ctx.role !== "member");
+  const tabs = TABS.filter(([k]) => (k !== "paiement" && k !== "webhooks") || ctx.role !== "member");
   const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
     <div className="mx-auto max-w-4xl">
@@ -82,6 +85,23 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           <PricingForm initial={readPricing(pricing)} canEdit={canEdit} />
           <IndexValues values={await listIndexValues(ctx)} canEdit={canEdit} />
         </>
+      ) : tab === "webhooks" && ctx.role !== "member" ? (
+        <Webhooks
+          canEdit={canEdit}
+          events={WEBHOOK_EVENTS}
+          endpoints={(await listEndpoints(ctx)).map((e) => ({ id: e.id, url: e.url, events: e.events, active: e.active }))}
+          deliveries={(await listDeliveries(ctx)).map((d) => ({
+            id: d.id,
+            event: d.event,
+            url: d.url,
+            attempts: d.attempts,
+            delivered: !!d.delivered_at,
+            failed: !!d.failed_at,
+            status: d.last_status,
+            error: d.last_error,
+            at: new Date(d.created_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" }),
+          }))}
+        />
       ) : tab === "relances" ? (
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "historique" ? (

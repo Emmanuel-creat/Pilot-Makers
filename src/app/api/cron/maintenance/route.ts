@@ -6,6 +6,7 @@ import { resetDemo } from "@/lib/seed";
 import { purgeDeletedAccounts } from "@/lib/services/accounts";
 import { runBillingMaintenance } from "@/lib/services/billing";
 import { expireQuotes } from "@/lib/services/quotes";
+import { purgeWebhookDeliveries } from "@/lib/services/webhooks";
 
 /** Maintenance quotidienne : expirations, renouvellements, suppressions de comptes arrivées à échéance,
  * remise à zéro de la démonstration si DEMO_RESET=1. */
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
       billing: await runBillingMaintenance(db),
       accounts: await purgeDeletedAccounts(db),
       rateLimits: await purgeRateLimits(db),
+      webhooks: await purgeWebhookDeliveries(db),
       // Instance de démonstration publique uniquement : le compte de démonstration repart de zéro chaque nuit.
       demo: process.env.DEMO_RESET === "1" ? await resetDemo(db) : null,
     });

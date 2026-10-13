@@ -26,6 +26,7 @@ import type { Organization } from "./organization";
 import { acceptedCalc, withChosenOptions } from "./options";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionCents, retentionLabel, retentionMention } from "./btp";
 import { adaptedSteps, payerProfile, REMINDER_TEMPLATES, reminderTone } from "./dunning";
+import { enqueueWebhook } from "./webhooks";
 import { applicableRevision, revisionAmount, revisionLabel, type AppliedRevision } from "./revision";
 import { nextInstallment, SCHEDULE_MAX, scheduleText, splitSchedule, type Schedule } from "./schedule";
 import { addDays, buildSnapshot, frDate, getVersion, orgRow, parisDate, addEvent, quoteVatExempt } from "./quotes";
@@ -924,6 +925,8 @@ const paymentSchema = z.object({
   reference: z.string().trim().max(200).default(""),
 });
 
+const snap = (r: Record<string, unknown>) => r.snapshot as InvoiceSnapshot;
+
 async function refreshPaid(q: Queryable, invoiceId: string) {
   await q.query(
     "UPDATE invoices SET paid_cents = coalesce((SELECT sum(amount_cents) FROM invoice_payments WHERE invoice_id=$1 AND canceled_at IS NULL), 0) WHERE id=$1",
@@ -956,6 +959,19 @@ export async function recordPayment(ctx: Ctx, invoiceId: string, raw: unknown) {
       [ctx.orgId, invoiceId, cents, p.paidOn, p.method, p.reference, ctx.userId],
     );
     await refreshPaid(tx, invoiceId);
+    const after = mapInvoice((await one<Record<string, unknown>>(tx, "SELECT * FROM invoices WHERE id=$1", [invoiceId]))!);
+    if (after.status === "paid")
+      await enqueueWebhook(tx, ctx.orgId, "invoice.paid", {
+        invoice_id: invoiceId,
+        number: after.number,
+        kind: after.kind,
+        customer_id: after.customer_id,
+        customer_name: snap(src).customer.name,
+        total_ttc_cents: after.total_ttc_cents,
+        amount_due_cents: after.amount_due_cents,
+        paid_cents: after.paid_cents,
+        paid_on: p.paidOn,
+      });
     await audit(tx, {
       orgId: ctx.orgId,
       userId: ctx.userId,

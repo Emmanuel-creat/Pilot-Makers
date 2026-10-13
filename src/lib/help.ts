@@ -379,6 +379,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/compte", label: "Ouvrir mon compte" },
   },
   {
+    slug: "webhooks",
+    category: "compte",
+    title: "Relier Pilot-Makers à vos autres outils (webhooks)",
+    summary: "Prévenir automatiquement un tableur, un outil d'automatisation ou un logiciel métier.",
+    steps: [
+      "Dans Mon entreprise, onglet Webhooks, indiquez l'adresse HTTPS qui recevra les envois et cochez les événements : devis signé, facture payée, client créé.",
+      "Copiez la clé de signature affichée une seule fois et enregistrez-la dans l'outil qui reçoit.",
+      "Cliquez sur « Tester » pour vérifier la réception, puis suivez le journal des derniers envois.",
+    ],
+    notes: [
+      "Vérifiez la signature : HMAC-SHA256 de « horodatage.corps » avec votre clé, comparée à la valeur v1 de l'en-tête Pilot-Makers-Signature.",
+      "Une réponse autre que 2xx déclenche jusqu'à 8 essais espacés. Réservé aux administrateurs de l'entreprise.",
+    ],
+  },
+  {
     slug: "double-authentification",
     category: "compte",
     title: "Activer la double authentification",

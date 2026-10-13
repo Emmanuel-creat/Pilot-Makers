@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
+import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
 import {
@@ -614,6 +615,38 @@ export async function deleteIndexValueAction(_: ActionState, fd: FormData): Prom
     await withCtx((ctx) => deleteIndexValue(ctx, s(fd, "code"), s(fd, "month")));
     revalidatePath("/app/entreprise");
     return { ok: true, message: "Valeur supprimée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function createWebhookAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => createEndpoint(ctx, { url: s(fd, "url"), events: fd.getAll("events").map(String) }));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: r.secret };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function webhookCommandAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    const command = s(fd, "command");
+    let message = "";
+    if (command === "test") {
+      const r = await withCtx((ctx) => sendTestWebhook(ctx, id));
+      message = r.delivered ? "Événement de test reçu par votre adresse." : "Échec de l'envoi de test : voir le journal ci-dessous.";
+    } else if (command === "pause" || command === "resume") {
+      await withCtx((ctx) => setEndpointActive(ctx, id, command === "resume"));
+      message = command === "pause" ? "Envois suspendus." : "Envois repris.";
+    } else if (command === "delete") {
+      await withCtx((ctx) => deleteEndpoint(ctx, id));
+      message = "Adresse supprimée.";
+    }
+    revalidatePath("/app/entreprise");
+    return { ok: true, message };
   } catch (e) {
     return toState(e);
   }
