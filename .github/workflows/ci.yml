@@ -35,6 +35,7 @@ jobs:
       - run: npm run check:texte
       - run: npm run typecheck
       - run: npm test
+      - run: npm run test:calcul
       - run: npm run build
 
   parcours-navigateur:

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
+import { appendDictated, Dictation } from "@/components/Dictation";
 import { StatusBadge } from "@/components/ui";
 import { draftToCalcInput } from "@/lib/calc/draft";
 import { computeQuote } from "@/lib/calc/engine";
@@ -647,9 +648,12 @@ export function QuoteEditor({
               />
             </div>
             <div>
-              <label className="label" htmlFor="q-desc">
-                Description
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label className="label" htmlFor="q-desc">
+                  Description
+                </label>
+                <Dictation onText={(add) => set("description", appendDictated(latest.current.description, add))} />
+              </div>
               <textarea
                 id="q-desc"
                 rows={3}

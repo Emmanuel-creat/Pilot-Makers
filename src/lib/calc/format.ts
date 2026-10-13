@@ -22,8 +22,9 @@ export function formatEuros(cents: number | bigint, withSymbol = true): string {
 /** Prix unitaire en dix-millièmes : au moins 2 décimales, jusqu'à 4. */
 export function formatUnitPrice(price4: number, withSymbol = true): string {
   const text = formatScaled(BigInt(price4), 4, 2);
-  const [i, f] = text.split(".");
-  return groupThousands(i) + "," + (f ?? "00") + (withSymbol ? " €" : "");
+  // Au moins deux décimales : la partie décimale est toujours présente.
+  const [i, f] = text.split(".") as [string, string];
+  return groupThousands(i) + "," + f + (withSymbol ? " €" : "");
 }
 
 /** Quantité en millièmes -> "12,5" */

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { appendDictated, Dictation } from "@/components/Dictation";
 import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
 import type { DraftSection } from "@/lib/services/quote-types";
@@ -114,6 +115,9 @@ export function AssistantPanel({
         placeholder="Ex. : Rénovation d'une salle de bain de 6 m². Dépose de l'ancien carrelage, pose de carrelage au sol, faïence murale sur 14 m², remplacement du WC."
         aria-label="Description du chantier"
       />
+      <div className="mt-1 flex justify-end">
+        <Dictation onText={(add) => setText((cur) => appendDictated(cur, add))} label="Dicter la description" />
+      </div>
       <div className="mt-2 flex items-center justify-between gap-3">
         <span className="text-xs text-muted">Les e-mails et numéros de téléphone sont masqués avant l'analyse.</span>
         <button type="button" className="btn-primary" onClick={() => run()} disabled={busy || text.trim().length < 10}>

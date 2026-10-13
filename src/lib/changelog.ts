@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "dictee-description",
+    date: "2026-10-13",
+    title: "Dictée vocale de la description",
+    text: "Dictez la description du devis ou du chantier depuis votre téléphone, ponctuation comprise.",
+    href: "/aide/dicter-la-description",
+  },
+  {
     id: "fiches-techniques",
     date: "2026-10-13",
     title: "Fiches techniques jointes aux devis",

@@ -790,6 +790,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/catalogue", label: "Ouvrir le catalogue" },
   },
   {
+    slug: "dicter-la-description",
+    category: "devis",
+    title: "Dicter la description d'un devis",
+    summary: "Sur le chantier, dictez la description au lieu de la taper : le texte s'ajoute à la suite de ce qui est déjà écrit.",
+    steps: [
+      "Dans l'éditeur de devis ou l'Assistant de préparation, appuyez sur « Dicter » à côté de la description.",
+      "Parlez normalement ; dites « virgule », « point » ou « à la ligne » pour ponctuer.",
+      "Appuyez de nouveau sur le bouton pour arrêter. Relisez et corrigez le texte avant d'émettre le devis.",
+    ],
+    notes: [
+      "La dictée utilise la reconnaissance vocale de votre navigateur (Chrome, Edge, Safari) ; le bouton n'apparaît pas quand le navigateur ne la propose pas.",
+      "Le navigateur demande l'accès au micro la première fois.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

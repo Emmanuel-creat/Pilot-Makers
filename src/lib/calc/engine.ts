@@ -132,6 +132,8 @@ export const ALLOWED_VAT_BP = [0, 210, 550, 850, 1000, 2000] as const;
 
 function toNum(v: bigint): number {
   const n = Number(v);
+  // Garde-fou : les bornes de saisie empêchent d'y arriver, mais un montant non représentable n'est jamais arrondi en silence.
+  /* v8 ignore next */
   if (!Number.isSafeInteger(n)) throw new DecimalError("Montant hors limites");
   return n;
 }
