@@ -7,7 +7,8 @@ import { num } from "@/lib/db";
 import { HttpError } from "@/lib/http";
 import { requireAdminPage } from "@/lib/server/session";
 import { accountDetail } from "@/lib/services/admin";
-import { adminResetAction, supportAccessAction, suspendAction } from "@/app/actions";
+import { adminFeatureAction, adminResetAction, supportAccessAction, suspendAction } from "@/app/actions";
+import { featureStates } from "@/lib/features";
 
 export const metadata = { title: "Compte" };
 
@@ -83,6 +84,31 @@ export default async function AccountDetailPage({ params }: { params: Promise<{ 
                   <input type="hidden" name="orgId" value={id} />
                   <button className="btn-ghost min-h-8 text-xs">Envoyer une réinitialisation</button>
                 </form>
+              </li>
+            ))}
+          </ul>
+        </Section>
+        <Section title="Fonctionnalités" description="Activation progressive : forcer une nouveauté pour ce compte, ou la laisser suivre le déploiement général.">
+          <ul className="divide-y divide-line text-sm">
+            {featureStates({ id, feature_flags: d.org.feature_flags }).map((f) => (
+              <li key={f.key} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div>
+                  <div className="font-medium">
+                    {f.label} <span className={`text-xs ${f.enabled ? "text-success" : "text-muted"}`}>{f.enabled ? "active" : "inactive"}</span>
+                  </div>
+                  <div className="text-xs text-muted">
+                    {f.override ? `Forcée (${f.override === "on" ? "activée" : "désactivée"})` : `Déploiement ${f.percent} %, groupe ${f.bucket}`}
+                  </div>
+                </div>
+                <ActionForm action={adminFeatureAction} className="flex gap-1">
+                  <input type="hidden" name="orgId" value={id} />
+                  <input type="hidden" name="key" value={f.key} />
+                  {(["auto", "on", "off"] as const).map((v) => (
+                    <button key={v} name="value" value={v} className="btn-secondary min-h-8 py-1" aria-pressed={(f.override ?? "auto") === v}>
+                      {v === "auto" ? "Auto" : v === "on" ? "Activer" : "Désactiver"}
+                    </button>
+                  ))}
+                </ActionForm>
               </li>
             ))}
           </ul>

@@ -15,6 +15,7 @@ import { hmacSha256, randomToken } from "@/lib/security";
 import { open, seal } from "@/lib/secret-box";
 import type { Ctx } from "./context";
 import { audit, requireRole, requireWritable } from "./context";
+import { requireFeature } from "./features";
 
 export const WEBHOOK_EVENTS = {
   "quote.accepted": "Devis signé",
@@ -103,6 +104,7 @@ export async function listEndpoints(ctx: Ctx): Promise<WebhookEndpoint[]> {
 export async function createEndpoint(ctx: Ctx, raw: unknown) {
   requireWritable(ctx);
   requireRole(ctx, "admin");
+  await requireFeature(ctx, "webhooks");
   const p = endpointSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);
   const url = checkWebhookUrl(p.data.url);

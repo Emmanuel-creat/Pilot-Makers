@@ -33,7 +33,8 @@ const MOBILE: NavItem[] = [
   { href: "/app/plus", label: "Plus", icon: "menu" },
 ];
 
-export function Shell({ ctx, orgName, children }: { ctx: Ctx; orgName: string; children: ReactNode }) {
+export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; orgName: string; unreadNews?: number; children: ReactNode }) {
+  const news: NavItem = { href: "/app/nouveautes", label: "Nouveautés", icon: "star", badge: unreadNews };
   const admin: NavItem[] = ctx.isPlatformAdmin && !ctx.supportAccess ? [{ href: "/admin", label: "Administration", icon: "shield" }] : [];
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[248px_1fr]">
@@ -50,7 +51,7 @@ export function Shell({ ctx, orgName, children }: { ctx: Ctx; orgName: string; c
         <nav className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3" aria-label="Navigation principale">
           <NavLinks items={MAIN} />
           <div className="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-muted uppercase">Réglages</div>
-          <NavLinks items={[...SETTINGS, ...admin]} />
+          <NavLinks items={[...SETTINGS, news, ...admin]} />
         </nav>
         <div className="border-t border-line p-3">
           <div className="truncate px-2 text-sm font-medium">{orgName}</div>

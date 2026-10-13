@@ -3,11 +3,13 @@ import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { logoutAction } from "@/app/actions";
+import { unreadNewsCount } from "@/lib/services/news";
 
 export const metadata = { title: "Plus" };
 
 export default async function MorePage() {
   const ctx = await requirePageCtx();
+  const unread = await unreadNewsCount(ctx);
   const links = [
     ["/app/factures", "Factures", "euro"],
     ["/app/demandes", "Demandes", "inbox"],
@@ -19,6 +21,7 @@ export default async function MorePage() {
     ["/app/compte", "Mon compte", "user"],
     ["/app/boite-envoi", "E-mails envoyés", "mail"],
     ["/app/assistance", "Assistance", "help"],
+    ["/app/nouveautes", unread ? `Nouveautés (${unread} non lue${unread > 1 ? "s" : ""})` : "Nouveautés", "star"],
     ...(ctx.isPlatformAdmin && !ctx.supportAccess ? [["/admin", "Administration", "shield"]] : []),
   ];
   return (

@@ -67,6 +67,10 @@ Les tests couvrent les calculs (arrondis, remises, TVA multiples, franchise, lim
 - `POST /api/cron/webhooks` : envoi des webhooks en attente et nouveaux essais (toutes les minutes) ;
 - `POST /api/cron/maintenance` : fin d'essai, échéances d'abonnement, purge des comptes supprimés (une fois par jour). Sur l'instance de démonstration publique, `DEMO_RESET=1` remet aussi le compte de démonstration à zéro à chaque passage.
 
+## Activation progressive des nouveautés
+
+Chaque nouveauté listée dans `src/lib/features.ts` s'ouvre à un pourcentage d'entreprises, toujours les mêmes (tirage stable). La variable `FEATURE_<CLE>` (par exemple `FEATURE_WEBHOOKS=25`, `on` ou `off`) change ce pourcentage sans redéploiement du code, et l'administration peut forcer une fonctionnalité pour un compte (page du compte, section Fonctionnalités). Le journal des nouveautés (`src/lib/changelog.ts`, page Nouveautés) n'affiche à chaque entreprise que ce qui lui est ouvert.
+
 ## Hébergement
 
 L'application a besoin d'un serveur Node.js et d'une base PostgreSQL : elle ne peut pas être publiée sur GitHub Pages. Toute plateforme acceptant Next.js et PostgreSQL convient (hébergeur en Europe recommandé pour les données des clients).

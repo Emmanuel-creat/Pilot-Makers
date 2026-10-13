@@ -12,7 +12,7 @@ export default async function ReleasesPage() {
   const rows = await listReleases(ctx.db);
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title="Notes de version" subtitle="Affichées aux utilisateurs dans la page Assistance." />
+      <PageHeader title="Notes de version" subtitle="Affichées aux utilisateurs dans la page Nouveautés, avec le journal livré dans l'application." />
       <Section title="Publier une note">
         <ActionForm action={releaseAction} resetOnSuccess>
           <div>

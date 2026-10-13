@@ -22,12 +22,14 @@ import { parisDate, frDate } from "@/lib/services/quotes";
 import { cancelPaymentAction, clearScheduleAction } from "@/app/actions";
 import { addMonths, INSTALLMENT_STATUSES, scheduleState } from "@/lib/services/schedule";
 import { CreditNoteForm, PaymentForm, ScheduleForm, SendInvoiceForm } from "./InvoiceActions";
+import { hasFeature } from "@/lib/services/features";
 
 export const metadata = { title: "Facture" };
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const ctx = await requirePageCtx();
+  const structured = await hasFeature(ctx, "factures_structurees");
   const inv = await getInvoice(ctx, id).catch((e) => {
     if (e instanceof HttpError && e.status === 404) notFound();
     throw e;
@@ -98,7 +100,10 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       {inv.status === "canceled" ? <Notice tone="info">Cette facture est entièrement annulée par avoir.</Notice> : null}
       {inv.status === "overdue" ? (
         <Notice tone="danger" title="Échéance dépassée">
-          {lateInstallment ? `Échéance ${lateInstallment.index + 1} du ${fmtDate(lateInstallment.dueDate)} non réglée.` : `Échue le ${fmtDate(inv.due_date)}.`} {inv.reminder_count ? `${inv.reminder_count} relance(s) envoyée(s).` : "Aucune relance envoyée."}
+          {lateInstallment
+            ? `Échéance ${lateInstallment.index + 1} du ${fmtDate(lateInstallment.dueDate)} non réglée.`
+            : `Échue le ${fmtDate(inv.due_date)}.`}{" "}
+          {inv.reminder_count ? `${inv.reminder_count} relance(s) envoyée(s).` : "Aucune relance envoyée."}
         </Notice>
       ) : null}
 
@@ -269,21 +274,23 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </section>
           ) : null}
 
-          <section className="card p-4 text-sm">
-            <h2 className="mb-1 font-medium">Formats structurés</h2>
-            <p className="mb-3 text-xs text-muted">Pour la facturation électronique et les logiciels comptables (norme EN 16931).</p>
-            <div className="flex flex-wrap gap-2">
-              <a href={`/api/invoices/${id}/export?format=facturx`} className="btn-secondary">
-                <Icon name="download" size={16} /> Factur-X
-              </a>
-              <a href={`/api/invoices/${id}/export?format=cii`} className="btn-secondary">
-                <Icon name="download" size={16} /> XML CII
-              </a>
-              <a href={`/api/invoices/${id}/export?format=ubl`} className="btn-secondary">
-                <Icon name="download" size={16} /> XML UBL
-              </a>
-            </div>
-          </section>
+          {structured ? (
+            <section className="card p-4 text-sm">
+              <h2 className="mb-1 font-medium">Formats structurés</h2>
+              <p className="mb-3 text-xs text-muted">Pour la facturation électronique et les logiciels comptables (norme EN 16931).</p>
+              <div className="flex flex-wrap gap-2">
+                <a href={`/api/invoices/${id}/export?format=facturx`} className="btn-secondary">
+                  <Icon name="download" size={16} /> Factur-X
+                </a>
+                <a href={`/api/invoices/${id}/export?format=cii`} className="btn-secondary">
+                  <Icon name="download" size={16} /> XML CII
+                </a>
+                <a href={`/api/invoices/${id}/export?format=ubl`} className="btn-secondary">
+                  <Icon name="download" size={16} /> XML UBL
+                </a>
+              </div>
+            </section>
+          ) : null}
 
           <section className="card p-4 text-xs text-muted">
             <div className="mb-1 font-medium text-ink">Intégrité</div>

@@ -9,6 +9,7 @@ import { InvoiceSettingsForm } from "./InvoiceSettingsForm";
 import { IndexValues } from "./IndexValues";
 import { Webhooks } from "./Webhooks";
 import { listDeliveries, listEndpoints, WEBHOOK_EVENTS } from "@/lib/services/webhooks";
+import { hasFeature } from "@/lib/services/features";
 import { PricingForm } from "./PricingForm";
 import { listIndexValues } from "@/lib/services/revision";
 import { readPricing } from "@/lib/services/pricing";
@@ -51,7 +52,8 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const ctx = await requirePageCtx();
   const org = redactForRole(await getOrganization(ctx), ctx.role);
   const canEdit = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
-  const tabs = TABS.filter(([k]) => (k !== "paiement" && k !== "webhooks") || ctx.role !== "member");
+  const webhooksOn = await hasFeature(ctx, "webhooks");
+  const tabs = TABS.filter(([k]) => ((k !== "paiement" && k !== "webhooks") || ctx.role !== "member") && (k !== "webhooks" || webhooksOn));
   const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
     <div className="mx-auto max-w-4xl">
@@ -85,7 +87,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           <PricingForm initial={readPricing(pricing)} canEdit={canEdit} />
           <IndexValues values={await listIndexValues(ctx)} canEdit={canEdit} />
         </>
-      ) : tab === "webhooks" && ctx.role !== "member" ? (
+      ) : tab === "webhooks" && ctx.role !== "member" && webhooksOn ? (
         <Webhooks
           canEdit={canEdit}
           events={WEBHOOK_EVENTS}

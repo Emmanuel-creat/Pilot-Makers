@@ -4,7 +4,7 @@ import { Icon } from "@/components/Icon";
 import { Submit } from "@/components/forms/Submit";
 import { PageHeader, Section, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
-import { listReleases, listTickets } from "@/lib/services/admin";
+import { listTickets } from "@/lib/services/admin";
 import { ticketAction } from "@/app/actions";
 
 export const metadata = { title: "Assistance" };
@@ -19,7 +19,7 @@ const FAQ = [
 
 export default async function SupportPage() {
   const ctx = await requirePageCtx();
-  const [tickets, releases] = await Promise.all([listTickets(ctx), listReleases(ctx.db)]);
+  const tickets = await listTickets(ctx);
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <PageHeader
@@ -75,20 +75,11 @@ export default async function SupportPage() {
           </ul>
         </Section>
       ) : null}
-      {releases.length ? (
-        <Section title="Nouveautés">
-          <ul className="space-y-3 text-sm">
-            {releases.map((r) => (
-              <li key={r.id}>
-                <div className="font-medium">
-                  Version {r.version} <span className="font-normal text-muted">du {fmtDate(r.created_at)}</span>
-                </div>
-                <p className="whitespace-pre-line text-muted">{r.notes}</p>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      ) : null}
+      <p className="text-sm">
+        <Link href="/app/nouveautes" className="link">
+          Voir les nouveautés de Pilot-Makers
+        </Link>
+      </p>
     </div>
   );
 }

@@ -109,8 +109,11 @@ export function QuoteEditor({
   defaultVat,
   openAssistant,
   pricing,
+  revisionEnabled = true,
 }: {
   initial: QuoteDraft;
+  /** Clause de révision de prix proposée (activation progressive) */
+  revisionEnabled?: boolean;
   org: ComplianceInput["org"];
   initialCustomer: EditorCustomer | null;
   showMargin: boolean;
@@ -1011,6 +1014,7 @@ export function QuoteEditor({
                 </div>
               </div>
             ) : null}
+            {revisionEnabled ? (
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="label" htmlFor="q-revision">
@@ -1074,6 +1078,7 @@ export function QuoteEditor({
                 </>
               ) : null}
             </div>
+            ) : null}
             <div>
               <label className="label" htmlFor="q-payment">
                 Conditions de paiement

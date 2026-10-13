@@ -10,6 +10,7 @@ import { AFRelationship, PDFDocument, PDFName, PDFString } from "pdf-lib";
 import type { CalcLineResult } from "@/lib/calc/engine";
 import { badRequest } from "@/lib/http";
 import type { Ctx } from "./context";
+import { requireFeature } from "./features";
 import { getInvoice, getInvoicePdf, type InvoiceSnapshot } from "./invoices";
 
 const esc = (s: string) =>
@@ -381,6 +382,7 @@ export type EinvoiceFormat = (typeof EINVOICE_FORMATS)[number];
 /** Fichier structuré d'une facture émise : PDF Factur-X, XML CII ou XML UBL. */
 export async function einvoiceFile(ctx: Ctx, id: string, format: string) {
   if (!(EINVOICE_FORMATS as readonly string[]).includes(format)) throw badRequest("Format inconnu");
+  await requireFeature(ctx, "factures_structurees");
   const inv = await getInvoice(ctx, id);
   const s = inv.snapshot;
   if (!invoiceData(s).consistent) throw badRequest("Les totaux de cette facture ne se retrouvent pas ligne à ligne : export structuré impossible");

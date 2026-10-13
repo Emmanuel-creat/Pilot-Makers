@@ -8,6 +8,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: string;
+  /** Pastille de compteur (éléments non lus) */
+  badge?: number;
 }
 
 export function NavLinks({ items, compact = false }: { items: NavItem[]; compact?: boolean }) {
@@ -37,7 +39,13 @@ export function NavLinks({ items, compact = false }: { items: NavItem[]; compact
             className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm ${active ? "bg-accent-soft font-medium text-accent" : "text-ink hover:bg-surface-2"}`}
           >
             <Icon name={it.icon} />
-            {it.label}
+            <span className="flex-1">{it.label}</span>
+            {it.badge ? (
+              <span className="rounded-full bg-accent px-1.5 text-xs font-semibold text-white dark:text-[#0d1520]">
+                {it.badge}
+                <span className="sr-only"> non lue{it.badge > 1 ? "s" : ""}</span>
+              </span>
+            ) : null}
           </Link>
         );
       })}

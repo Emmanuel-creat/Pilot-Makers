@@ -49,7 +49,7 @@ export async function searchAccounts(ctx: Ctx, q = "") {
 
 export async function accountDetail(ctx: Ctx, orgId: string) {
   requirePlatformAdmin(ctx);
-  const org = await one<Record<string, unknown>>(ctx.db, "SELECT id, trade_name, status, suspended_reason, created_at FROM organizations WHERE id=$1", [orgId]);
+  const org = await one<Record<string, unknown>>(ctx.db, "SELECT id, trade_name, status, suspended_reason, created_at, feature_flags FROM organizations WHERE id=$1", [orgId]);
   if (!org) throw notFound();
   const members = await ctx.db.query<{ id: string; email: string; name: string; role: string; status: string; email_verified_at: Date | null; created_at: Date }>(
     `SELECT u.id, u.email, u.name, m.role, u.status, u.email_verified_at, u.created_at FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1`,

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
+import { setOrgFeature } from "@/lib/services/features";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
@@ -495,6 +496,17 @@ export async function suspendAction(_: ActionState, fd: FormData): Promise<Actio
     await withCtx((ctx) => setOrgSuspended(ctx, s(fd, "orgId"), s(fd, "suspend") === "1", s(fd, "reason")));
     revalidatePath(`/admin/comptes/${s(fd, "orgId")}`);
     return { ok: true };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function adminFeatureAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const orgId = s(fd, "orgId");
+    await withCtx((ctx) => setOrgFeature(ctx, orgId, s(fd, "key"), s(fd, "value")));
+    revalidatePath(`/admin/comptes/${orgId}`);
+    return { ok: true, message: "Réglage enregistré." };
   } catch (e) {
     return toState(e);
   }

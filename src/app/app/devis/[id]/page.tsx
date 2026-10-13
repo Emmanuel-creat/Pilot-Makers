@@ -19,6 +19,7 @@ import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
 import { listIndexValues } from "@/lib/services/revision";
+import { hasFeature } from "@/lib/services/features";
 import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
 
 export const metadata = { title: "Devis" };
@@ -78,6 +79,7 @@ export default async function QuotePage({
         ) : null}
         <QuoteEditor
           initial={draft}
+          revisionEnabled={!!draft.priceRevision || (await hasFeature(ctx, "revision_prix"))}
           org={{
             trade_name: org.trade_name,
             legal_name: org.legal_name,
