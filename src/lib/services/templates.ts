@@ -58,7 +58,7 @@ export async function saveQuoteAsTemplate(ctx: Ctx, quoteId: string, input: { na
   const d = await getDraft(ctx, quoteId);
   const sections = d.sections.map((s) => ({
     ...s,
-    lines: s.lines.map((l) => ({ ...l, internalNote: "" })),
+    lines: s.lines.map(({ measure: _measure, ...l }) => ({ ...l, internalNote: "" })),
   }));
   const lineCount = sections.reduce((n, s) => n + s.lines.length, 0);
   if (lineCount === 0) throw badRequest("Ce devis ne contient aucune ligne à réutiliser");

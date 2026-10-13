@@ -3,6 +3,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { type Measure, sanitizeMeasure } from "@/lib/calc/measure";
 import { z } from "zod";
 import type { Queryable } from "@/lib/db";
 import { num, numOrNull, one } from "@/lib/db";
@@ -65,6 +66,7 @@ const lineSchema = z.object({
   internalNote: str(1000),
   wastePercent: str(10).optional(),
   optional: z.boolean().optional(),
+  measure: z.preprocess((v) => sanitizeMeasure(v) ?? undefined, z.custom<Measure>().optional()),
 });
 
 const sectionSchema = z.object({
@@ -146,6 +148,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
           internalNote: String(l.internal_note ?? ""),
           ...(l.waste_percent ? { wastePercent: String(l.waste_percent) } : {}),
           ...(l.optional === true ? { optional: true } : {}),
+          ...(l.measure && sanitizeMeasure(l.measure) ? { measure: sanitizeMeasure(l.measure)! } : {}),
         }),
       ),
   }));
@@ -384,10 +387,10 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
       seen.add(l.id);
       await tx.query(
         `INSERT INTO quote_lines (id, section_id, quote_id, org_id, position, kind, catalog_item_id, nature, label, description,
-           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note, optional, waste_percent)
+           quantity, unit, unit_price, unit_cost, discount_percent, vat_percent, estimated, estimate_note, internal_note, optional, waste_percent, measure)
          VALUES ($1,$2,$3,$4,$5,$6,
            (SELECT id FROM catalog_items WHERE id=$7::uuid AND org_id=$4),
-           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+           $8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
         [
           l.id,
           s.id,
@@ -410,6 +413,7 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
           l.internalNote ?? "",
           l.kind === "item" && l.optional === true,
           l.wastePercent ?? "",
+          l.kind === "item" && l.measure ? JSON.stringify(l.measure) : null,
         ],
       );
     }
@@ -671,7 +675,7 @@ export function buildSnapshot(args: {
       ...(d.priceRevision ? { priceRevision: d.priceRevision } : {}),
     },
     // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
-    sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, wastePercent: _waste, ...l }) => l) })),
+    sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, wastePercent: _waste, measure: _measure, ...l }) => l) })),
     calc,
     mentions: [
       ...(d.amendment ? [amendmentMention(d.amendment)] : []),

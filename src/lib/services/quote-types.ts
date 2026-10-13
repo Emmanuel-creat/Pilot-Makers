@@ -1,3 +1,4 @@
+import type { Measure } from "@/lib/calc/measure";
 import type { CalcResult, LineKind, LineNature } from "@/lib/calc/engine";
 import type { ConsumerTerms, ContractPlace } from "./consumer";
 
@@ -41,6 +42,8 @@ export interface DraftLine {
   wastePercent?: string;
   /** Proposée en option : hors total tant que le client ne la choisit pas */
   optional?: boolean;
+  /** Métré à l'origine de la quantité (cotes, ouvertures déduites) ; jamais imprimé */
+  measure?: Measure;
   /** Montant pouvant être négatif : ligne de révision de prix générée à la facturation */
   signed?: boolean;
 }

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "metres",
+    date: "2026-10-13",
+    title: "Métrés dans le devis",
+    text: "Les cotes de la pièce donnent la quantité : surfaces, murs, volumes et linéaires, portes et fenêtres déduites.",
+    href: "/aide/metres",
+  },
+  {
     id: "trajets-du-jour",
     date: "2026-10-13",
     title: "Trajets du jour",

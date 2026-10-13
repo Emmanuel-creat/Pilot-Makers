@@ -6,6 +6,7 @@ import { formatEuros } from "@/lib/calc/format";
 import type { CalcIssue, CalcLineResult } from "@/lib/calc/engine";
 import type { DraftLine } from "@/lib/services/quote-types";
 import { coefficientLabel, laborPatch, priceFromCost, rateForPrice, withWaste, type LaborRate } from "@/lib/services/pricing";
+import { MeasureDialog } from "./MeasureDialog";
 
 export const UNITS = ["u", "h", "j", "m²", "m³", "ml", "m", "kg", "t", "l", "forfait", "lot", "ens", "sac"];
 export const VAT_OPTIONS = ["20", "10", "5,5", "2,1", "0"];
@@ -46,6 +47,7 @@ interface Props {
 
 export function LineRow({ line, result, issues, showCosts, laborRates = [], coefficient = 0, vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
   const [showDesc, setShowDesc] = useState(!!line.description);
+  const [measuring, setMeasuring] = useState(false);
   const [showNote, setShowNote] = useState(!!line.internalNote);
   const err = (field: string) => issues.find((i) => i.field === field && i.blocking)?.message;
   const fieldCls = (field: string) => `field-xs tabular ${err(field) ? "border-danger! bg-danger-soft" : ""}`;
@@ -126,6 +128,11 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
             <button type="button" className="hover:text-ink" onClick={() => setShowDesc((s) => !s)}>
               {showDesc ? "Masquer la description" : line.description ? "Description" : "Ajouter une description"}
             </button>
+            {!readOnly && !pending ? (
+              <button type="button" className={`hover:text-ink ${line.measure ? "font-medium text-accent" : ""}`} onClick={() => setMeasuring(true)}>
+                {line.measure ? `Métré : ${line.quantity} ${line.unit}` : "Métré"}
+              </button>
+            ) : null}
             {pending ? <span className="font-medium text-warning">À compléter avant émission</span> : null}
             {line.catalogItemId ? <span title="Issue du catalogue">Catalogue</span> : null}
           </div>
@@ -180,6 +187,26 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
                 Passer à {wasted} {line.unit} avec les chutes
               </button>
             </p>
+          ) : null}
+          {measuring ? (
+            <MeasureDialog
+              open
+              onClose={() => setMeasuring(false)}
+              initial={line.measure}
+              lineLabel={line.label}
+              onApply={(measure, quantity, unit) => {
+                onChange({ measure, quantity, unit });
+                setMeasuring(false);
+              }}
+              onRemove={
+                line.measure
+                  ? () => {
+                      onChange({ measure: undefined });
+                      setMeasuring(false);
+                    }
+                  : undefined
+              }
+            />
           ) : null}
           {showDesc ? (
             <textarea

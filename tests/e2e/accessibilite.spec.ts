@@ -367,6 +367,31 @@ test("itinéraires : position relevée sur le chantier puis trajets du jour", as
   await audit(page, "trajets du jour");
 });
 
+test("devis : métré des murs avec ouvertures déduites reporté sur la ligne", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Peinture de la chambre");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Peinture des murs, deux couches");
+  await page.getByRole("button", { name: "Métré", exact: true }).last().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("radio", { name: /Murs d'une pièce/ })).toBeChecked();
+  await dialog.getByLabel("Longueur 1").fill("4");
+  await dialog.getByLabel("Largeur 1").fill("3");
+  await dialog.getByLabel("Hauteur 1").fill("2,5");
+  await dialog.getByRole("button", { name: "Ajouter une ouverture" }).click();
+  await dialog.locator("#md-0-a").fill("0,83");
+  await dialog.locator("#md-0-b").fill("2,04");
+  await expect(dialog.getByTestId("metre-total")).toHaveText("Total : 33,31 m²");
+  await audit(page, "métré");
+  await dialog.getByRole("button", { name: "Reporter 33,31 m²" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByLabel("Quantité", { exact: true }).last()).toHaveValue("33,31");
+  await expect(page.getByRole("button", { name: "Métré : 33,31 m²" })).toBeVisible();
+});
+
 test("notes de frais : ticket photographié puis validation et remboursement", async ({ page }) => {
   await login(page);
   await page.goto("/app/frais");

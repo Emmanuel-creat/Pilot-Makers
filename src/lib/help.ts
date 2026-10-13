@@ -551,6 +551,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/planning/trajets", label: "Ouvrir les trajets du jour" },
   },
   {
+    slug: "metres",
+    category: "devis",
+    title: "Calculer une quantité à partir des cotes",
+    summary: "Surfaces, murs, volumes, linéaires et plinthes, portes et fenêtres déduites, reportés sur la ligne du devis.",
+    steps: [
+      "Sur une ligne du devis, touchez « Métré ». Le type est proposé d'après la désignation : murs pour une peinture, volume pour du béton.",
+      "Saisissez les cotes en mètres, une rangée par pièce ou par zone, avec le nombre de fois qu'elle se répète.",
+      "Pour les murs et les sols, ajoutez les portes et fenêtres à déduire avec leur largeur et leur hauteur.",
+      "Le total s'affiche avec le détail du calcul. « Reporter » remplit la quantité et l'unité de la ligne.",
+    ],
+    notes: [
+      "Le métré reste attaché à la ligne : rouvrez-le pour corriger une cote, la quantité suit. Il n'est jamais imprimé sur le devis.",
+      "Les chutes conseillées par le catalogue s'ajoutent ensuite à la quantité mesurée, comme avant.",
+    ],
+    link: { href: "/app/devis/nouveau", label: "Créer un devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
