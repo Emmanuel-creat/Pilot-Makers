@@ -19,7 +19,9 @@ export function RemindersForm({ initial, allowed, canEdit }: { initial: Reminder
       }}
       className="card space-y-4 p-5"
     >
-      {!allowed ? <p className="rounded-md bg-warning-soft p-3 text-sm">Les relances automatiques sont incluses dans les offres Professionnel et Entreprise.</p> : null}
+      {!allowed ? (
+        <p className="rounded-md bg-warning-soft p-3 text-sm">Les relances automatiques sont incluses dans les offres Professionnel et Entreprise.</p>
+      ) : null}
       <fieldset disabled={!allowed || !canEdit} className="space-y-4">
         <label className="flex items-center gap-2 text-sm font-medium">
           <input type="checkbox" className="h-4 w-4" checked={v.enabled} onChange={(e) => set("enabled", e.target.checked)} />
@@ -30,26 +32,53 @@ export function RemindersForm({ initial, allowed, canEdit }: { initial: Reminder
             <label className="label" htmlFor="r-first">
               Première relance après (jours)
             </label>
-            <input id="r-first" type="number" min={1} max={60} className="field" value={v.firstDelayDays} onChange={(e) => set("firstDelayDays", Number(e.target.value))} />
+            <input
+              id="r-first"
+              type="number"
+              min={1}
+              max={60}
+              className="field"
+              value={v.firstDelayDays}
+              onChange={(e) => set("firstDelayDays", Number(e.target.value))}
+            />
           </div>
           <div>
             <label className="label" htmlFor="r-interval">
               Puis tous les (jours)
             </label>
-            <input id="r-interval" type="number" min={1} max={60} className="field" value={v.intervalDays} onChange={(e) => set("intervalDays", Number(e.target.value))} />
+            <input
+              id="r-interval"
+              type="number"
+              min={1}
+              max={60}
+              className="field"
+              value={v.intervalDays}
+              onChange={(e) => set("intervalDays", Number(e.target.value))}
+            />
           </div>
           <div>
             <label className="label" htmlFor="r-max">
               Nombre maximum de relances
             </label>
-            <input id="r-max" type="number" min={0} max={5} className="field" value={v.maxReminders} onChange={(e) => set("maxReminders", Number(e.target.value))} />
+            <input
+              id="r-max"
+              type="number"
+              min={0}
+              max={5}
+              className="field"
+              value={v.maxReminders}
+              onChange={(e) => set("maxReminders", Number(e.target.value))}
+            />
           </div>
         </div>
         <div>
           <span className="label">Jours d'envoi</span>
           <div className="flex flex-wrap gap-2">
             {DAYS.map((d, i) => (
-              <label key={d} className={`cursor-pointer rounded-md border px-3 py-1.5 text-sm ${v.weekdays.includes(i) ? "border-accent bg-accent-soft text-accent" : "border-line"}`}>
+              <label
+                key={d}
+                className={`cursor-pointer rounded-md border px-3 py-1.5 text-sm ${v.weekdays.includes(i) ? "border-accent bg-accent-soft text-accent" : "border-line"}`}
+              >
                 <input
                   type="checkbox"
                   className="sr-only"
@@ -86,8 +115,18 @@ export function RemindersForm({ initial, allowed, canEdit }: { initial: Reminder
             Message
           </label>
           <textarea id="r-body" rows={7} className="field" value={v.body} onChange={(e) => set("body", e.target.value)} />
-          <p className="mt-1 text-xs text-muted">Variables : {"{client}, {numero}, {objet}, {total_ttc}, {validite}, {entreprise}, {lien}"}</p>
+          <p className="mt-1 text-xs text-muted">Variables : {"{client}, {numero}, {objet}, {total_ttc}, {validite}, {entreprise}, {lien}, {suivi}"}</p>
         </div>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-0.5 h-4 w-4" checked={v.adaptive} onChange={(e) => set("adaptive", e.target.checked)} />
+          <span>
+            <span className="font-medium">Adapter chaque relance au client et à l&apos;historique du devis</span>
+            <span className="block text-xs text-muted">
+              Une phrase change selon que le client a ouvert le devis ou non, qu&apos;il est particulier ou professionnel, que des options l&apos;attendent, que
+              la fin de validité approche ou que c&apos;est la dernière relance. Elle prend la place de {"{suivi}"}, ou s&apos;ajoute avant la formule finale.
+            </span>
+          </span>
+        </label>
       </fieldset>
       <p className="text-xs text-muted">Aucune relance n'est envoyée pour un devis accepté, refusé, annulé, expiré ou remplacé.</p>
       {state?.error ? <p className="text-sm text-danger">{state.error}</p> : null}

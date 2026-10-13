@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "relances-devis-adaptees",
+    date: "2026-10-13",
+    title: "Relances de devis sur mesure",
+    text: "Devis jamais ouvert, consulté, options à choisir, échéance proche : chaque relance le dit avec les bons mots.",
+    href: "/aide/relances-de-devis-adaptees",
+  },
+  {
     id: "devis-en-bref",
     date: "2026-10-13",
     title: "Le devis expliqué simplement",

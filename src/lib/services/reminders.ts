@@ -16,7 +16,8 @@ import type { Ctx } from "./context";
 import { requirePermission, requireWritable } from "./context";
 import { DEFAULT_REMINDERS } from "./accounts";
 import { appUrl, renderTemplate, sendMail } from "./mail";
-import { createShareLink, expireQuotes, frDate } from "./quotes";
+import { createShareLink, expireQuotes, frDate, parisDate } from "./quotes";
+import { followUpText, withFollowUp } from "@/lib/reminder-text";
 import type { QuoteSnapshot } from "./quote-types";
 
 export const reminderSchema = z.object({
@@ -30,6 +31,8 @@ export const reminderSchema = z.object({
   subject: z.string().trim().min(1).max(200),
   body: z.string().trim().min(1).max(5000),
   minAmountCents: z.coerce.number().int().min(0).default(0),
+  /** Phrase de suivi adaptée au client et à l'historique (variable {suivi}, ajoutée d'office sinon) */
+  adaptive: z.boolean().default(true),
 });
 export type ReminderSettings = z.infer<typeof reminderSchema>;
 
@@ -67,10 +70,19 @@ export async function runReminders(db: Database, now = new Date()) {
     const { weekday, hour } = parisParts(now);
     if (!s.weekdays.includes(weekday) || hour < s.hourFrom || hour >= s.hourTo) continue;
     // Seuls les devis en attente sont relancés : accepté, refusé, annulé, remplacé ou expiré arrêtent les relances.
-    const quotes = await db.query<{ id: string; current_version: unknown; sent_at: Date; total_ttc_cents: unknown; reminders: unknown; last_reminder: Date | null }>(
+    const quotes = await db.query<{
+      id: string;
+      current_version: unknown;
+      sent_at: Date;
+      total_ttc_cents: unknown;
+      reminders: unknown;
+      last_reminder: Date | null;
+      viewed: unknown;
+    }>(
       `SELECT q.id, q.current_version, q.sent_at, q.total_ttc_cents,
               (SELECT count(*) FROM emails e WHERE e.quote_id=q.id AND e.kind='reminder' AND e.status='sent') AS reminders,
-              (SELECT max(created_at) FROM emails e WHERE e.quote_id=q.id AND e.kind='reminder') AS last_reminder
+              (SELECT max(created_at) FROM emails e WHERE e.quote_id=q.id AND e.kind='reminder') AS last_reminder,
+              EXISTS (SELECT 1 FROM document_events d WHERE d.quote_id=q.id AND d.type='viewed') AS viewed
        FROM quotes q WHERE q.org_id=$1 AND q.status IN ('sent','viewed') AND q.sent_at IS NOT NULL AND q.archived_at IS NULL`,
       [org.id],
     );
@@ -81,15 +93,27 @@ export async function runReminders(db: Database, now = new Date()) {
       const ref = q.last_reminder ?? q.sent_at;
       const wait = (count === 0 ? s.firstDelayDays : s.intervalDays) * 86_400_000;
       if (now.getTime() - new Date(ref).getTime() < wait) continue;
-      const v = await db.query<{ id: string; snapshot: QuoteSnapshot }>(
-        "SELECT id, snapshot FROM quote_versions WHERE quote_id=$1 AND version=$2",
-        [q.id, num(q.current_version)],
-      );
+      const v = await db.query<{ id: string; snapshot: QuoteSnapshot }>("SELECT id, snapshot FROM quote_versions WHERE quote_id=$1 AND version=$2", [
+        q.id,
+        num(q.current_version),
+      ]);
       if (!v[0]) continue;
       const snap = v[0].snapshot;
       if (!snap.customer.email) continue;
       const link = await createShareLink(db, org.id, q.id, snap.version, snap.validUntil);
+      const suivi = s.adaptive
+        ? followUpText({
+            viewed: q.viewed === true || q.viewed === "t",
+            customerType: snap.customer.type,
+            reminder: count + 1,
+            maxReminders: s.maxReminders,
+            daysLeft: Math.round((new Date(`${snap.validUntil}T12:00:00Z`).getTime() - new Date(`${parisDate(now)}T12:00:00Z`).getTime()) / 86_400_000),
+            validUntil: snap.validUntil,
+            hasChoices: snap.sections.some((x) => x.choice) || !!snap.calc.options,
+          })
+        : "";
       const vars = {
+        suivi,
         client: snap.customer.contact || snap.customer.name,
         numero: snap.number,
         objet: snap.quote.title,
@@ -104,14 +128,16 @@ export async function runReminders(db: Database, now = new Date()) {
         kind: "reminder",
         to: snap.customer.email,
         subject: renderTemplate(s.subject, vars),
-        body: renderTemplate(s.body, vars),
+        body: renderTemplate(s.body.includes("{suivi}") ? s.body : withFollowUp(s.body, suivi), vars).replace(/\n{3,}/g, "\n\n"),
         attachmentVersionId: v[0].id,
         idempotencyKey: `reminder:${q.id}:${snap.version}:${count + 1}`,
       });
-      await db.query(
-        "INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data) VALUES ($1,$2,$3,'reminder','system',$4)",
-        [org.id, q.id, snap.version, JSON.stringify({ number: count + 1, status: mail.status, email_id: mail.id })],
-      );
+      await db.query("INSERT INTO document_events (org_id, quote_id, version, type, actor_type, data) VALUES ($1,$2,$3,'reminder','system',$4)", [
+        org.id,
+        q.id,
+        snap.version,
+        JSON.stringify({ number: count + 1, status: mail.status, email_id: mail.id }),
+      ]);
       if (!mail.duplicate && mail.status === "sent") sent++;
     }
   }

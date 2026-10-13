@@ -1161,6 +1161,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Mes devis" },
   },
   {
+    slug: "relances-de-devis-adaptees",
+    category: "devis",
+    title: "Des relances de devis adaptées à chaque client",
+    summary: "Chaque relance automatique d'un devis contient une phrase qui tient compte du client et de ce qui s'est passé depuis l'envoi.",
+    steps: [
+      "Ouvrez « Mon entreprise », onglet « Relances », et activez les relances automatiques.",
+      "Laissez cochée « Adapter chaque relance au client et à l'historique du devis ».",
+      "Placez {suivi} dans votre message à l'endroit voulu ; sans lui, la phrase s'ajoute avant la formule finale.",
+    ],
+    notes: [
+      "Devis jamais ouvert : la relance le signale et propose de corriger l'adresse e-mail.",
+      "Devis ouvert : proposition de passer en parler pour un particulier, d'ajuster le chiffrage pour un professionnel, ou rappel des options à choisir.",
+      "Moins de 7 jours avant la fin de validité, la date est rappelée ; la dernière relance prévue le dit.",
+    ],
+    link: { href: "/app/entreprise", label: "Mon entreprise" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

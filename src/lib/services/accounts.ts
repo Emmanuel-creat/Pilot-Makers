@@ -465,10 +465,14 @@ export const DEFAULT_REMINDERS = {
   body: `Bonjour {client},
 
 Nous revenons vers vous au sujet de notre devis {numero} ({objet}), valable jusqu'au {validite}.
+
+{suivi}
+
 Vous pouvez le consulter et y répondre en ligne :
 {lien}
 
 Bien cordialement,
 {entreprise}`,
   minAmountCents: 0,
+  adaptive: true,
 };
