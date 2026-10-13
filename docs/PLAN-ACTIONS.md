@@ -188,3 +188,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 25 (13/10/2026) : 322 (devis signé transformé en chantier avec tâches), 326 (fiche chantier : adresse, accès, codes chiffrés, contacts), 328 (avancement par lot et par ligne).
 - Vague 26 (13/10/2026) : 327 (journal de chantier avec photos datées et géolocalisées), 329 (procès-verbal de réception signé sur l'écran, avec réserves), 330 (levée des réserves et procès-verbal de levée).
 - Vague 27 (13/10/2026) : 323 (planning de l'entreprise : équipes et véhicules, semaine et mois), 324 (glisser-déposer avec détection des conflits).
+- Vague 28 (13/10/2026) : 437 (export complet en formats ouverts : archive ZIP avec tableaux CSV, PDF émis, photos de chantier et JSON).

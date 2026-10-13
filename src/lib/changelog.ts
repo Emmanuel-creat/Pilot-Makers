@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "export-zip",
+    date: "2026-10-13",
+    title: "Export complet en formats ouverts",
+    text: "Une archive ZIP avec tableaux CSV, devis, factures et procès-verbaux en PDF et photos de chantier : vos données vous suivent partout.",
+    href: "/app/compte",
+  },
+  {
     id: "planning",
     date: "2026-10-13",
     title: "Planning des équipes et des véhicules",

@@ -322,6 +322,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/planning", label: "Ouvrir le planning" },
   },
   {
+    slug: "exporter-toutes-ses-donnees",
+    category: "compte",
+    title: "Exporter toutes ses données",
+    summary: "Une archive ZIP en formats ouverts, lisible sans Pilot-Makers.",
+    steps: [
+      "Ouvrez « Mon compte », section « Mes données », et cliquez sur « Tout télécharger (ZIP) ».",
+      "L'archive contient vos tableaux CSV (clients, catalogue, devis, factures, paiements, chantiers, planning) à ouvrir dans Excel ou LibreOffice.",
+      "Elle contient aussi chaque devis, facture et procès-verbal émis en PDF, les photos de chantier et un fichier JSON complet.",
+    ],
+    notes: ["Réservé au gérant et aux administrateurs. Les mots de passe et secrets techniques ne sont jamais exportés."],
+    link: { href: "/app/compte", label: "Ouvrir Mon compte" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

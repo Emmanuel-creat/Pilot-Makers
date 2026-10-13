@@ -1,7 +1,10 @@
 /** Export des données du compte (portabilité, RGPD). */
 
+import { toCsv } from "@/lib/csv";
+import { zip, type ZipEntry } from "@/lib/zip";
 import type { Ctx } from "./context";
-import { audit } from "./context";
+import { audit, requireRole } from "./context";
+import { isSealed, open } from "@/lib/secret-box";
 import { revealBank } from "./organization";
 
 export async function exportAccountData(ctx: Ctx) {
@@ -41,8 +44,136 @@ export async function exportAccountData(ctx: Ctx) {
     payments: await q("SELECT invoice_id, amount_cents, paid_on, method, reference, canceled_at, created_at FROM invoice_payments WHERE org_id=$1 ORDER BY paid_on"),
     quoteTemplates: await q("SELECT name, description, data, created_at FROM quote_templates WHERE org_id=$1"),
     catalogComponents: await q("SELECT parent_id, child_id, position, quantity FROM catalog_components WHERE org_id=$1"),
+    priceIndexes: await q("SELECT code, month, value_centi, updated_at FROM price_indexes WHERE org_id=$1 ORDER BY code, month"),
+    jobs: (await q("SELECT * FROM jobs WHERE org_id=$1 ORDER BY created_at")).map((j) => {
+      const codes = String(j.access_codes ?? "");
+      return { ...j, access_codes: codes && isSealed(codes) ? open(codes) : codes };
+    }),
+    jobTasks: await q("SELECT * FROM job_tasks WHERE org_id=$1 ORDER BY job_id, position"),
+    jobJournal: await q(
+      "SELECT id, job_id, author_id, note, photo_type, taken_at, latitude, longitude, created_at FROM job_journal WHERE org_id=$1 ORDER BY taken_at",
+    ),
+    jobReceptions: await q("SELECT id, job_id, decision, reception_date, snapshot, created_by, created_at FROM job_receptions WHERE org_id=$1"),
+    jobReserves: await q("SELECT * FROM job_reserves WHERE org_id=$1 ORDER BY job_id, position"),
+    vehicles: await q("SELECT id, name, plate, created_at FROM org_vehicles WHERE org_id=$1 ORDER BY name"),
+    assignments: await q("SELECT * FROM job_assignments WHERE org_id=$1 ORDER BY start_date"),
+    // Les secrets de signature ne sont jamais exportés.
+    webhookEndpoints: await q("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1"),
   };
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "account.export", data: { scope: "organization" }, ip: ctx.ip });
   // Les entiers 64 bits sont convertis pour rester sérialisables.
   return JSON.parse(JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? Number(v) : v instanceof Uint8Array ? undefined : v)));
+}
+
+/** Valeur lisible dans un tableur : dates ISO, listes séparées par « | », objets en JSON. */
+function cell(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return v.toISOString();
+  if (Array.isArray(v) && v.every((x) => typeof x !== "object")) return v.join("|");
+  if (typeof v === "object") return JSON.stringify(v);
+  if (typeof v === "boolean") return v ? "oui" : "non";
+  return String(v);
+}
+
+export function tableCsv(rows: Record<string, unknown>[]): string {
+  if (!rows.length) return toCsv(["aucune_donnee"], []);
+  const header = Object.keys(rows[0]);
+  return toCsv(
+    header,
+    rows.map((r) => header.map((k) => cell(r[k]))),
+  );
+}
+
+function fileName(s: string): string {
+  return (
+    s
+      .normalize("NFC")
+      .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "sans-nom"
+  );
+}
+
+const CSV_TABLES: [string, string][] = [
+  ["clients", "customers"],
+  ["demandes", "leads"],
+  ["catalogue", "catalog"],
+  ["devis", "quotes"],
+  ["lots-devis", "quoteSections"],
+  ["lignes-devis", "quoteLines"],
+  ["factures", "customerInvoices"],
+  ["paiements", "payments"],
+  ["chantiers", "jobs"],
+  ["taches-chantier", "jobTasks"],
+  ["journal-chantier", "jobJournal"],
+  ["reserves", "jobReserves"],
+  ["planning", "assignments"],
+  ["vehicules", "vehicles"],
+  ["indices-prix", "priceIndexes"],
+];
+
+const README = `Export complet Pilot-Makers
+
+Ce dossier contient l'ensemble des données de l'entreprise dans des formats ouverts, lisibles sans Pilot-Makers :
+
+- donnees.json : toutes les données structurées (format JSON, encodage UTF-8).
+- tableaux/*.csv : une table par fichier, séparateur point-virgule, encodage UTF-8, ouvrable dans Excel ou LibreOffice.
+  Les montants en centimes se terminent par _cents, les quantités et prix en dix-millièmes par 4.
+  Les listes sont séparées par « | », les données composées sont au format JSON.
+- devis/ : chaque version émise de chaque devis, au format PDF, telle qu'envoyée au client.
+- factures/ : chaque facture et avoir émis, au format PDF, avec son empreinte d'intégrité dans donnees.json.
+- receptions/ : les procès-verbaux de réception de chantier signés, au format PDF.
+- photos/ : les photos du journal de chantier, rangées par chantier.
+
+Les secrets techniques (mots de passe, clés de double authentification, secrets des webhooks) ne sont jamais exportés.
+`;
+
+/** Archive ZIP complète (réversibilité) : JSON, tableaux CSV, PDF émis et photos. Réservée aux administrateurs. */
+export async function exportArchive(ctx: Ctx): Promise<Buffer> {
+  requireRole(ctx, "admin");
+  const data = (await exportAccountData(ctx)) as Record<string, unknown>;
+  const date = new Date();
+  const entries: ZipEntry[] = [
+    { name: "LISEZMOI.txt", data: README, date },
+    { name: "donnees.json", data: JSON.stringify(data, null, 2), date },
+  ];
+  for (const [file, key] of CSV_TABLES) {
+    entries.push({ name: `tableaux/${file}.csv`, data: tableCsv((data[key] as Record<string, unknown>[]) ?? []), date });
+  }
+  const q = <T extends object>(sql: string) => ctx.db.query<T>(sql, [ctx.orgId]);
+  const names = new Set<string>();
+  const unique = (name: string) => {
+    let n = name;
+    for (let i = 2; names.has(n); i++) n = name.replace(/(\.[a-z]+)$/, `-${i}$1`);
+    names.add(n);
+    return n;
+  };
+  for (const v of await q<{ number: string; version: number; pdf: Uint8Array; issued_at: Date }>(
+    "SELECT number, version, pdf, issued_at FROM quote_versions WHERE org_id=$1 ORDER BY issued_at",
+  )) {
+    entries.push({ name: unique(`devis/${fileName(v.number)}-v${v.version}.pdf`), data: v.pdf, date: new Date(v.issued_at) });
+  }
+  for (const f of await q<{ number: string; pdf: Uint8Array; issued_at: Date }>(
+    "SELECT number, pdf, issued_at FROM invoices WHERE org_id=$1 ORDER BY issued_at",
+  )) {
+    entries.push({ name: unique(`factures/${fileName(f.number)}.pdf`), data: f.pdf, date: new Date(f.issued_at) });
+  }
+  for (const r of await q<{ title: string; reception_date: string | Date; pdf: Uint8Array; created_at: Date }>(
+    "SELECT j.title, r.reception_date, r.pdf, r.created_at FROM job_receptions r JOIN jobs j ON j.id=r.job_id WHERE r.org_id=$1",
+  )) {
+    entries.push({ name: unique(`receptions/${fileName(r.title)}.pdf`), data: r.pdf, date: new Date(r.created_at) });
+  }
+  for (const p of await q<{ id: string; title: string; photo: Uint8Array; photo_type: string; taken_at: Date }>(
+    `SELECT jj.id, j.title, jj.photo, jj.photo_type, jj.taken_at FROM job_journal jj JOIN jobs j ON j.id=jj.job_id
+     WHERE jj.org_id=$1 AND jj.photo IS NOT NULL ORDER BY jj.taken_at`,
+  )) {
+    const ext = p.photo_type === "image/png" ? "png" : p.photo_type === "image/webp" ? "webp" : "jpg";
+    const taken = new Date(p.taken_at);
+    entries.push({
+      name: unique(`photos/${fileName(p.title)}/${taken.toISOString().slice(0, 10)}-${p.id.slice(0, 8)}.${ext}`),
+      data: p.photo,
+      date: taken,
+    });
+  }
+  return zip(entries);
 }

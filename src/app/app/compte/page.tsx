@@ -230,10 +230,24 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           ))}
         </ul>
       </Section>
-      <Section title="Mes données" description="Export complet : entreprise, clients, catalogue, devis, versions et historique, au format JSON.">
-        <a href="/api/account/export" className="btn-secondary">
-          <Icon name="download" size={16} /> Exporter toutes mes données
-        </a>
+      <Section
+        title="Mes données"
+        description={
+          ctx.role === "member"
+            ? "Export de vos données personnelles au format JSON."
+            : "Export complet en formats ouverts : archive ZIP avec tableaux CSV pour Excel, devis, factures et procès-verbaux en PDF, photos de chantier et données JSON. Vous pouvez partir avec tout, à tout moment."
+        }
+      >
+        <div className="flex flex-wrap gap-2">
+          {ctx.role !== "member" ? (
+            <a href="/api/account/export?format=zip" className="btn-primary">
+              <Icon name="download" size={16} /> Tout télécharger (ZIP)
+            </a>
+          ) : null}
+          <a href="/api/account/export" className="btn-secondary">
+            <Icon name="download" size={16} /> Données au format JSON
+          </a>
+        </div>
       </Section>
       {u.status !== "deletion_pending" ? (
         <Section
