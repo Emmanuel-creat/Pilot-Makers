@@ -21,6 +21,8 @@ import { getListing, getShowcase, listShowcasePhotos } from "@/lib/services/show
 import { Listing } from "./Listing";
 import { Showcase } from "./Showcase";
 import { RgeList } from "./RgeList";
+import { LabelsList } from "./LabelsList";
+import { listLabels } from "@/lib/services/labels";
 import { AccountingForm } from "./AccountingForm";
 import { getPlan } from "@/lib/services/accounting-plan";
 import { listRge } from "@/lib/services/aids";
@@ -65,13 +67,16 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.onglet) ? sp.onglet! : "identite";
   const ctx = await requirePageCtx();
+  const rge = tab === "assurance" ? await listRge(ctx) : [];
   const org = redactForRole(await getOrganization(ctx), ctx);
   const canEdit = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
   const webhooksOn = await hasFeature(ctx, "webhooks");
   const apiOn = await hasFeature(ctx, "api_publique");
   const tabs = TABS.filter(
     ([k]) =>
-      (k === "paiement" ? can(ctx, "settings") || can(ctx, "billing") : k === "webhooks" || k === "api" ? can(ctx, "settings") : true) && (k !== "webhooks" || webhooksOn) && (k !== "api" || apiOn),
+      (k === "paiement" ? can(ctx, "settings") || can(ctx, "billing") : k === "webhooks" || k === "api" ? can(ctx, "settings") : true) &&
+      (k !== "webhooks" || webhooksOn) &&
+      (k !== "api" || apiOn),
   );
   const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
@@ -158,7 +163,8 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
       ) : tab === "assurance" ? (
         <>
           <OrgForm key={tab} tab={tab} initial={values as Record<string, string | boolean | number | null>} canEdit={canEdit} />
-          <RgeList items={await listRge(ctx)} canEdit={canEdit} today={parisDate(new Date())} />
+          <RgeList items={rge} canEdit={canEdit} today={parisDate(new Date())} />
+          <LabelsList items={await listLabels(ctx)} canEdit={canEdit} today={parisDate(new Date())} rgeCount={rge.length} />
         </>
       ) : tab === "apparence" ? (
         <>
@@ -189,7 +195,12 @@ async function History({ ctxPromise }: { ctxPromise: ReturnType<typeof organizat
             {fmtDate(r.created_at, true)}
             {r.user_name ? ` par ${r.user_name}` : ""}
           </div>
-          <div>Modifié : {Object.keys(r.changes).map((k) => FIELD_LABELS[k] ?? k.replaceAll("_", " ")).join(", ")}</div>
+          <div>
+            Modifié :{" "}
+            {Object.keys(r.changes)
+              .map((k) => FIELD_LABELS[k] ?? k.replaceAll("_", " "))
+              .join(", ")}
+          </div>
         </div>
       ))}
     </div>

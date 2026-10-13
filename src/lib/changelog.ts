@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "labels",
+    date: "2026-10-13",
+    title: "Vos labels mis en valeur",
+    text: "Qualifications RGE et labels (Qualibat, Handibat, Maître artisan...) affichés sur votre vitrine et sur les devis consultés en ligne, tant qu'ils sont valables.",
+    href: "/aide/labels-et-qualifications",
+  },
+  {
     id: "origine-clients",
     date: "2026-10-13",
     title: "Origine des clients",

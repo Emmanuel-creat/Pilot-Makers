@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db";
 import { businessJsonLd, hasHours, hoursLines, jsonLdScript } from "@/lib/business-listing";
 import { appUrl } from "@/lib/services/mail";
 import { publicShowcase } from "@/lib/services/showcase";
+import { labelsHeadline } from "@/lib/labels";
 import { RequestForm } from "./RequestForm";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,11 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-semibold">{p.name}</h1>
             <p className="text-muted">{[p.trade, [p.postalCode, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}</p>
+            {p.labels.length ? (
+              <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-success" data-testid="labels-vitrine">
+                <Icon name="star" size={16} /> {labelsHeadline(p.labels)}
+              </p>
+            ) : null}
             {p.area ? (
               <p className="mt-1 flex items-center gap-1.5 text-sm">
                 <Icon name="pin" size={16} className="text-muted" /> Intervient : {p.area}
@@ -96,7 +102,7 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
             ) : null}
           </div>
           <div className="card space-y-2 p-5 text-sm">
-            <h2 className="font-semibold">Garanties</h2>
+            <h2 className="font-semibold">{p.labels.length ? "Garanties et labels" : "Garanties"}</h2>
             {p.decennale ? (
               <p className="flex items-start gap-2">
                 <Icon name="shield" size={16} className="mt-0.5 text-success" />
@@ -106,6 +112,16 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
                 </span>
               </p>
             ) : null}
+            {p.labels.map((l) => (
+              <p key={`${l.title}-${l.number}`} className="flex items-start gap-2">
+                <Icon name="star" size={16} className="mt-0.5 text-success" />
+                <span>
+                  <span className="font-medium">{l.title}</span>
+                  {l.number ? `, n° ${l.number}` : ""}
+                  {l.detail ? <span className="block text-muted">{l.detail}</span> : null}
+                </span>
+              </p>
+            ))}
             <p className="flex items-start gap-2">
               <Icon name="building" size={16} className="mt-0.5 text-muted" />
               <span>SIRET {p.siret.replace(/(\d{3})(\d{3})(\d{3})(\d{5})/, "$1 $2 $3 $4")}</span>

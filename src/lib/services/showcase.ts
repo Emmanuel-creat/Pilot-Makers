@@ -20,6 +20,9 @@ import { validateEmail } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
 import { audit, requirePermission, requireWritable } from "./context";
 import { appUrl, sendMail } from "./mail";
+import type { PublicLabel } from "@/lib/labels";
+import { orgPublicLabels } from "./labels";
+import { parisDate } from "./quotes";
 
 export const SHOWCASE_MAX_PHOTOS = 60;
 
@@ -47,9 +50,7 @@ export function slugify(s: string): string {
 }
 
 export async function getShowcase(ctx: Ctx): Promise<ShowcaseSettings> {
-  const r = await one<ShowcaseSettings>(ctx.db, "SELECT enabled, slug, intro, area, show_phone, show_email FROM showcases WHERE org_id=$1", [
-    ctx.orgId,
-  ]);
+  const r = await one<ShowcaseSettings>(ctx.db, "SELECT enabled, slug, intro, area, show_phone, show_email FROM showcases WHERE org_id=$1", [ctx.orgId]);
   if (r) return r;
   const org = await one<{ trade_name: string; city: string }>(ctx.db, "SELECT trade_name, city FROM organizations WHERE id=$1", [ctx.orgId]);
   const base = slugify([org?.trade_name, org?.city].filter(Boolean).join(" ")) || "mon-entreprise";
@@ -106,11 +107,10 @@ export async function addShowcasePhoto(ctx: Ctx, journalId: string, raw: unknown
   const p = photoSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);
   if (!p.data.consent) throw badRequest("Cochez l'accord du client pour publier la photo");
-  const j = await one<{ photo: Uint8Array | null; photo_type: string | null }>(
-    ctx.db,
-    "SELECT photo, photo_type FROM job_journal WHERE id=$1 AND org_id=$2",
-    [journalId, ctx.orgId],
-  );
+  const j = await one<{ photo: Uint8Array | null; photo_type: string | null }>(ctx.db, "SELECT photo, photo_type FROM job_journal WHERE id=$1 AND org_id=$2", [
+    journalId,
+    ctx.orgId,
+  ]);
   if (!j?.photo) throw notFound("Photo introuvable");
   const count = await one<{ n: unknown }>(ctx.db, "SELECT count(*) AS n FROM showcase_photos WHERE org_id=$1", [ctx.orgId]);
   if (Number(count?.n ?? 0) >= SHOWCASE_MAX_PHOTOS) throw badRequest(`La galerie compte déjà ${SHOWCASE_MAX_PHOTOS} photos : retirez-en une d'abord`);
@@ -124,16 +124,7 @@ export async function addShowcasePhoto(ctx: Ctx, journalId: string, raw: unknown
     ctx.db,
     `INSERT INTO showcase_photos (org_id, journal_id, caption, show_city, consent_note, consent_by, image, image_type)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (journal_id) DO NOTHING RETURNING id`,
-    [
-      ctx.orgId,
-      journalId,
-      p.data.caption,
-      p.data.showCity,
-      p.data.consentNote || "Accord du client confirmé",
-      ctx.userId,
-      image,
-      j.photo_type ?? "image/jpeg",
-    ],
+    [ctx.orgId, journalId, p.data.caption, p.data.showCity, p.data.consentNote || "Accord du client confirmé", ctx.userId, image, j.photo_type ?? "image/jpeg"],
   );
   if (!row) throw conflict("Cette photo est déjà dans la galerie");
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "showcase.photo_add", target: row.id, ip: ctx.ip });
@@ -191,6 +182,7 @@ export interface PublicShowcase {
   decennale: { insurer: string; area: string } | null;
   hours: Hours;
   photos: { id: string; caption: string; city: string }[];
+  labels: PublicLabel[];
 }
 
 export async function publicShowcase(db: Queryable, slug: string): Promise<PublicShowcase | null> {
@@ -224,6 +216,7 @@ export async function publicShowcase(db: Queryable, slug: string): Promise<Publi
     decennale: r.insurance_decennale ? { insurer: String(r.insurance_name ?? ""), area: String(r.insurance_area ?? "") } : null,
     hours: cleanHours(r.hours),
     photos: photos.map((p) => ({ id: p.id, caption: p.caption, city: p.show_city ? p.city : "" })),
+    labels: await orgPublicLabels(db, String(r.org_id), parisDate(new Date())),
   };
 }
 
@@ -250,12 +243,7 @@ const leadSchema = z.object({
 });
 
 /** Demande de devis déposée sur la vitrine : elle arrive dans les demandes de l'entreprise, qui est prévenue par e-mail. */
-export async function requestFromShowcase(
-  db: Queryable & { transaction: Ctx["db"]["transaction"] },
-  slug: string,
-  raw: unknown,
-  meta: { ip: string },
-) {
+export async function requestFromShowcase(db: Queryable & { transaction: Ctx["db"]["transaction"] }, slug: string, raw: unknown, meta: { ip: string }) {
   await hitRate(db, "public.lead", meta.ip);
   const p = leadSchema.safeParse(raw);
   if (!p.success) throw badRequest(p.error.issues[0].message);

@@ -70,6 +70,7 @@ import { saveGoals } from "@/lib/services/reports";
 import { saveBudget } from "@/lib/services/budget";
 import { setFormalNotice } from "@/lib/services/recovery";
 import { saveAcquisitionCosts, SOURCES, type Source } from "@/lib/services/acquisition";
+import { addLabel, deleteLabel, setLabelShown } from "@/lib/services/labels";
 import {
   cancelQuote,
   createAmendment,
@@ -1987,4 +1988,21 @@ export async function saveAcquisitionCostsAction(_: ActionState, fd: FormData): 
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function addLabelAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => addLabel(ctx, { kind: s(fd, "kind"), name: s(fd, "name"), number: s(fd, "number"), validUntil: s(fd, "validUntil") }));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Label enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function labelAction(fd: FormData) {
+  const id = s(fd, "id");
+  const op = s(fd, "op");
+  await withCtx((ctx) => (op === "delete" ? deleteLabel(ctx, id) : setLabelShown(ctx, id, op === "show")));
+  revalidatePath("/app/entreprise");
 }

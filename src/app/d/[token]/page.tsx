@@ -5,7 +5,9 @@ import { Notice } from "@/components/ui";
 import { getDb } from "@/lib/db";
 import { requestMeta } from "@/lib/server/session";
 import { HttpError } from "@/lib/http";
-import { recordClientView } from "@/lib/services/quotes";
+import { parisDate, recordClientView } from "@/lib/services/quotes";
+import { orgPublicLabels } from "@/lib/services/labels";
+import { labelsHeadline } from "@/lib/labels";
 import { reducedVatAttestation } from "@/lib/services/consumer";
 import { publicOptionSource } from "@/lib/services/options";
 import { ClientResponse } from "./ClientResponse";
@@ -42,7 +44,10 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
     );
   }
   const s = r.version.snapshot;
-  const thread = await publicThread(await getDb(), r.link.org_id, r.link.quote_id);
+  const [thread, labels] = await Promise.all([
+    publicThread(await getDb(), r.link.org_id, r.link.quote_id),
+    orgPublicLabels(await getDb(), r.link.org_id, parisDate(new Date())),
+  ]);
   const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
   return (
     <Frame>
@@ -50,6 +55,12 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
         <div>
           <h1 className="text-xl font-semibold">Devis {s.number}</h1>
           <p className="text-sm text-muted">Proposé par {s.org.trade_name}</p>
+          {labels.length ? (
+            <p className="text-sm" data-testid="labels-devis">
+              <span className="font-medium">{labelsHeadline(labels)}</span>
+              <span className="text-muted"> ({labels.map((l) => (l.number ? `${l.title} n° ${l.number}` : l.title)).join(", ")})</span>
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
           <a className="btn-secondary" href={`/api/public/quotes/${token}/pdf`} target="_blank" rel="noreferrer">

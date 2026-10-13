@@ -790,6 +790,19 @@ test("rapports : origine des clients et coût d'acquisition", async ({ page }) =
   await audit(page, "origine des clients");
 });
 
+test("entreprise : labels montrés aux clients", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=assurance");
+  await page.getByLabel("Label", { exact: true }).selectOption("handibat");
+  await page.getByLabel("Numéro (facultatif)").fill("H-2026-04");
+  await page.getByRole("button", { name: "Ajouter le label" }).click();
+  await expect(page.getByText("Label enregistré.")).toBeVisible();
+  await expect(page.getByTestId("liste-labels")).toContainText("Handibat, n° H-2026-04");
+  await audit(page, "labels");
+  await page.getByRole("button", { name: "Supprimer Handibat" }).click();
+  await expect(page.getByText("Aucun label enregistré.")).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

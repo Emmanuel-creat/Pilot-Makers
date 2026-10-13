@@ -1313,6 +1313,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/rapports/origine", label: "Voir l'origine des clients" },
   },
   {
+    slug: "labels-et-qualifications",
+    category: "compte",
+    title: "Mettre en valeur vos labels",
+    summary: "RGE, Qualibat, Handibat : visibles sur la vitrine et les devis en ligne.",
+    steps: [
+      "Dans Entreprise, onglet « Assurance », enregistrez vos qualifications RGE puis vos autres labels avec leur numéro et leur date de fin.",
+      "Ils apparaissent sur votre vitrine et en tête des devis que vos clients consultent en ligne, avec la mention « Entreprise RGE » quand c'est le cas.",
+      "Un label expiré disparaît de lui-même. Le bouton « Masquer » retire un label sans le supprimer.",
+    ],
+    notes: ["Un label à renouveler dans les deux mois est signalé dans la liste."],
+    link: { href: "/app/entreprise?onglet=assurance", label: "Gérer mes labels" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
