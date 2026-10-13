@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/Icon";
-import { PageHeader, Section, fmtDate } from "@/components/ui";
+import { Notice, PageHeader, Section, fmtDate } from "@/components/ui";
 import { HttpError } from "@/lib/http";
 import { requirePageCtx } from "@/lib/server/session";
 import { getJob, JOB_STATUSES } from "@/lib/services/jobs";
@@ -12,6 +12,9 @@ import { getReception, listJournal } from "@/lib/services/job-site";
 import { formatMinutes } from "@/lib/services/timesheet-calc";
 import { jobHours } from "@/lib/services/timesheets";
 import { formatEuros } from "@/lib/calc/format";
+import { jobCosts, listPurchases, PURCHASE_CATEGORIES } from "@/lib/services/job-costs";
+import { parisDate } from "@/lib/services/quotes";
+import { DeletePurchase, PurchaseForm, ThresholdForm } from "./CostForms";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -28,6 +31,8 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const { job, sections, progressBp } = data;
   const [journal, rec, hours] = await Promise.all([listJournal(ctx, id), getReception(ctx, id), jobHours(ctx, id)]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const showCosts = ctx.role !== "member" && !!ctx.entitlements.plan.features.margin;
+  const [costs, purchases] = showCosts ? await Promise.all([jobCosts(ctx, id), listPurchases(ctx, id)]) : [null, []];
   const address = [job.site_line1, job.site_line2, [job.site_postal_code, job.site_city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return (
     <div className="mx-auto max-w-5xl">
@@ -219,6 +224,143 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           )}
         </Section>
       </div>
+      {costs ? (
+        <div className="mt-6">
+          <Section title="Coûts et marge" description="Achats affectés et heures pointées, comparés aux coûts prévus au devis.">
+            {costs.alert !== "none" ? (
+              <div className="mb-4">
+                <Notice tone={costs.alert === "over" ? "danger" : "warning"} title={costs.alert === "over" ? "Budget dépassé" : "Budget presque consommé"}>
+                  {pct(costs.consumedBp ?? 0)} % du coût prévu est déjà dépensé, pour un avancement de {pct(costs.progressBp)} %.
+                </Notice>
+              </div>
+            ) : null}
+            {!costs.hasPlannedCosts ? (
+              <p className="mb-3 text-sm text-muted">Les lignes du devis n'avaient pas de coût d'achat : seul le réel est suivi.</p>
+            ) : null}
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Coûts prévus et réels">
+              <table className="w-full text-sm">
+                <thead className="table-head">
+                  <tr>
+                    <th className="px-3 py-2"></th>
+                    <th className="px-3 py-2 text-right">Prévu</th>
+                    <th className="px-3 py-2 text-right">Réel</th>
+                    <th className="px-3 py-2 text-right">Écart</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(
+                    [
+                      ["Main-d'oeuvre", costs.planned.laborCents, costs.real.laborCents, `${formatMinutes(costs.real.laborMinutes)} pointées`],
+                      ["Achats", costs.planned.purchasesCents, costs.real.purchasesCents, ""],
+                      ["Coût total", costs.planned.totalCents, costs.real.totalCents, ""],
+                    ] as const
+                  ).map(([label, planned, real, note]) => (
+                    <tr key={label} className="border-b border-line">
+                      <td className="px-3 py-2">
+                        {label}
+                        {note ? <span className="block text-xs text-muted">{note}</span> : null}
+                      </td>
+                      <td className="tabular px-3 py-2 text-right">{formatEuros(planned)}</td>
+                      <td className="tabular px-3 py-2 text-right">{formatEuros(real)}</td>
+                      <td className={`tabular px-3 py-2 text-right ${real > planned ? "text-danger" : ""}`}>{formatEuros(planned - real)}</td>
+                    </tr>
+                  ))}
+                  <tr className="font-semibold">
+                    <td className="px-3 py-2">Marge (vendu {formatEuros(costs.soldCents)} HT)</td>
+                    <td className="tabular px-3 py-2 text-right">{formatEuros(costs.planned.marginCents)}</td>
+                    <td className={`tabular px-3 py-2 text-right ${costs.real.marginCents < costs.planned.marginCents ? "text-danger" : "text-success"}`}>
+                      {formatEuros(costs.real.marginCents)}
+                    </td>
+                    <td className="tabular px-3 py-2 text-right">{formatEuros(costs.real.marginCents - costs.planned.marginCents)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm font-medium">Détail ligne par ligne</summary>
+              <div className="mt-2 overflow-x-auto" tabIndex={0} role="region" aria-label="Coûts par ligne du devis">
+                <table className="w-full text-sm">
+                  <thead className="table-head">
+                    <tr>
+                      <th className="px-3 py-2">Ligne</th>
+                      <th className="px-3 py-2 text-right">Vendu HT</th>
+                      <th className="px-3 py-2 text-right">Coût prévu</th>
+                      <th className="px-3 py-2 text-right">Achats affectés</th>
+                      <th className="px-3 py-2 text-right">Écart</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {costs.tasks.map((t) => (
+                      <tr key={t.id} className="border-b border-line last:border-0">
+                        <td className="px-3 py-2">
+                          {t.label}
+                          {t.nature === "main_oeuvre" ? <span className="block text-xs text-muted">Main-d'oeuvre : suivie par les heures pointées</span> : null}
+                        </td>
+                        <td className="tabular px-3 py-2 text-right">{formatEuros(t.soldCents)}</td>
+                        <td className="tabular px-3 py-2 text-right">{t.plannedCostCents === null ? "" : formatEuros(t.plannedCostCents)}</td>
+                        <td className="tabular px-3 py-2 text-right">{t.realPurchasesCents ? formatEuros(t.realPurchasesCents) : ""}</td>
+                        <td className={`tabular px-3 py-2 text-right ${t.gapCents !== null && t.gapCents < 0 ? "text-danger" : ""}`}>
+                          {t.gapCents === null ? "" : formatEuros(t.gapCents)}
+                        </td>
+                      </tr>
+                    ))}
+                    {costs.unassignedPurchasesCents ? (
+                      <tr>
+                        <td className="px-3 py-2">Achats pour le chantier en général</td>
+                        <td></td>
+                        <td></td>
+                        <td className="tabular px-3 py-2 text-right">{formatEuros(costs.unassignedPurchasesCents)}</td>
+                        <td></td>
+                      </tr>
+                    ) : null}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div>
+                <h3 className="mb-2 text-sm font-semibold">Achats</h3>
+                {purchases.length ? (
+                  <ul className="divide-y divide-line text-sm">
+                    {purchases.map((p) => (
+                      <li key={p.id} className="flex items-center justify-between gap-2 py-2">
+                        <div className="min-w-0">
+                          <div className="truncate">{p.label}</div>
+                          <div className="text-xs text-muted">
+                            {fmtDate(p.purchase_date)} · {PURCHASE_CATEGORIES[p.category]}
+                            {p.supplier ? ` · ${p.supplier}` : ""}
+                            {p.task_label ? ` · ${p.task_label}` : ""}
+                            {p.reference ? ` · ${p.reference}` : ""}
+                          </div>
+                        </div>
+                        <span className="flex shrink-0 items-center gap-1">
+                          <span className="tabular">{formatEuros(p.amount_ht_cents)}</span>
+                          {canEdit ? <DeletePurchase id={p.id} label={p.label} /> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">Aucun achat pour l'instant.</p>
+                )}
+                {canEdit ? (
+                  <div className="mt-4">
+                    <ThresholdForm jobId={job.id} percent={Math.round(costs.thresholdBp / 100)} />
+                  </div>
+                ) : null}
+              </div>
+              {canEdit ? (
+                <PurchaseForm
+                  jobId={job.id}
+                  categories={PURCHASE_CATEGORIES}
+                  today={parisDate(new Date())}
+                  tasks={costs.tasks.filter((t) => t.nature !== "main_oeuvre").map((t) => ({ id: t.id, label: t.label }))}
+                />
+              ) : null}
+            </div>
+          </Section>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -52,6 +52,10 @@ export interface JobTask {
   position: number;
   progress_bp: number;
   done_at: Date | null;
+  /** Nature de la ligne du devis (main-d'oeuvre, matériau...) */
+  nature: string;
+  /** Coût prévu au devis, null s'il n'était pas renseigné */
+  cost_cents: number | null;
 }
 
 const day = (v: unknown) => (v ? (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10)) : null);
@@ -68,7 +72,14 @@ function mapJob(r: Record<string, unknown>): Job {
 }
 
 function mapTask(r: Record<string, unknown>): JobTask {
-  return { ...(r as unknown as JobTask), weight_cents: num(r.weight_cents), position: num(r.position), progress_bp: num(r.progress_bp) };
+  return {
+    ...(r as unknown as JobTask),
+    weight_cents: num(r.weight_cents),
+    position: num(r.position),
+    progress_bp: num(r.progress_bp),
+    nature: String(r.nature ?? ""),
+    cost_cents: r.cost_cents === null || r.cost_cents === undefined ? null : num(r.cost_cents),
+  };
 }
 
 /** Avancement global pondéré par les montants ; à parts égales si aucune tâche n'a de montant. */
@@ -114,13 +125,14 @@ export async function createJobFromQuote(ctx: Ctx, quoteId: string): Promise<str
       ],
     );
     const amounts = new Map(s.calc.sections.flatMap((sec) => sec.lines.map((l) => [l.id, l.optional ? 0 : l.netCents] as const)));
+    const costs = new Map(s.calc.sections.flatMap((sec) => sec.lines.map((l) => [l.id, l.costCents] as const)));
     let position = 0;
     for (const sec of s.sections) {
       for (const l of sec.lines) {
         if (l.kind !== "item" || l.optional) continue;
         await tx.query(
-          "INSERT INTO job_tasks (org_id, job_id, section, label, quantity, unit, weight_cents, position) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
-          [ctx.orgId, job!.id, sec.title, l.label, l.quantity, l.unit, amounts.get(l.id) ?? 0, position++],
+          "INSERT INTO job_tasks (org_id, job_id, section, label, quantity, unit, weight_cents, position, nature, cost_cents) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+          [ctx.orgId, job!.id, sec.title, l.label, l.quantity, l.unit, amounts.get(l.id) ?? 0, position++, l.nature, costs.get(l.id) ?? null],
         );
       }
     }

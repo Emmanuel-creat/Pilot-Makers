@@ -15,6 +15,7 @@ import { createJobFromQuote, getJob, setTaskProgress } from "./services/jobs";
 import { addVehicle, assign } from "./services/planning";
 import { addDays, mondayOf } from "./services/planning-dates";
 import { addEntry, listEntries, reviewEntries } from "./services/timesheets";
+import { addPurchase } from "./services/job-costs";
 import { createQuote, getDraft, issueQuote, parisDate, recordResponseManually, saveDraft, sendQuote } from "./services/quotes";
 import { price4ToInput, bpToInput } from "./calc/format";
 
@@ -260,6 +261,7 @@ export async function seedDemo(db: Database): Promise<{ created: boolean }> {
     past.map((e) => e.id),
     "valide",
   );
+  await addPurchase(ctx, job, { date: lastMonday, label: "Receveur de douche extra-plat", supplier: "Négoce du Rhône", amount: "289", category: "materiau" });
 
   await make(2, "Réfection du carrelage du hall", "Remplacement des carreaux abîmés dans le hall d'entrée de la résidence.", [
     {

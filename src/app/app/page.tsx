@@ -5,6 +5,8 @@ import { formatEuros } from "@/lib/calc/format";
 import { requirePageCtx } from "@/lib/server/session";
 import { EVENT_LABELS, getDashboard } from "@/lib/services/dashboard";
 import { leadsDue } from "@/lib/services/leads";
+import { budgetAlerts } from "@/lib/services/job-costs";
+import { pct } from "@/lib/services/jobs-labels";
 
 export const metadata = { title: "Tableau de bord" };
 
@@ -16,6 +18,7 @@ export default async function Dashboard() {
   const org = await ctx.db.query<{ siret: string; address_line1: string }>("SELECT siret, address_line1 FROM organizations WHERE id=$1", [ctx.orgId]);
   const profileIncomplete = !org[0]?.siret || !org[0]?.address_line1;
   const leadsToFollow = await leadsDue(ctx);
+  const overBudget = ctx.entitlements.plan.features.margin ? await budgetAlerts(ctx) : [];
   return (
     <>
       <PageHeader
@@ -43,6 +46,19 @@ export default async function Dashboard() {
           <Icon name="right" />
         </Link>
       ) : null}
+      {overBudget.map((j) => (
+        <Link
+          key={j.id}
+          href={`/app/chantiers/${j.id}`}
+          className={`card mb-6 flex items-center gap-3 p-4 text-sm ${j.alert === "over" ? "border-danger/40 bg-danger-soft" : "border-warning/40 bg-warning-soft"}`}
+        >
+          <Icon name="alert" className={j.alert === "over" ? "text-danger" : "text-warning"} />
+          <span className="flex-1">
+            Chantier « {j.title} » : {j.alert === "over" ? "budget dépassé" : "budget presque consommé"} ({pct(j.consumedBp ?? 0)} % du coût prévu).
+          </span>
+          <Icon name="right" />
+        </Link>
+      ))}
       {total === 0 ? (
         <Empty
           icon="quote"

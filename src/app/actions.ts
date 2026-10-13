@@ -12,6 +12,7 @@ import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } fr
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
 import { addEntry, deleteEntry, reviewEntries, setMemberQualification, startTimer, stopTimer } from "@/lib/services/timesheets";
 import { formatMinutes } from "@/lib/services/timesheet-calc";
+import { addPurchase, deletePurchase, setBudgetThreshold } from "@/lib/services/job-costs";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
 import {
@@ -913,6 +914,50 @@ export async function setQualificationAction(_: ActionState, fd: FormData): Prom
     await withCtx((ctx) => setMemberQualification(ctx, s(fd, "userId"), s(fd, "qualification")));
     revalidatePath("/app/equipe");
     return { ok: true, message: "Qualification enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Coûts de chantier ------------------------------------------------ */
+
+export async function addPurchaseAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) =>
+      addPurchase(ctx, jobId, {
+        date: s(fd, "date"),
+        label: s(fd, "label"),
+        supplier: s(fd, "supplier"),
+        category: s(fd, "category"),
+        amount: s(fd, "amount"),
+        taskId: s(fd, "taskId"),
+        reference: s(fd, "reference"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Achat enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deletePurchaseAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deletePurchase(ctx, s(fd, "id")));
+    revalidatePath("/app/chantiers", "layout");
+    return { ok: true, message: "Achat supprimé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function budgetThresholdAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => setBudgetThreshold(ctx, jobId, s(fd, "percent")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Seuil d'alerte enregistré." };
   } catch (e) {
     return toState(e);
   }

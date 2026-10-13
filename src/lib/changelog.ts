@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "couts-chantier",
+    date: "2026-10-13",
+    title: "Marge réelle des chantiers",
+    text: "Achats et heures affectés à chaque chantier, marge réelle comparée au devis ligne par ligne et alerte avant le dépassement de budget.",
+    href: "/app/chantiers",
+  },
+  {
     id: "pointage",
     date: "2026-10-13",
     title: "Pointage des heures et export de paie",

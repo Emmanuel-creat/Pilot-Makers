@@ -216,3 +216,17 @@ test("pointage : chronomètre sur un chantier puis validation par l'encadrement"
   expect(csv.status()).toBe(200);
   expect(await csv.text()).toContain("heures_sup_25");
 });
+
+test("chantier : achat affecté et comparaison des coûts", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Coûts et marge" })).toBeVisible();
+  await page.getByLabel("Achat", { exact: true }).fill("Natte d'étanchéité");
+  await page.getByLabel("Montant HT (euros)").fill("86,40");
+  await page.getByRole("button", { name: "Ajouter l'achat" }).click();
+  await expect(page.getByText("Natte d'étanchéité")).toBeVisible();
+  await page.getByText("Détail ligne par ligne").click();
+  await audit(page, "coûts du chantier");
+});

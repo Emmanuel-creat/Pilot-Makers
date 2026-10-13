@@ -400,6 +400,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/pointage", label: "Ouvrir le pointage" },
   },
   {
+    slug: "suivre-les-couts-d-un-chantier",
+    category: "devis",
+    title: "Suivre les coûts et la marge réelle d'un chantier",
+    summary: "Achats et heures comparés au devis, alerte avant le dépassement.",
+    steps: [
+      "Ouvrez le chantier : la section « Coûts et marge » compare le coût prévu au devis et le coût réel.",
+      "Ajoutez chaque facture fournisseur, sous-traitance ou location, en l'affectant si possible à la ligne du devis concernée.",
+      "Les heures pointées sont valorisées au coût de la qualification de chaque personne (onglet Tarifs et page Équipe).",
+      "Une alerte apparaît sur le chantier et le tableau de bord quand le coût réel atteint le seuil choisi (90 % par défaut), puis quand il dépasse le prévu.",
+    ],
+    notes: ["Les coûts prévus viennent des coûts d'achat saisis sur les lignes du devis. Un avoir fournisseur se saisit en montant négatif."],
+    link: { href: "/app/chantiers", label: "Voir les chantiers" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
