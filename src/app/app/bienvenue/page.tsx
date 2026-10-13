@@ -7,15 +7,17 @@ import { getOrganization } from "@/lib/services/organization";
 
 export const metadata = { title: "Bienvenue" };
 
-/** Mise en route guidée : quatre étapes pour émettre un premier devis conforme. */
+/** Mise en route guidée : de l'identité de l'entreprise jusqu'au premier devis envoyé. */
 export default async function WelcomePage() {
   const ctx = await requirePageCtx();
   const org = await getOrganization(ctx);
-  const counts = await ctx.db.query<{ customers: unknown; items: unknown; quotes: unknown; issued: unknown }>(
+  const counts = await ctx.db.query<{ customers: unknown; items: unknown; quotes: unknown; issued: unknown; sent: unknown; firstIssued: string | null }>(
     `SELECT (SELECT count(*) FROM customers WHERE org_id=$1) AS customers,
             (SELECT count(*) FROM catalog_items WHERE org_id=$1) AS items,
             (SELECT count(*) FROM quotes WHERE org_id=$1) AS quotes,
-            (SELECT count(*) FROM quotes WHERE org_id=$1 AND current_version > 0) AS issued`,
+            (SELECT count(*) FROM quotes WHERE org_id=$1 AND current_version > 0) AS issued,
+            (SELECT count(*) FROM quotes WHERE org_id=$1 AND (status IN ('sent','viewed','accepted','refused') OR id IN (SELECT quote_id FROM share_links WHERE org_id=$1))) AS sent,
+            (SELECT id FROM quotes WHERE org_id=$1 AND current_version > 0 ORDER BY created_at LIMIT 1) AS "firstIssued"`,
     [ctx.orgId],
   );
   const c = counts[0];
@@ -47,6 +49,13 @@ export default async function WelcomePage() {
       text: "Choisissez le client, ajoutez vos prestations, vérifiez, émettez.",
       href: "/app/devis/nouveau",
       cta: "Créer un devis",
+    },
+    {
+      done: num(c.sent) > 0,
+      title: "Envoyez-le à votre client",
+      text: "Par e-mail depuis le devis, ou par un lien à transmettre par SMS. Le client le consulte et l'accepte en ligne, ou le signe sur votre tablette.",
+      href: c.firstIssued ? `/app/devis/${c.firstIssued}` : "/app/devis",
+      cta: "Envoyer",
     },
   ];
   const done = steps.filter((s) => s.done).length;

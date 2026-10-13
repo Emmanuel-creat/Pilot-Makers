@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "feuille-de-route",
+    date: "2026-10-13",
+    title: "Feuille de route et votes",
+    text: "Découvrez ce que nous préparons et soutenez les sujets qui vous seraient le plus utiles.",
+    href: "/aide/feuille-de-route",
+  },
+  {
     id: "tarifs-fournisseurs",
     date: "2026-10-13",
     title: "Tarifs fournisseurs et alerte de marge",

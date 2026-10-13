@@ -15,7 +15,15 @@ export default async function NewsPage() {
   if (news.some((n) => n.unread) && !ctx.supportAccess) await markNewsSeen(ctx);
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Nouveautés" subtitle="Ce qui change dans Pilot-Makers, du plus récent au plus ancien." />
+      <PageHeader
+        title="Nouveautés"
+        subtitle="Ce qui change dans Pilot-Makers, du plus récent au plus ancien."
+        actions={
+          <Link href="/app/feuille-de-route" className="btn-secondary">
+            <Icon name="up" size={16} /> Voter pour la suite
+          </Link>
+        }
+      />
       {news.length ? (
         <ol className="space-y-3">
           {news.map((n) => (

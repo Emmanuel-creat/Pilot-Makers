@@ -38,6 +38,20 @@ export async function seedDemo(db: Database): Promise<{ created: boolean }> {
     await db.query("UPDATE users SET is_platform_admin=true WHERE id=$1", [admin.userId]);
   }
 
+  // Premiers sujets de la feuille de route publique, seulement si elle est vide.
+  if (!(await one(db, "SELECT 1 FROM roadmap_items LIMIT 1"))) {
+    const topics: [string, string, string][] = [
+      ["Mode hors ligne", "Créer et modifier un devis sans réseau sur le chantier, avec synchronisation au retour de la connexion.", "prevu"],
+      ["Notifications sur le téléphone", "Être prévenu quand un client ouvre, accepte ou commente un devis.", "prevu"],
+      ["Rapprochement bancaire", "Relier les paiements reçus sur le compte de l'entreprise aux factures, sans saisie.", "idee"],
+      ["Aides à la rénovation", "Préparer les devis éligibles aux aides publiques avec les mentions exigées et le contrôle du label RGE.", "idee"],
+      ["Signature électronique certifiée", "Signature à valeur probante renforcée pour les marchés qui l'exigent.", "idee"],
+    ];
+    for (const [title, description, status] of topics) {
+      await db.query("INSERT INTO roadmap_items (title, description, status) VALUES ($1,$2,$3)", [title, description, status]);
+    }
+  }
+
   const r = await register(
     db,
     { email: DEMO_EMAIL, password: DEMO_PASSWORD, name: "Paul Martin", company: "Martin Carrelage", trade: "Carreleur", acceptTerms: true },

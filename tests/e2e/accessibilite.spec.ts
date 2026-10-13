@@ -580,3 +580,18 @@ test("catalogue : fichier de prix fournisseur et alerte de marge", async ({ page
   await page.getByRole("button", { name: "Marge vue" }).first().click();
   await expect(page.getByRole("heading", { name: /Marge en baisse/ })).toBeHidden();
 });
+
+test("feuille de route : vote dans l'application, compte public", async ({ page }) => {
+  await page.goto("/feuille-de-route");
+  await expect(page.getByRole("heading", { level: 1, name: "Feuille de route" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Mode hors ligne" })).toBeVisible();
+  await audit(page, "feuille de route publique");
+  await login(page);
+  await page.goto("/app/feuille-de-route");
+  const vote = page.getByRole("button", { name: /^Voter pour Mode hors ligne/ });
+  await vote.click();
+  await expect(page.getByRole("button", { name: /^Retirer mon vote pour Mode hors ligne, 1 vote/ })).toHaveAttribute("aria-pressed", "true");
+  await audit(page, "feuille de route avec vote");
+  await page.goto("/app/bienvenue");
+  await expect(page.getByRole("heading", { name: "Envoyez-le à votre client" })).toBeVisible();
+});

@@ -85,6 +85,7 @@ import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes"
 import { createIncident, updateIncident } from "@/lib/services/status";
 import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/services/showcase";
 import { dismissCostAlert } from "@/lib/services/supplier-prices";
+import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/services/roadmap";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1601,4 +1602,26 @@ export async function removeShowcasePhotoAction(fd: FormData) {
 export async function dismissCostAlertAction(fd: FormData) {
   await withCtx((ctx) => dismissCostAlert(ctx, s(fd, "id")));
   revalidatePath("/app/catalogue");
+}
+
+/* Feuille de route ----------------------------------------------------- */
+
+export async function createRoadmapAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => createRoadmapItem(ctx, { title: s(fd, "title"), description: s(fd, "description"), status: s(fd, "status") }));
+    revalidatePath("/admin/feuille-de-route");
+    return { ok: true, message: "Sujet publié sur la feuille de route." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function roadmapStatusAction(fd: FormData) {
+  await withCtx((ctx) => setRoadmapStatus(ctx, s(fd, "id"), s(fd, "status")));
+  revalidatePath("/admin/feuille-de-route");
+}
+
+export async function deleteRoadmapAction(fd: FormData) {
+  await withCtx((ctx) => deleteRoadmapItem(ctx, s(fd, "id")));
+  revalidatePath("/admin/feuille-de-route");
 }

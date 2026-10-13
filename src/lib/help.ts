@@ -672,6 +672,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/catalogue/tarifs-fournisseurs", label: "Ouvrir les tarifs fournisseurs" },
   },
   {
+    slug: "feuille-de-route",
+    category: "compte",
+    title: "Voter pour les prochaines fonctions",
+    summary: "La feuille de route montre ce qui est à l'étude, prévu, en cours et livré ; vos votes fixent les priorités.",
+    steps: [
+      "Ouvrez Nouveautés puis « Voter pour la suite », ou la page Feuille de route.",
+      "Cliquez sur le compteur d'un sujet pour le soutenir. Un second clic retire votre vote.",
+      "Les sujets livrés restent affichés un an avec leur date de livraison.",
+    ],
+    notes: ["Les votes sont anonymes : seul leur nombre est publié. Pour proposer une idée absente de la liste, écrivez-nous depuis Assistance."],
+    link: { href: "/app/feuille-de-route", label: "Ouvrir la feuille de route" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

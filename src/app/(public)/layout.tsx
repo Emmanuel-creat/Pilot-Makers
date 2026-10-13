@@ -32,6 +32,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/aide" className="hover:text-ink">
             Centre d'aide
           </Link>
+          <Link href="/feuille-de-route" className="hover:text-ink">
+            Feuille de route
+          </Link>
           <Link href="/cgu" className="hover:text-ink">
             Conditions d'utilisation
           </Link>
