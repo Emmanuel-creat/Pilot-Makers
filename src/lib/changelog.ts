@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "reception",
+    date: "2026-10-13",
+    title: "Journal photo et procès-verbal de réception",
+    text: "Photos datées et géolocalisées sur chaque chantier, procès-verbal de réception signé au doigt par le client, puis levée des réserves une à une.",
+    href: "/aide/reception-des-travaux",
+  },
+  {
     id: "chantiers",
     date: "2026-10-13",
     title: "Suivi des chantiers",

@@ -292,6 +292,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers", label: "Voir les chantiers" },
   },
   {
+    slug: "reception-des-travaux",
+    category: "devis",
+    title: "Journal de chantier, réception et réserves",
+    summary: "Photos datées, procès-verbal signé sur place et levée des réserves.",
+    steps: [
+      "Sur la fiche du chantier, ajoutez des photos et des notes au journal : la date de prise de vue et la position sont enregistrées.",
+      "À la fin des travaux, remplissez la réception avec le client : sans réserve, avec réserves (défaut, localisation, délai) ou refus motivé.",
+      "Le client puis l'entreprise signent au doigt sur l'écran : le procès-verbal est figé en PDF.",
+      "Levez chaque réserve une fois les travaux faits : le procès-verbal de levée se télécharge quand toutes sont levées.",
+    ],
+    notes: [
+      "La réception fait courir les garanties de parfait achèvement, biennale et décennale, et rend exigible le solde.",
+      "Les photos sont réduites avant l'envoi pour passer même avec un réseau faible.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

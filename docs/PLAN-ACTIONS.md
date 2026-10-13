@@ -186,3 +186,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 23 (13/10/2026) : 435 (webhooks signés : devis signé, facture payée, client créé ; file d'envoi avec nouveaux essais).
 - Vague 24 (13/10/2026) : 469 (activation progressive par entreprise), 470 (journal des nouveautés avec compteur de non lues).
 - Vague 25 (13/10/2026) : 322 (devis signé transformé en chantier avec tâches), 326 (fiche chantier : adresse, accès, codes chiffrés, contacts), 328 (avancement par lot et par ligne).
+- Vague 26 (13/10/2026) : 327 (journal de chantier avec photos datées et géolocalisées), 329 (procès-verbal de réception signé sur l'écran, avec réserves), 330 (levée des réserves et procès-verbal de levée).

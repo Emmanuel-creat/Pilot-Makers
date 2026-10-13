@@ -5,6 +5,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
 import { setOrgFeature } from "@/lib/services/features";
+import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/job-site";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { getDb } from "@/lib/db";
@@ -576,6 +577,52 @@ export async function deleteTaskAction(_: ActionState, fd: FormData): Promise<Ac
   try {
     await withCtx((ctx) => deleteTask(ctx, s(fd, "taskId")));
     revalidatePath(`/app/chantiers/${s(fd, "jobId")}`);
+    return { ok: true };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function signReceptionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    const labels = fd.getAll("reserve_label").map(String);
+    const locations = fd.getAll("reserve_location").map(String);
+    const dues = fd.getAll("reserve_due").map(String);
+    await withCtx((ctx) =>
+      signReception(ctx, jobId, {
+        decision: s(fd, "decision"),
+        date: s(fd, "date"),
+        place: s(fd, "place"),
+        refusalReason: s(fd, "refusalReason"),
+        reserves: labels.map((label, i) => ({ label, location: locations[i] ?? "", dueDate: dues[i] ?? "" })),
+        clientName: s(fd, "clientName"),
+        clientSignature: s(fd, "clientSignature"),
+        companyName: s(fd, "companyName"),
+        companySignature: s(fd, "companySignature"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Procès-verbal signé et enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function liftReserveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = await withCtx((ctx) => liftReserve(ctx, s(fd, "reserveId"), s(fd, "note")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Réserve levée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteJournalAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = await withCtx((ctx) => deleteJournalEntry(ctx, s(fd, "entryId")));
+    revalidatePath(`/app/chantiers/${jobId}`);
     return { ok: true };
   } catch (e) {
     return toState(e);

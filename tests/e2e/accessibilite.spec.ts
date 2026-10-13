@@ -113,3 +113,35 @@ test("suivi de chantier : avancement d'une tâche", async ({ page }) => {
   await third.getByRole("button", { name: "75 %" }).click();
   await expect(third.getByRole("button", { name: "75 %" })).toHaveAttribute("aria-pressed", "true");
 });
+
+test("chantier : journal et procès-verbal de réception signé à l'écran", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.locator("#journal-note").fill("Étanchéité posée, séchage 24 h");
+  await page.getByLabel("Enregistrer la position").uncheck();
+  await page.getByRole("button", { name: "Ajouter au journal" }).click();
+  await expect(page.getByText("Étanchéité posée, séchage 24 h")).toBeVisible();
+
+  await page.getByLabel("Réception avec réserves").check();
+  await page.getByLabel("Réserve 1", { exact: true }).fill("Joint de la bonde à reprendre");
+  for (const label of ["Signature du client : signez dans ce cadre", "Signature de l'entreprise : signez dans ce cadre"]) {
+    const pad = page.getByRole("img", { name: label });
+    await pad.scrollIntoViewIfNeeded();
+    const box = (await pad.boundingBox())!;
+    await page.mouse.move(box.x + 20, box.y + 30);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 120, box.y + 80, { steps: 8 });
+    await page.mouse.move(box.x + 200, box.y + 40, { steps: 8 });
+    await page.mouse.up();
+  }
+  await audit(page, "fiche chantier avant réception");
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Signer le procès-verbal" }).click();
+  await expect(page.getByRole("link", { name: "Procès-verbal signé (PDF)" })).toBeVisible();
+  await page.getByLabel("Commentaire de levée : Joint de la bonde à reprendre").fill("Joint refait");
+  await page.getByRole("button", { name: "Lever" }).click();
+  await expect(page.getByRole("link", { name: "Procès-verbal de levée des réserves" })).toBeVisible();
+  await audit(page, "fiche chantier après réception");
+});

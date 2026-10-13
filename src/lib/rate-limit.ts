@@ -40,6 +40,8 @@ export const RATE_RULES = {
   "assistant.burst": rule(10, 60, "Trop de demandes à l'assistant de préparation."),
   /** Imports et exports de fichiers, par entreprise */
   "files.transfer": rule(30, 3600, "Trop d'imports ou d'exports en peu de temps."),
+  /** Photos du journal de chantier, par entreprise */
+  "job.photo": rule(300, 3600, "Trop de photos envoyées en peu de temps."),
 } as const;
 
 export type RateBucket = keyof typeof RATE_RULES;
