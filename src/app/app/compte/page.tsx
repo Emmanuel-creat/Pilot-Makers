@@ -21,6 +21,8 @@ import { pendingTwoFactorSetup, twoFactorState } from "@/lib/services/two-factor
 import { CodesForm } from "./TwoFactor";
 import { PasskeyManager } from "@/components/Passkeys";
 import { listPasskeys } from "@/lib/services/passkeys";
+import { PushSettings } from "@/components/PushSettings";
+import { listPushDevices } from "@/lib/services/push";
 
 export const metadata = { title: "Mon compte" };
 
@@ -36,7 +38,12 @@ const codeField = (id: string) => (
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ double?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const [tf, pending, passkeys] = await Promise.all([twoFactorState(ctx.db, ctx.userId), pendingTwoFactorSetup(ctx), listPasskeys(ctx)]);
+  const [tf, pending, passkeys, pushDevices] = await Promise.all([
+    twoFactorState(ctx.db, ctx.userId),
+    pendingTwoFactorSetup(ctx),
+    listPasskeys(ctx),
+    listPushDevices(ctx),
+  ]);
   const [sessions, user] = await Promise.all([
     listSessions(ctx),
     ctx.db.query<{ name: string; locale: string; timezone: string; status: string; deletion_requested_at: Date | null; created_at: Date }>(
@@ -109,6 +116,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           L'administration de la plateforme n'est accessible qu'avec la double authentification activée.
         </Notice>
       ) : null}
+      <Section
+        title="Notifications sur le téléphone"
+        description="Soyez prévenu dès qu'un client ouvre, accepte ou refuse un devis, vous écrit, qu'un sous-traitant répond ou qu'une demande de devis arrive."
+      >
+        <PushSettings devices={pushDevices} />
+      </Section>
       <Section
         title="Clés d'accès"
         description="Connectez-vous sans mot de passe, avec l'empreinte, le visage ou le code de votre téléphone ou ordinateur. Une clé d'accès ne peut pas être volée par un faux site et vaut double authentification."

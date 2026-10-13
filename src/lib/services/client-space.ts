@@ -3,6 +3,7 @@
  * espace client (devis, factures, procès-verbaux et échanges au même endroit, par un lien personnel).
  */
 
+import { notifyOrg } from "./push";
 import { z } from "zod";
 import type { Database, Queryable } from "@/lib/db";
 import { num, one } from "@/lib/db";
@@ -81,6 +82,11 @@ async function insertClientMessage(
       body: `${name} ${what} à propos du devis ${target.snapshot.number} :\n\n${d.body}\n\nRépondre : ${appUrl("/app/devis/" + target.quoteId)}`,
     });
   }
+  await notifyOrg(q, target.orgId, {
+    title: `Devis ${target.snapshot.number} : message de ${name}`,
+    body: d.body.slice(0, 140),
+    url: `/app/devis/${target.quoteId}#echanges`,
+  });
   return r!.id;
 }
 

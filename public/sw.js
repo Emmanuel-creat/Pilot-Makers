@@ -4,7 +4,7 @@
  * - Pages : toujours demandées au serveur ; sans réseau, la page « hors ligne » s'affiche.
  * - Données (API, PDF) : jamais mises en cache, elles sont propres à chaque compte.
  */
-const VERSION = "pm-v1";
+const VERSION = "pm-v2";
 const OFFLINE = "/hors-ligne";
 const PRECACHE = [OFFLINE, "/icon.svg", "/icons/icon-192.png"];
 
@@ -56,4 +56,34 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+
+/* Notifications sur le téléphone : le message chiffré est déchiffré par le navigateur avant d'arriver ici. */
+self.addEventListener("push", (event) => {
+  let data = { title: "Pilot-Makers", body: "", url: "/app" };
+  try {
+    data = Object.assign(data, event.data ? event.data.json() : {});
+  } catch (e) {
+    data.body = event.data ? event.data.text() : "";
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, { body: data.body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", data: { url: data.url } }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || "/app", self.location.origin);
+  if (target.origin !== self.location.origin) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) {
+          c.navigate(target.href);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(target.href);
+    }),
+  );
 });

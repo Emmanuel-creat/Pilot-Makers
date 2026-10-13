@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "notifications-telephone",
+    date: "2026-10-13",
+    title: "Notifications sur le téléphone",
+    text: "Devis ouvert, accepté ou refusé, message d'un client : soyez prévenu tout de suite sur votre téléphone.",
+    href: "/aide/notifications-telephone",
+  },
+  {
     id: "analyse-fichiers",
     date: "2026-10-13",
     title: "Fichiers déposés analysés",

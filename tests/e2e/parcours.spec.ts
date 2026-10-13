@@ -208,6 +208,7 @@ test("clé d'accès : ajout dans Mon compte puis connexion sans mot de passe", a
   });
   await login(page);
   await page.goto("/app/compte");
+  await expect(page.getByRole("heading", { name: "Notifications sur le téléphone" })).toBeVisible();
   await page.getByLabel("Nom de l'appareil (facultatif)").fill("Téléphone de test");
   await page.getByRole("button", { name: "Ajouter une clé d'accès" }).click();
   await expect(page.getByText("Clé d'accès ajoutée")).toBeVisible();

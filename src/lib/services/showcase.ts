@@ -7,6 +7,7 @@
  * seulement la ville si l'entreprise le souhaite.
  */
 
+import { notifyOrg } from "./push";
 import { z } from "zod";
 import { one } from "@/lib/db";
 import type { Queryable } from "@/lib/db";
@@ -286,6 +287,7 @@ export async function requestFromShowcase(
         body: `${l.name}${l.city ? ` (${l.city})` : ""} a déposé une demande sur votre page vitrine :\n\n${l.description}\n\n${[l.phone, l.email].filter(Boolean).join(" ; ")}\n\n${appUrl("/app/demandes")}`,
       });
     }
+    await notifyOrg(tx, s.org_id, { title: `Nouvelle demande de devis : ${l.name}`, body: l.description.slice(0, 140), url: "/app/demandes" });
   });
   return { ok: true };
 }

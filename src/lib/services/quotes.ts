@@ -2,6 +2,7 @@
  * Devis : brouillons, émission de versions figées, envoi, acceptation (modules E, F, I).
  */
 
+import { notifyOrg } from "./push";
 import { randomUUID } from "node:crypto";
 import { type Measure, sanitizeMeasure } from "@/lib/calc/measure";
 import { z } from "zod";
@@ -1236,6 +1237,11 @@ export async function recordClientView(q: Queryable, token: string, meta: { ip: 
         body: `${r.version.snapshot.customer.name} vient d'ouvrir le devis ${r.version.number} (version ${r.version.version}).\n\n${appUrl("/app/devis/" + r.link.quote_id)}`,
       });
     }
+    await notifyOrg(q, r.link.org_id, {
+      title: `Devis ${r.version.number} consulté`,
+      body: `${r.version.snapshot.customer.name} vient d'ouvrir le devis.`,
+      url: "/app/devis/" + r.link.quote_id,
+    });
   }
   return r;
 }
@@ -1332,6 +1338,11 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
         body: `Le devis ${r.version.number} (version ${r.version.version}) a été ${accepted ? "accepté" : "refusé"} en ligne par ${input.name}.${!accepted && input.reasonCode ? "\nRaison : " + REFUSAL_REASONS[input.reasonCode] : ""}${input.reason ? "\nMotif : " + input.reason : ""}\n\n${appUrl("/app/devis/" + r.link.quote_id)}`,
       });
     }
+    await notifyOrg(tx, r.link.org_id, {
+      title: `Devis ${r.version.number} ${accepted ? "accepté" : "refusé"}`,
+      body: `${input.name} a ${accepted ? "accepté" : "refusé"} le devis en ligne.`,
+      url: "/app/devis/" + r.link.quote_id,
+    });
     return { status: accepted ? "accepted" : "refused" };
   });
 }

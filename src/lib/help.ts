@@ -853,6 +853,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "notifications-telephone",
+    category: "compte",
+    title: "Recevoir les notifications sur le téléphone",
+    summary: "Soyez prévenu tout de suite qu'un client ouvre, accepte ou refuse un devis, vous écrit, ou qu'une demande arrive.",
+    steps: [
+      "Sur le téléphone, ouvrez Mon compte, section Notifications sur le téléphone, puis « Activer sur cet appareil ».",
+      "Acceptez la demande d'autorisation du navigateur.",
+      "Appuyez sur « Envoyer une notification d'essai » : elle arrive dans la minute. Toucher une notification ouvre le devis concerné.",
+    ],
+    notes: [
+      "Sur iPhone, ajoutez d'abord Pilot-Makers à l'écran d'accueil (bouton Partager de Safari, puis « Sur l'écran d'accueil ») et activez depuis l'icône.",
+      "Les notifications complètent les e-mails sans les remplacer. Activez-les sur chaque appareil, 10 au plus.",
+      "Le contenu est chiffré pour votre seul appareil : le service de notifications du téléphone ne peut pas le lire.",
+    ],
+    link: { href: "/app/compte", label: "Ouvrir Mon compte" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

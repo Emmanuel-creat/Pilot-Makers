@@ -4,6 +4,7 @@
  * devient une ligne « sous-traitance » du devis client, avec son coût et la marge choisie.
  */
 
+import { notifyOrg } from "./push";
 import { requireCleanFile } from "@/lib/file-scan";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -276,6 +277,11 @@ export async function answerSubQuote(
       )}`,
     });
   }
+  await notifyOrg(db, t.org_id, {
+    title: `${sq.subcontractor_name} a répondu`,
+    body: `${centsToInput(a.cents)} euros HT pour « ${sq.title} »`,
+    url: sq.quote_id ? `/app/devis/${sq.quote_id}#sous-traitance` : `/app/sous-traitants/${sq.subcontractor_id}`,
+  });
   await audit(db, { orgId: t.org_id, action: "subquote.answer", target: t.id, ip: meta.ip });
 }
 

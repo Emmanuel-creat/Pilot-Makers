@@ -66,7 +66,7 @@ Les tests couvrent les calculs (arrondis, remises, TVA multiples, franchise, lim
 
 - `POST /api/cron/reminders` : relances des devis envoyés (toutes les heures) ;
 - `POST /api/cron/webhooks` : envoi des webhooks en attente et nouveaux essais (toutes les minutes) ;
-- `POST /api/cron/jobs` : file de tâches en arrière-plan, dont les nouveaux essais des e-mails refusés pour une raison passagère (toutes les minutes) ;
+- `POST /api/cron/jobs` : file de tâches en arrière-plan : notifications sur le téléphone, nouveaux essais des e-mails refusés pour une raison passagère (toutes les minutes). Les clés des notifications (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`) sont créées et gardées chiffrées en base si elles ne sont pas fournies ;
 - `POST /api/cron/maintenance` : fin d'essai, échéances d'abonnement, purge des comptes supprimés (une fois par jour). Sur l'instance de démonstration publique, `DEMO_RESET=1` remet aussi le compte de démonstration à zéro à chaque passage.
 
 ## API publique
