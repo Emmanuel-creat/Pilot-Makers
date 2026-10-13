@@ -6,6 +6,7 @@ import { num, numOrNull, one } from "@/lib/db";
 import { parseScaled } from "@/lib/calc/decimal";
 import { bpToInput, price4ToInput } from "@/lib/calc/format";
 import { parseCsv, toCsv } from "@/lib/csv";
+import { cleanAmount, headerKey } from "@/lib/sheet";
 import { badRequest, conflict, notFound } from "@/lib/http";
 import { fuzzyFilter } from "@/lib/fuzzy";
 import { LIBRARY, LIBRARY_DATE, LIBRARY_NOTE, type LibraryTrade } from "@/lib/library";
@@ -435,11 +436,104 @@ export async function catalogCsv(ctx: Ctx): Promise<string> {
   );
 }
 
-export async function importCatalogCsv(ctx: Ctx, csv: string, dryRun: boolean) {
+type CatalogField = (typeof CSV_COLUMNS)[number];
+
+/** En-têtes reconnus (simplifiés par headerKey), dont ceux des exports de bibliothèques et de logiciels de devis. */
+const CATALOG_ALIASES: Record<string, CatalogField> = {
+  reference: "reference",
+  ref: "reference",
+  code: "reference",
+  "code article": "reference",
+  "reference article": "reference",
+  designation: "name",
+  libelle: "name",
+  nom: "name",
+  article: "name",
+  intitule: "name",
+  "nom de l article": "name",
+  description: "description",
+  descriptif: "description",
+  detail: "description",
+  "description longue": "description",
+  categorie: "category",
+  type: "category",
+  nature: "category",
+  "type de ligne": "category",
+  famille: "subcategory",
+  "sous famille": "subcategory",
+  "sous categorie": "subcategory",
+  lot: "subcategory",
+  unite: "unit",
+  u: "unit",
+  "unite de mesure": "unit",
+  prix: "unit_price",
+  "prix ht": "unit_price",
+  "prix unitaire": "unit_price",
+  "prix unitaire ht": "unit_price",
+  "pu ht": "unit_price",
+  pu: "unit_price",
+  "prix de vente": "unit_price",
+  "prix de vente ht": "unit_price",
+  "pv ht": "unit_price",
+  tarif: "unit_price",
+  "tarif ht": "unit_price",
+  "prix d achat": "unit_cost",
+  "prix achat": "unit_cost",
+  "prix d achat ht": "unit_cost",
+  "prix achat ht": "unit_cost",
+  "pa ht": "unit_cost",
+  cout: "unit_cost",
+  "cout unitaire": "unit_cost",
+  "cout d achat": "unit_cost",
+  debourse: "unit_cost",
+  "debourse sec": "unit_cost",
+  "cout horaire": "hourly_cost",
+  "taux horaire": "hourly_cost",
+  tva: "vat_percent",
+  "taux de tva": "vat_percent",
+  "taux tva": "vat_percent",
+  pertes: "waste_percent",
+  chutes: "waste_percent",
+  "taux de chute": "waste_percent",
+  "pertes et chutes": "waste_percent",
+  fournisseur: "supplier",
+  duree: "duration_minutes",
+  "duree minutes": "duration_minutes",
+  "temps de pose": "duration_minutes",
+  "temps minutes": "duration_minutes",
+  actif: "active",
+  etiquettes: "tags",
+  "mots cles": "tags",
+};
+
+function catalogField(h: string): CatalogField | undefined {
+  const raw = h.trim().toLowerCase();
+  if ((CSV_COLUMNS as readonly string[]).includes(raw)) return raw as CatalogField;
+  return CATALOG_ALIASES[headerKey(h)];
+}
+
+/** Catégorie lue dans un autre logiciel : reconnue si possible, sinon conservée en sous-catégorie. */
+function importCategory(v: string): { category: string; subcategory?: string } {
+  const k = headerKey(v);
+  if (!k) return { category: "main_oeuvre" };
+  if (["materiau", "main oeuvre", "deplacement", "sous traitance", "forfait", "autre"].includes(k)) return { category: k.replace(/ /g, "_") };
+  if (/^(mat|fourniture|produit|equipement|piece)/.test(k)) return { category: "materiau" };
+  if (/^(main|mo$|pose|heure|travail|prestation)/.test(k)) return { category: "main_oeuvre" };
+  if (/deplacement|transport|frais de route/.test(k)) return { category: "deplacement" };
+  if (/sous trait|soustrait/.test(k)) return { category: "sous_traitance" };
+  if (/forfait|ouvrage|compose/.test(k)) return { category: "forfait" };
+  return { category: "autre", subcategory: v.trim().slice(0, 80) };
+}
+
+const AMOUNT_SCALE: Partial<Record<CatalogField, number>> = { unit_cost: 4, hourly_cost: 4, unit_price: 4, vat_percent: 2, waste_percent: 2 };
+
+export async function importCatalogCsv(ctx: Ctx, input: string | string[][], dryRun: boolean) {
   requireWritable(ctx);
-  const table = parseCsv(csv);
+  const table = typeof input === "string" ? parseCsv(input) : input;
   if (table.length < 2) throw badRequest("Fichier vide");
-  const header = table[0].map((h) => h.trim().toLowerCase());
+  if (table.length > 5001) throw badRequest("5 000 lignes maximum par import");
+  const header = table[0].map(catalogField);
+  if (!header.includes("name")) throw badRequest("Colonne du nom de la prestation introuvable (name, désignation ou libellé)");
   const results: { line: number; ok: boolean; message: string; reference?: string }[] = [];
   const existing = new Set((await ctx.db.query<{ reference: string }>("SELECT reference FROM catalog_items WHERE org_id=$1", [ctx.orgId])).map((r) => r.reference));
   const toInsert: Record<string, unknown>[] = [];
@@ -447,11 +541,26 @@ export async function importCatalogCsv(ctx: Ctx, csv: string, dryRun: boolean) {
     if (table[i].every((c) => !c.trim())) continue;
     const obj: Record<string, unknown> = {};
     header.forEach((h, j) => {
-      const v = (table[i][j] ?? "").trim();
-      if (h === "active") obj.active = !/^(non|false|0)$/i.test(v);
-      else if (h === "duration_minutes") obj.duration_minutes = v ? Number(v) : null;
+      if (!h) return;
+      let v = (table[i][j] ?? "").trim();
+      if (h in obj && (!v || obj[h])) return;
+      const scale = AMOUNT_SCALE[h];
+      if (scale !== undefined) {
+        v = cleanAmount(v, scale);
+        // Un pourcentage saisi au format Excel (0,2 pour 20 %) est remis en pourcentage.
+        if ((h === "vat_percent" || h === "waste_percent") && Number(v) > 0 && Number(v) < 1) v = String(Math.round(Number(v) * 10000) / 100);
+      }
+      if (h === "active") obj.active = !/^(non|false|0|faux)$/i.test(v);
+      else if (h === "duration_minutes") obj.duration_minutes = v ? Math.round(Number(cleanAmount(v, 0))) : null;
+      else if (h === "category") {
+        const c = importCategory(v);
+        obj.category = c.category;
+        if (c.subcategory && !obj.subcategory) obj.subcategory = c.subcategory;
+      } else if (h === "unit") obj.unit = v || "u";
       else obj[h] = v;
     });
+    const defaultVat = !obj.vat_percent;
+    if (defaultVat) obj.vat_percent = "20";
     const parsed = itemSchema.safeParse(obj);
     if (!parsed.success) {
       results.push({ line: i + 1, ok: false, message: parsed.error.issues.map((x) => x.message).join(", ") });
@@ -464,7 +573,7 @@ export async function importCatalogCsv(ctx: Ctx, csv: string, dryRun: boolean) {
     }
     if (ref) existing.add(ref);
     toInsert.push(obj);
-    results.push({ line: i + 1, ok: true, message: "Prêt à importer", reference: ref });
+    results.push({ line: i + 1, ok: true, message: defaultVat ? "Prêt à importer (TVA 20 % par défaut)" : "Prêt à importer", reference: ref || String(obj.name) });
   }
   if (!dryRun) {
     await ctx.db.transaction(async (tx) => {

@@ -159,3 +159,19 @@ test("planning : glisser une affectation vers un autre jour", async ({ page }) =
   await expect(page.getByText("Déplacé", { exact: false }).first()).toBeVisible();
   await expect(row.locator("td").nth(4).locator("[draggable=true]")).toHaveCount(1);
 });
+
+test("import du catalogue depuis un fichier d'un autre logiciel", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/import");
+  await audit(page, "import du catalogue");
+  // Export Excel français : encodage Windows-1252, où l'euro est l'octet 0x80.
+  const csv = Buffer.concat([
+    Buffer.from("Désignation;Unité;Prix unitaire HT;Taux de TVA\nDépose de cloison test;m²;18,00 ", "latin1"),
+    Buffer.from([0x80]),
+    Buffer.from(";10 %\n", "latin1"),
+  ]);
+  await page.locator("input[type=file]").setInputFiles({ name: "export.csv", mimeType: "text/csv", buffer: csv });
+  await expect(page.getByText("Prêt à importer")).toBeVisible();
+  await page.getByRole("button", { name: "Importer 1 ligne(s)" }).click();
+  await expect(page.getByText("1 ligne(s) importée(s)")).toBeVisible();
+});

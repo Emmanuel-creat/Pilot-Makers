@@ -77,7 +77,9 @@ export function zip(entries: ZipEntry[]): Buffer {
 }
 
 /** Lecture d'une archive produite par zip() (contrôles et tests). */
-export function unzip(buf: Buffer): Map<string, Buffer> {
+export function unzip(buf: Buffer, opts: { maxBytes?: number } = {}): Map<string, Buffer> {
+  const maxBytes = opts.maxBytes ?? 200_000_000;
+  let total = 0;
   const endAt = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
   if (endAt < 0) throw new Error("Archive ZIP illisible");
   const count = buf.readUInt16LE(endAt + 10);
@@ -94,7 +96,11 @@ export function unzip(buf: Buffer): Map<string, Buffer> {
     const name = buf.subarray(p + 46, p + 46 + nameLen).toString("utf8");
     const start = local + 30 + buf.readUInt16LE(local + 26) + buf.readUInt16LE(local + 28);
     const body = buf.subarray(start, start + size);
-    const data = method === 8 ? inflateRawSync(body) : Buffer.from(body);
+    if (method !== 0 && method !== 8) throw new Error(`Méthode de compression non prise en charge : ${name}`);
+    // Protection contre les archives piégées : la taille décompressée est plafonnée.
+    const data = method === 8 ? inflateRawSync(body, { maxOutputLength: Math.max(1, maxBytes - total) }) : Buffer.from(body);
+    total += data.length;
+    if (total > maxBytes) throw new Error("Archive trop volumineuse une fois décompressée");
     if (crc32(data) >>> 0 !== crc) throw new Error(`Contrôle d'intégrité en échec : ${name}`);
     out.set(name, data);
     p += 46 + nameLen + extra;

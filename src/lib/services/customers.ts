@@ -5,6 +5,7 @@ import type { Queryable } from "@/lib/db";
 import { one } from "@/lib/db";
 import { badRequest, notFound } from "@/lib/http";
 import { parseCsv, toCsv } from "@/lib/csv";
+import { headerKey } from "@/lib/sheet";
 import { cleanId, validateEmail, validatePostalCode, validateSiren, validateVatNumber } from "@/lib/validation/identifiers";
 import type { Ctx } from "./context";
 import { enqueueWebhook } from "./webhooks";
@@ -292,39 +293,130 @@ export interface ImportPreviewRow {
   duplicateOf: string | null;
 }
 
-const HEADER_ALIASES: Record<string, (typeof COLUMNS)[number]> = {
+type ImportField = (typeof COLUMNS)[number] | "siret";
+
+/**
+ * En-têtes reconnus (simplifiés par headerKey) : les nôtres, ceux des tableurs courants
+ * et ceux des exports des logiciels de devis du bâtiment.
+ */
+const HEADER_ALIASES: Record<string, ImportField> = {
   nom: "last_name",
+  "nom du client": "last_name",
+  "nom client": "last_name",
+  "nom de famille": "last_name",
+  "contact nom": "last_name",
+  "nom du contact": "last_name",
+  "nom complet": "last_name",
   prenom: "first_name",
-  prénom: "first_name",
+  "prenom du client": "first_name",
+  "contact prenom": "first_name",
+  "prenom du contact": "first_name",
+  civilite: "civility",
   societe: "company_name",
-  société: "company_name",
   entreprise: "company_name",
+  "raison sociale": "company_name",
+  denomination: "company_name",
+  "nom de l entreprise": "company_name",
+  "nom societe": "company_name",
+  "nom de la societe": "company_name",
+  "type de client": "type",
+  "type client": "type",
+  categorie: "type",
   adresse: "billing_line1",
+  "adresse 1": "billing_line1",
+  "adresse ligne 1": "billing_line1",
+  rue: "billing_line1",
+  "adresse de facturation": "billing_line1",
+  "adresse facturation": "billing_line1",
+  "adresse 2": "billing_line2",
+  "adresse ligne 2": "billing_line2",
+  complement: "billing_line2",
+  "complement d adresse": "billing_line2",
+  "complement adresse": "billing_line2",
   "code postal": "billing_postal_code",
   cp: "billing_postal_code",
+  "code postal facturation": "billing_postal_code",
   ville: "billing_city",
+  commune: "billing_city",
+  localite: "billing_city",
+  "ville facturation": "billing_city",
   pays: "billing_country",
+  "adresse chantier": "site_line1",
+  "adresse du chantier": "site_line1",
+  "adresse d intervention": "site_line1",
+  "code postal chantier": "site_postal_code",
+  "cp chantier": "site_postal_code",
+  "ville chantier": "site_city",
+  "ville du chantier": "site_city",
   telephone: "phone",
-  téléphone: "phone",
   tel: "phone",
+  "telephone fixe": "phone",
+  "tel fixe": "phone",
+  "tel portable": "phone",
+  "tel mobile": "phone",
+  "telephone 1": "phone",
+  "telephone 2": "phone",
+  "telephone portable": "phone",
+  "telephone mobile": "phone",
+  portable: "phone",
+  mobile: "phone",
+  gsm: "phone",
+  "numero de telephone": "phone",
   mail: "email",
-  "e-mail": "email",
+  "e mail": "email",
   courriel: "email",
-  notes: "notes",
+  "adresse email": "email",
+  "adresse e mail": "email",
+  "adresse mail": "email",
+  siret: "siret",
+  "n siret": "siret",
+  "numero siret": "siret",
+  "n siren": "siren",
+  "tva intracommunautaire": "vat_number",
+  "n tva": "vat_number",
+  "numero de tva": "vat_number",
+  "n tva intracommunautaire": "vat_number",
+  "tva intra": "vat_number",
+  commentaire: "notes",
+  commentaires: "notes",
+  remarques: "notes",
+  observations: "notes",
   etiquettes: "tags",
-  étiquettes: "tags",
+  "mots cles": "tags",
 };
 
-/** Analyse un CSV et renvoie un aperçu ligne par ligne, sans rien enregistrer. */
-export async function previewCustomerImport(ctx: Ctx, csv: string): Promise<ImportPreviewRow[]> {
-  const table = parseCsv(csv);
+function importField(h: string): ImportField | undefined {
+  const raw = h.trim().toLowerCase();
+  if ((COLUMNS as readonly string[]).includes(raw)) return raw as ImportField;
+  const k = headerKey(h);
+  return (COLUMNS as readonly string[]).includes(k.replace(/ /g, "_")) ? (k.replace(/ /g, "_") as ImportField) : HEADER_ALIASES[k];
+}
+
+function customerType(v: string): string {
+  const k = headerKey(v);
+  if (!k) return "";
+  if (/^(particulier|part|prive|personne|individuel)/.test(k)) return "particulier";
+  if (/copro|syndic/.test(k)) return "copropriete";
+  if (/^(entreprise|professionnel|pro|societe|sarl|sas|eurl|sci|association|collectivite|mairie|commune)/.test(k)) return "entreprise";
+  return ["particulier", "entreprise", "copropriete", "autre"].includes(k) ? k : "autre";
+}
+
+/** Corrige les valeurs abîmées par les tableurs : zéro initial perdu sur les codes postaux et les numéros. */
+function repairCell(col: ImportField, v: string, country: unknown): string {
+  if ((col === "billing_postal_code" || col === "site_postal_code") && /^\d{4}$/.test(v) && (!country || /^france$/i.test(String(country))))
+    return "0" + v;
+  if (col === "phone" && /^[1-9]\d{8}$/.test(v)) return "0" + v;
+  return v;
+}
+
+/** Analyse un fichier (CSV ou tableau déjà lu) et renvoie un aperçu ligne par ligne, sans rien enregistrer. */
+export async function previewCustomerImport(ctx: Ctx, input: string | string[][]): Promise<ImportPreviewRow[]> {
+  const table = typeof input === "string" ? parseCsv(input) : input;
   if (table.length < 2) throw badRequest("Le fichier doit contenir une ligne d'en-tête et au moins une ligne");
-  const header = table[0].map((h) => {
-    const k = h.trim().toLowerCase();
-    return (COLUMNS as readonly string[]).includes(k) ? (k as (typeof COLUMNS)[number]) : HEADER_ALIASES[k];
-  });
+  const header = table[0].map(importField);
   if (!header.some(Boolean)) throw badRequest("Aucune colonne reconnue dans l'en-tête");
   if (table.length > 5001) throw badRequest("5 000 lignes maximum par import");
+  const countryCol = header.indexOf("billing_country");
   const existing = await ctx.db.query<Customer>("SELECT * FROM customers WHERE org_id=$1", [ctx.orgId]);
   const seenEmails = new Set(existing.map((c) => c.email.toLowerCase()).filter(Boolean));
   const out: ImportPreviewRow[] = [];
@@ -334,13 +426,20 @@ export async function previewCustomerImport(ctx: Ctx, csv: string): Promise<Impo
     const obj: Record<string, unknown> = {};
     header.forEach((col, j) => {
       if (!col) return;
-      const v = (cells[j] ?? "").trim();
-      if (col === "tags") obj.tags = v ? v.split(/[|;]/).map((s) => s.trim()).filter(Boolean) : [];
-      else if (col === "site_same_as_billing") obj.site_same_as_billing = !/^(non|false|0)$/i.test(v);
-      else if (col === "type") obj.type = v || "particulier";
+      const v = repairCell(col, (cells[j] ?? "").trim(), countryCol >= 0 ? cells[countryCol]?.trim() : "");
+      // Plusieurs colonnes pour un même champ (fixe et portable) : la première renseignée l'emporte.
+      if (!v && col in obj) return;
+      if (v && obj[col] && col !== "tags") return;
+      if (col === "tags") obj.tags = [...((obj.tags as string[]) ?? []), ...(v ? v.split(/[|;,]/).map((s) => s.trim()).filter(Boolean) : [])];
+      else if (col === "siret") {
+        if (!obj.siren) obj.siren = v.replace(/\D/g, "").slice(0, 9);
+      } else if (col === "site_same_as_billing") obj.site_same_as_billing = !/^(non|false|0|faux)$/i.test(v);
+      else if (col === "type") obj.type = customerType(v);
       else if (col === "contact_preference") obj.contact_preference = v || "email";
       else obj[col] = v;
     });
+    delete obj.siret;
+    if (obj.site_same_as_billing === undefined && (obj.site_line1 || obj.site_city)) obj.site_same_as_billing = false;
     if (!obj.type) obj.type = obj.company_name && !obj.last_name ? "entreprise" : "particulier";
     const parsed = customerSchema.safeParse(obj);
     if (!parsed.success) {
@@ -360,7 +459,7 @@ export async function previewCustomerImport(ctx: Ctx, csv: string): Promise<Impo
   return out;
 }
 
-export async function commitCustomerImport(ctx: Ctx, csv: string, opts: { skipDuplicates: boolean }) {
+export async function commitCustomerImport(ctx: Ctx, csv: string | string[][], opts: { skipDuplicates: boolean }) {
   requireWritable(ctx);
   const preview = await previewCustomerImport(ctx, csv);
   const valid = preview.filter((r) => r.data && r.errors.length === 0 && !(opts.skipDuplicates && r.duplicateOf));

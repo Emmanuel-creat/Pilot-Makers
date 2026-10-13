@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "import-tableurs",
+    date: "2026-10-13",
+    title: "Import depuis Excel et les autres logiciels",
+    text: "Clients et catalogue se reprennent depuis un fichier CSV, Excel ou LibreOffice : les colonnes des autres logiciels sont reconnues automatiquement.",
+    href: "/app/catalogue/import",
+  },
+  {
     id: "export-zip",
     date: "2026-10-13",
     title: "Export complet en formats ouverts",

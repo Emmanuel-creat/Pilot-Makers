@@ -13,9 +13,19 @@ export interface PreviewRow {
 }
 
 /**
- * Import CSV en deux temps : aperçu ligne par ligne, puis confirmation.
- * Le fichier est lu dans le navigateur et transmis en texte.
+ * Import en deux temps : aperçu ligne par ligne, puis confirmation.
+ * Le fichier (CSV, Excel .xlsx ou LibreOffice .ods) est transmis tel quel, en base64 :
+ * le serveur détecte le format et l'encodage.
  */
+
+function toBase64(f: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ""));
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(f);
+  });
+}
 export function CsvImport({
   endpoint,
   kind,
@@ -28,7 +38,7 @@ export function CsvImport({
   example: string;
 }) {
   const router = useRouter();
-  const [csv, setCsv] = useState("");
+  const [file, setFile] = useState("");
   const [name, setName] = useState("");
   const [rows, setRows] = useState<PreviewRow[] | null>(null);
   const [skipDup, setSkipDup] = useState(true);
@@ -36,7 +46,7 @@ export function CsvImport({
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
 
-  const preview = async (text: string) => {
+  const preview = async (data: string, fileName: string) => {
     setBusy(true);
     setError("");
     setRows(null);
@@ -44,7 +54,7 @@ export function CsvImport({
       if (kind === "customers") {
         const r = await apiFetch<{ rows: { line: number; data: Record<string, string> | null; errors: string[]; duplicateOf: string | null }[] }>(endpoint, {
           method: "POST",
-          json: { csv: text },
+          json: { file: data, name: fileName },
         });
         setRows(
           r.rows.map((x) => ({
@@ -55,7 +65,10 @@ export function CsvImport({
           })),
         );
       } else {
-        const r = await apiFetch<{ results: { line: number; ok: boolean; message: string; reference?: string }[] }>(endpoint, { method: "POST", json: { csv: text } });
+        const r = await apiFetch<{ results: { line: number; ok: boolean; message: string; reference?: string }[] }>(endpoint, {
+          method: "POST",
+          json: { file: data, name: fileName },
+        });
         setRows(r.results.map((x) => ({ line: x.line, ok: x.ok, label: x.reference ?? "", message: x.message })));
       }
     } catch (e) {
@@ -69,7 +82,7 @@ export function CsvImport({
     setBusy(true);
     setError("");
     try {
-      const r = await apiFetch<{ imported: number; skipped?: number }>(endpoint, { method: "POST", json: { csv, commit: true, skipDuplicates: skipDup } });
+      const r = await apiFetch<{ imported: number; skipped?: number }>(endpoint, { method: "POST", json: { file, name, commit: true, skipDuplicates: skipDup } });
       setDone(`${r.imported} ligne(s) importée(s)${r.skipped ? `, ${r.skipped} ignorée(s)` : ""}.`);
       router.refresh();
     } catch (e) {
@@ -99,11 +112,11 @@ export function CsvImport({
       <div className="card space-y-3 p-5">
         <label className="flex cursor-pointer flex-col items-center gap-2 rounded-md border-2 border-dashed border-line px-4 py-8 text-center hover:border-accent">
           <Icon name="upload" size={24} className="text-muted" />
-          <span className="font-medium">{name || "Choisir un fichier CSV"}</span>
-          <span className="text-sm text-muted">Séparateur point-virgule ou virgule, encodage UTF-8. 5 000 lignes maximum.</span>
+          <span className="font-medium">{name || "Choisir un fichier CSV, Excel ou LibreOffice"}</span>
+          <span className="text-sm text-muted">Formats .csv, .xlsx et .ods, première feuille du classeur. 5 000 lignes maximum.</span>
           <input
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,.txt,.xlsx,.ods,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.spreadsheet"
             className="sr-only"
             onChange={async (e) => {
               const f = e.target.files?.[0];
@@ -112,15 +125,19 @@ export function CsvImport({
                 setError("Fichier trop volumineux (5 Mo maximum)");
                 return;
               }
-              const text = await f.text();
+              const data = await toBase64(f);
               setName(f.name);
-              setCsv(text);
-              preview(text);
+              setFile(data);
+              preview(data, f.name);
             }}
           />
         </label>
         <details className="text-sm">
           <summary className="cursor-pointer text-muted">Format attendu</summary>
+          <p className="mt-2 text-muted">
+            Les colonnes sont reconnues d&apos;après leur titre, y compris dans les exports des autres logiciels de devis et de gestion
+            (par exemple « Désignation », « Prix unitaire HT », « Raison sociale », « Code postal »). Les colonnes inconnues sont ignorées.
+          </p>
           <pre className="mt-2 overflow-x-auto rounded bg-surface-2 p-3 text-xs">{example}</pre>
         </details>
       </div>

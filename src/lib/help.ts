@@ -335,6 +335,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/compte", label: "Ouvrir Mon compte" },
   },
   {
+    slug: "importer-depuis-un-autre-logiciel",
+    category: "demarrer",
+    title: "Reprendre ses clients et son catalogue depuis un autre logiciel",
+    summary: "Fichiers CSV, Excel ou LibreOffice, colonnes reconnues automatiquement.",
+    steps: [
+      "Dans votre ancien logiciel ou votre tableur, exportez la liste des clients et celle des articles ou prestations (CSV, .xlsx ou .ods).",
+      "Ouvrez « Clients » puis « Importer », ou « Catalogue » puis « Importer », et choisissez le fichier.",
+      "Les colonnes sont reconnues d'après leur titre (« Raison sociale », « Désignation », « Prix unitaire HT »...). Vérifiez l'aperçu ligne par ligne.",
+      "Confirmez : seules les lignes valides sont enregistrées, les doublons probables peuvent être ignorés.",
+    ],
+    notes: [
+      "Les codes postaux et numéros de téléphone qui ont perdu leur zéro initial dans Excel sont corrigés.",
+      "Sans colonne de TVA, le taux de 20 % est appliqué et signalé dans l'aperçu. L'ancien format Excel .xls doit d'abord être enregistré en .xlsx.",
+    ],
+    link: { href: "/app/clients/import", label: "Importer des clients" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
