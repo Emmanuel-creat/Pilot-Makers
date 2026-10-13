@@ -308,6 +308,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "planning",
+    category: "devis",
+    title: "Planifier les équipes et les véhicules",
+    summary: "Vue semaine ou mois, glisser-déposer et repérage des conflits.",
+    steps: [
+      "Ouvrez « Planning » et ajoutez vos véhicules si besoin. Les membres de l'équipe apparaissent d'office.",
+      "Affectez une personne ou un véhicule à un chantier sur une période : les dates du chantier se mettent à jour.",
+      "Glissez une affectation vers une autre case pour changer de jour ou de personne ; la durée est conservée. Au clavier, utilisez la liste sous la grille.",
+      "Une case rouge signale un conflit : la même personne ou le même véhicule est prévu sur deux chantiers le même jour.",
+    ],
+    notes: ["Un conflit est signalé mais pas bloqué : vous restez libre d'organiser vos journées."],
+    link: { href: "/app/planning", label: "Ouvrir le planning" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

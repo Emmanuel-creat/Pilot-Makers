@@ -13,6 +13,7 @@ export default async function MorePage() {
   const links = [
     ["/app/factures", "Factures", "euro"],
     ["/app/chantiers", "Chantiers", "hammer"],
+    ["/app/planning", "Planning", "calendar"],
     ["/app/demandes", "Demandes", "inbox"],
     ["/app/rapports", "Rapports", "chart"],
     ["/app/modeles", "Modèles de devis", "copy"],

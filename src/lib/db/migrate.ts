@@ -23,6 +23,7 @@ import { sql as m021 } from "./migrations/021_webhooks";
 import { sql as m022 } from "./migrations/022_activation_nouveautes";
 import { sql as m023 } from "./migrations/023_chantiers";
 import { sql as m024 } from "./migrations/024_journal_reception";
+import { sql as m025 } from "./migrations/025_planning";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -50,6 +51,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "022_activation_nouveautes", sql: m022 },
   { id: "023_chantiers", sql: m023 },
   { id: "024_journal_reception", sql: m024 },
+  { id: "025_planning", sql: m025 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

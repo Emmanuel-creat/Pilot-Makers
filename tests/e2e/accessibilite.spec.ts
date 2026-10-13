@@ -46,6 +46,8 @@ test("écrans de l'application", async ({ page }) => {
     "/app/catalogue",
     "/app/factures",
     "/app/chantiers",
+    "/app/planning",
+    "/app/planning?vue=mois",
     "/app/entreprise",
     "/app/entreprise?onglet=tarifs",
     "/app/entreprise?onglet=webhooks",
@@ -144,4 +146,16 @@ test("chantier : journal et procès-verbal de réception signé à l'écran", as
   await page.getByRole("button", { name: "Lever" }).click();
   await expect(page.getByRole("link", { name: "Procès-verbal de levée des réserves" })).toBeVisible();
   await audit(page, "fiche chantier après réception");
+});
+
+test("planning : glisser une affectation vers un autre jour", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/planning");
+  const block = page.locator("td [draggable=true]", { hasText: "Douche à l'italienne" }).first();
+  await expect(block).toBeVisible();
+  const row = page.locator("tr", { has: page.getByRole("rowheader", { name: /Fourgon/ }) });
+  const target = row.locator("td").nth(4);
+  await block.dragTo(target);
+  await expect(page.getByText("Déplacé", { exact: false }).first()).toBeVisible();
+  await expect(row.locator("td").nth(4).locator("[draggable=true]")).toHaveCount(1);
 });

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "planning",
+    date: "2026-10-13",
+    title: "Planning des équipes et des véhicules",
+    text: "Vue semaine ou mois, affectations glissées d'un jour à l'autre et conflits signalés en rouge.",
+    href: "/app/planning",
+  },
+  {
     id: "reception",
     date: "2026-10-13",
     title: "Journal photo et procès-verbal de réception",

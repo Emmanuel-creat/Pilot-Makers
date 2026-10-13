@@ -5,6 +5,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
 import { setOrgFeature } from "@/lib/services/features";
+import { addVehicle, assign, deleteAssignment, deleteVehicle, moveAssignment } from "@/lib/services/planning";
 import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/job-site";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
@@ -624,6 +625,53 @@ export async function deleteJournalAction(_: ActionState, fd: FormData): Promise
     const jobId = await withCtx((ctx) => deleteJournalEntry(ctx, s(fd, "entryId")));
     revalidatePath(`/app/chantiers/${jobId}`);
     return { ok: true };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function assignAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const [resourceType, resourceId] = s(fd, "resource").split(":");
+    const r = await withCtx((ctx) =>
+      assign(ctx, { jobId: s(fd, "jobId"), resourceType, resourceId, start: s(fd, "start"), end: s(fd, "end") || s(fd, "start") }),
+    );
+    revalidatePath("/app/planning");
+    return r.conflicts.length
+      ? { ok: true, message: `Affectation enregistrée, en conflit avec : ${r.conflicts.join(", ")}.` }
+      : { ok: true, message: "Affectation enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function moveAssignmentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const [resourceType, resourceId] = s(fd, "resource").split(":");
+    const r = await withCtx((ctx) => moveAssignment(ctx, s(fd, "id"), { resourceType, resourceId, start: s(fd, "start") }));
+    revalidatePath("/app/planning");
+    return r.conflicts.length ? { ok: true, message: `Déplacé, en conflit avec : ${r.conflicts.join(", ")}.` } : { ok: true, message: "Déplacé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteAssignmentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteAssignment(ctx, s(fd, "id")));
+    revalidatePath("/app/planning");
+    return { ok: true, message: "Affectation retirée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function vehicleAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    if (s(fd, "deleteId")) await withCtx((ctx) => deleteVehicle(ctx, s(fd, "deleteId")));
+    else await withCtx((ctx) => addVehicle(ctx, { name: s(fd, "name"), plate: s(fd, "plate") }));
+    revalidatePath("/app/planning");
+    return { ok: true, message: s(fd, "deleteId") ? "Véhicule retiré." : "Véhicule ajouté." };
   } catch (e) {
     return toState(e);
   }

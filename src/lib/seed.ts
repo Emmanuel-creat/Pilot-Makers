@@ -12,7 +12,9 @@ import type { Ctx } from "./services/context";
 import { createCustomer } from "./services/customers";
 import { savePricing, updateOrganization } from "./services/organization";
 import { createJobFromQuote, getJob, setTaskProgress } from "./services/jobs";
-import { createQuote, getDraft, issueQuote, recordResponseManually, saveDraft, sendQuote } from "./services/quotes";
+import { addVehicle, assign } from "./services/planning";
+import { addDays, mondayOf } from "./services/planning-dates";
+import { createQuote, getDraft, issueQuote, parisDate, recordResponseManually, saveDraft, sendQuote } from "./services/quotes";
 import { price4ToInput, bpToInput } from "./calc/format";
 
 export const DEMO_EMAIL = "demo@pilot-makers.fr";
@@ -244,6 +246,10 @@ export async function seedDemo(db: Database): Promise<{ created: boolean }> {
   const { tasks } = await getJob(ctx, job);
   if (tasks[0]) await setTaskProgress(ctx, tasks[0].id, 100);
   if (tasks[1]) await setTaskProgress(ctx, tasks[1].id, 50);
+  const van = await addVehicle(ctx, { name: "Fourgon", plate: "GH-482-KL" });
+  const monday = mondayOf(parisDate(new Date()));
+  await assign(ctx, { jobId: job, resourceType: "user", resourceId: ctx.userId, start: monday, end: addDays(monday, 2) });
+  await assign(ctx, { jobId: job, resourceType: "vehicle", resourceId: van, start: monday, end: monday });
 
   await make(2, "Réfection du carrelage du hall", "Remplacement des carreaux abîmés dans le hall d'entrée de la résidence.", [
     {
