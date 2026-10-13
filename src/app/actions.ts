@@ -87,6 +87,7 @@ import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/ser
 import { dismissCostAlert } from "@/lib/services/supplier-prices";
 import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/services/roadmap";
 import { addRge, removeRge } from "@/lib/services/aids";
+import { saveTreasury } from "@/lib/services/finance";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1644,4 +1645,16 @@ export async function addRgeAction(_: ActionState, fd: FormData): Promise<Action
 export async function removeRgeAction(fd: FormData) {
   await withCtx((ctx) => removeRge(ctx, s(fd, "id")));
   revalidatePath("/app/entreprise");
+}
+
+/* Trésorerie ------------------------------------------------------------ */
+
+export async function treasuryAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => saveTreasury(ctx, { balance: s(fd, "balance"), monthlyCharges: s(fd, "monthlyCharges") }));
+    revalidatePath("/app/rapports/tresorerie");
+    return { ok: true, message: "Prévision mise à jour." };
+  } catch (e) {
+    return toState(e);
+  }
 }

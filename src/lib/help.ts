@@ -722,6 +722,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=assurance", label: "Gérer mes qualifications RGE" },
   },
   {
+    slug: "tva-et-tresorerie",
+    category: "factures",
+    title: "Préparer la TVA et suivre sa trésorerie",
+    summary: "La TVA due sur vos encaissements est calculée chaque mois, et la trésorerie des 3 prochains mois est estimée à partir de vos factures et devis signés.",
+    steps: [
+      "Ouvrez Rapports puis « TVA à déclarer ». Choisissez le mois, ou cochez « Déclaration trimestrielle ».",
+      "Reportez les bases et la TVA par taux sur votre déclaration, après avoir ajouté la TVA de vos factures d'achat.",
+      "Ouvrez « Trésorerie », saisissez votre solde bancaire et vos charges fixes mensuelles.",
+      "Le tableau montre, mois par mois, les factures à encaisser, les devis signés à facturer, la TVA à reverser, les frais à rembourser et le solde estimé.",
+    ],
+    notes: [
+      "Les travaux sont des prestations de services : la TVA est due à l'encaissement. Si vous avez opté pour les débits, utilisez le fichier des écritures comptables.",
+      "Un bandeau vous prévient quand le solde estimé devient négatif.",
+      "Ces calculs préparent votre travail et celui de votre comptable ; ils ne remplacent pas sa validation.",
+    ],
+    link: { href: "/app/rapports/tva", label: "Ouvrir la TVA à déclarer" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "tva-et-tresorerie",
+    date: "2026-10-13",
+    title: "TVA préparée et trésorerie à 3 mois",
+    text: "La TVA due sur vos encaissements est calculée par taux, et une prévision de trésorerie vous alerte avant un découvert.",
+    href: "/aide/tva-et-tresorerie",
+  },
+  {
     id: "aides-renovation-rge",
     date: "2026-10-13",
     title: "Devis éligibles aux aides à la rénovation",

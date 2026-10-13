@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader, Section, Stat } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { centsToInput, formatEuros } from "@/lib/calc/format";
@@ -82,6 +83,16 @@ export default async function ReportsPage() {
         subtitle="Les 12 derniers mois. Un devis signé n'est pas encore un encaissement : chaque montant est présenté pour ce qu'il est."
         actions={
           <>
+            {can(ctx, "billing") ? (
+              <>
+                <Link href="/app/rapports/tresorerie" className="btn-secondary print:hidden">
+                  <Icon name="euro" size={16} /> Trésorerie
+                </Link>
+                <Link href="/app/rapports/tva" className="btn-secondary print:hidden">
+                  <Icon name="note" size={16} /> TVA à déclarer
+                </Link>
+              </>
+            ) : null}
             <a href="/api/reports/csv" className="btn-secondary print:hidden">
               <Icon name="download" size={16} /> Tableur (CSV)
             </a>

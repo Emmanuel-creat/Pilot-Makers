@@ -623,3 +623,30 @@ test("aides à la rénovation : qualification RGE puis contrôle du devis", asyn
   await expect(page.getByText("MaPrimeRénov' : indiquez la date de la visite préalable du logement")).toHaveCount(0);
   await audit(page, "devis avec aides");
 });
+
+test("rapports : TVA à déclarer et trésorerie à 3 mois", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "TVA à déclarer" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "TVA à déclarer" })).toBeVisible();
+  await page.getByLabel("Déclaration trimestrielle").check();
+  await page.getByRole("button", { name: "Afficher" }).click();
+  await expect(page).toHaveURL(/trimestre=1/);
+  await expect(page.getByTestId("tva-tableau")).toContainText("Total TVA collectée");
+  await audit(page, "TVA à déclarer");
+  const csv = await page.request.get("/api/reports/tva?du=2026-01-01&au=2026-03-31");
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+
+  await page.goto("/app/rapports/tresorerie");
+  await page.getByLabel("Solde bancaire actuel (€)").fill("100");
+  await page.getByLabel("Charges fixes par mois (€)").fill("50000");
+  await page.getByRole("button", { name: "Mettre à jour la prévision" }).click();
+  await expect(page.getByText("Prévision mise à jour.")).toBeVisible();
+  await expect(page.getByTestId("alerte-tresorerie")).toBeVisible();
+  await expect(page.getByTestId("tresorerie-tableau")).toContainText("Solde estimé en fin de mois");
+  await audit(page, "trésorerie");
+  await page.getByLabel("Charges fixes par mois (€)").fill("0");
+  await page.getByLabel("Solde bancaire actuel (€)").fill("5000");
+  await page.getByRole("button", { name: "Mettre à jour la prévision" }).click();
+  await expect(page.getByText("Prévision mise à jour.")).toBeVisible();
+});

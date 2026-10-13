@@ -46,6 +46,7 @@ import { sql as m044 } from "./migrations/044_tarifs_fournisseurs";
 import { sql as m045 } from "./migrations/045_feuille_de_route";
 import { sql as m046 } from "./migrations/046_personnalisation_pdf";
 import { sql as m047 } from "./migrations/047_aides_renovation";
+import { sql as m048 } from "./migrations/048_pilotage_financier";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -96,6 +97,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "045_feuille_de_route", sql: m045 },
   { id: "046_personnalisation_pdf", sql: m046 },
   { id: "047_aides_renovation", sql: m047 },
+  { id: "048_pilotage_financier", sql: m048 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {
