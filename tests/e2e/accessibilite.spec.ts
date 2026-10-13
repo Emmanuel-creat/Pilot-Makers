@@ -974,6 +974,18 @@ test("vitrine : page publique publiée puis demande de devis reçue", async ({ p
 
   await page.goto("/app/demandes");
   await expect(page.getByText("Lucie Bernard").first()).toBeVisible();
+
+  // Formulaire seul, intégrable dans le site de l'artisan.
+  await page.goto("/app/entreprise?onglet=vitrine");
+  await expect(page.getByLabel("Code à coller")).toHaveValue(/<iframe src="[^"]+\/integrer\/demo-vitrine"/);
+  const res = await page.request.get("/integrer/demo-vitrine");
+  expect(res.headers()["content-security-policy"]).toContain("frame-ancestors *");
+  const embedded = await browser.newContext({ locale: "fr-FR" });
+  const ep = await embedded.newPage();
+  await ep.goto("/integrer/demo-vitrine");
+  await expect(ep.getByRole("heading", { name: "Demande de devis", level: 1 })).toBeVisible();
+  await audit(ep, "formulaire intégrable");
+  await embedded.close();
 });
 
 test("catalogue : fichier de prix fournisseur et alerte de marge", async ({ page }) => {

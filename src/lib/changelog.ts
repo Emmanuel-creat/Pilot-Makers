@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "formulaire-integre",
+    date: "2026-10-13",
+    title: "Formulaire de devis pour votre site",
+    text: "Un code à coller dans votre site internet pour y afficher votre formulaire de demande de devis, relié à vos demandes.",
+    href: "/aide/formulaire-sur-votre-site",
+  },
+  {
     id: "charge",
     date: "2026-10-13",
     title: "Charge et saisonnalité",

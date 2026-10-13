@@ -1382,6 +1382,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/rapports/charge", label: "Voir la charge" },
   },
   {
+    slug: "formulaire-sur-votre-site",
+    category: "clients",
+    title: "Mettre le formulaire de devis sur votre site",
+    summary: "Les demandes de votre site arrivent directement dans l'application.",
+    steps: [
+      "Publiez d'abord votre page vitrine dans Entreprise, onglet « Vitrine ».",
+      "Dans « Formulaire à intégrer à votre site », cliquez sur « Copier le code ».",
+      "Collez ce code dans une page de votre site (bloc HTML ou code intégré, selon votre outil de création de site).",
+    ],
+    notes: ["Chaque demande arrive dans vos demandes, avec la source « Site internet ou formulaire », et vous êtes prévenu par e-mail et sur votre téléphone."],
+    link: { href: "/app/entreprise?onglet=vitrine", label: "Ouvrir la vitrine" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

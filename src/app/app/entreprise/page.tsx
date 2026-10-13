@@ -153,7 +153,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "vitrine" ? (
         <>
-          <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
+          <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} orgName={org.trade_name || org.legal_name} />
           <Listing listing={await getListing(ctx)} canEdit={canEdit} />
         </>
       ) : tab === "historique" ? (

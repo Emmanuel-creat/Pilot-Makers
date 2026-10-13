@@ -4,17 +4,20 @@ import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
 import { appUrl } from "@/lib/services/mail";
+import { embedCode } from "@/lib/embed";
+import { CopyButton } from "./CopyButton";
 import type { ShowcasePhoto, ShowcaseSettings } from "@/lib/services/showcase";
 
 /** Réglages de la page vitrine et photos publiées. */
-export function Showcase({ settings, photos, canEdit }: { settings: ShowcaseSettings; photos: ShowcasePhoto[]; canEdit: boolean }) {
+export function Showcase({ settings, photos, canEdit, orgName }: { settings: ShowcaseSettings; photos: ShowcasePhoto[]; canEdit: boolean; orgName: string }) {
   const url = appUrl(`/pro/${settings.slug}`);
+  const embed = embedCode(appUrl(`/integrer/${settings.slug}`), orgName);
   return (
     <div className="space-y-6">
       <ActionForm action={showcaseAction} className="card space-y-4 p-5">
         <p className="text-sm text-muted">
-          Une page publique à partager sur vos réseaux, vos cartes de visite ou votre fiche d'établissement : présentation, coordonnées, assurance, réalisations et
-          formulaire de demande de devis. Les demandes arrivent dans vos demandes entrantes.
+          Une page publique à partager sur vos réseaux, vos cartes de visite ou votre fiche d'établissement : présentation, coordonnées, assurance, réalisations
+          et formulaire de demande de devis. Les demandes arrivent dans vos demandes entrantes.
         </p>
         <fieldset disabled={!canEdit} className="space-y-4">
           <label className="flex items-center gap-2 text-sm font-medium">
@@ -69,19 +72,45 @@ export function Showcase({ settings, photos, canEdit }: { settings: ShowcaseSett
         </fieldset>
       </ActionForm>
 
+      {settings.enabled ? (
+        <section className="card space-y-3 p-5" aria-labelledby="sc-embed">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="sc-embed" className="font-semibold">
+              Formulaire à intégrer à votre site
+            </h2>
+            <CopyButton text={embed} label="Copier le code" />
+          </div>
+          <p className="text-sm text-muted">
+            Collez ce code dans une page de votre site internet : vos visiteurs y remplissent le formulaire de demande de devis, et la demande arrive dans vos
+            demandes avec la source « Site internet ou formulaire ».
+          </p>
+          <label className="label" htmlFor="sc-embed-code">
+            Code à coller
+          </label>
+          <textarea id="sc-embed-code" readOnly className="field min-h-20 font-mono text-xs" value={embed} />
+          <Link className="link inline-flex items-center gap-1 text-sm" href={`/integrer/${settings.slug}`} target="_blank">
+            <Icon name="eye" size={16} /> Aperçu du formulaire
+          </Link>
+        </section>
+      ) : null}
+
       <section className="card p-5" aria-labelledby="sc-photos">
         <h2 id="sc-photos" className="font-semibold">
           Réalisations publiées
         </h2>
         <p className="mt-1 text-sm text-muted">
-          Ajoutez des photos depuis le journal d'un chantier, avec l'accord du client. Elles sont publiées sans position GPS ni informations de l'appareil, et sans
-          le nom du client.
+          Ajoutez des photos depuis le journal d'un chantier, avec l'accord du client. Elles sont publiées sans position GPS ni informations de l'appareil, et
+          sans le nom du client.
         </p>
         {photos.length ? (
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {photos.map((p) => (
               <li key={p.id} className="space-y-1 text-xs">
-                <img src={`/api/journal/${p.journal_id}/photo`} alt={p.caption || "Réalisation"} className="aspect-square w-full rounded-md border border-line object-cover" />
+                <img
+                  src={`/api/journal/${p.journal_id}/photo`}
+                  alt={p.caption || "Réalisation"}
+                  className="aspect-square w-full rounded-md border border-line object-cover"
+                />
                 <div className="font-medium">{p.caption || "Sans légende"}</div>
                 <div className="text-muted">{p.job_title}</div>
                 {canEdit ? (
