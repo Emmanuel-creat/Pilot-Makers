@@ -18,6 +18,7 @@ import type { DraftLine, DraftSection, PdfLayout, QuoteDraft } from "@/lib/servi
 import { PDF_LAYOUTS } from "@/lib/services/quote-types";
 import { EDITOR_SHORTCUTS, shortcutText } from "@/lib/shortcuts";
 import { apiFetch, ApiError, uid } from "./api";
+import { clearLocalDraft, readLocalDraft, saveLocalDraft, type LocalDraft } from "./offline-draft";
 import { AssistantPanel } from "./AssistantPanel";
 import { CatalogPicker } from "./CatalogPicker";
 import { CustomerForm } from "./CustomerForm";
@@ -48,7 +49,7 @@ export interface EditorCustomer {
   vat_number?: string;
 }
 
-type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict";
+type SaveState = "saved" | "dirty" | "saving" | "error" | "conflict" | "offline";
 
 export function customerName(c: Pick<EditorCustomer, "type" | "company_name" | "first_name" | "last_name" | "civility">) {
   if (c.type !== "particulier" && c.company_name) return c.company_name;
@@ -238,8 +239,12 @@ export function QuoteEditor({
         savedSeq.current = seq;
         setSaveError("");
         setSave(changeSeq.current > seq ? "dirty" : "saved");
+        if (changeSeq.current === seq) clearLocalDraft(initial.id);
       } catch (e) {
-        if (e instanceof ApiError && e.code === "revision_conflict") {
+        if (e instanceof ApiError && e.code === "network") {
+          // Sans réseau, la copie locale garde le travail ; l'envoi reprend au retour de la connexion.
+          setSave("offline");
+        } else if (e instanceof ApiError && e.code === "revision_conflict") {
           setSave("conflict");
           revision.current = Number(e.data.currentRevision ?? revision.current);
         } else {
@@ -258,6 +263,34 @@ export function QuoteEditor({
     const t = setTimeout(() => void doSave(), 1000);
     return () => clearTimeout(t);
   }, [d, save, doSave]);
+
+  /* Travail sans réseau : copie locale de chaque modification non enregistrée, envoi au retour du réseau. */
+  const [pendingLocal, setPendingLocal] = useState<LocalDraft<QuoteDraft> | null>(null);
+  useEffect(() => {
+    if (savedSeq.current < changeSeq.current) saveLocalDraft(initial.id, d, revision.current);
+  }, [d, initial.id]);
+  useEffect(() => {
+    if (save !== "offline") return;
+    const retry = () => void doSave();
+    window.addEventListener("online", retry);
+    const t = setInterval(retry, 20_000);
+    return () => {
+      window.removeEventListener("online", retry);
+      clearInterval(t);
+    };
+  }, [save, doSave]);
+  useEffect(() => {
+    const local = readLocalDraft<QuoteDraft>(initial.id);
+    if (!local || JSON.stringify(local.draft) === JSON.stringify(initial)) return clearLocalDraft(initial.id);
+    if (local.baseRevision === initial.draftRevision) {
+      // Rien n'a changé sur le serveur depuis : les modifications faites hors connexion sont reprises et envoyées.
+      setD(local.draft);
+      changeSeq.current++;
+      setSave("dirty");
+      setToast("Modifications faites hors connexion récupérées et envoyées");
+    } else setPendingLocal(local);
+    // Lecture unique à l'ouverture du devis.
+  }, []);
 
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
@@ -593,6 +626,37 @@ export function QuoteEditor({
         </div>
       </div>
 
+      {pendingLocal ? (
+        <div className="mb-4 rounded-md border border-warning/40 bg-warning-soft p-4 text-sm" role="alert">
+          <p className="font-medium">
+            Des modifications faites sur cet appareil le {new Date(pendingLocal.savedAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })} n&apos;ont pas
+            été envoyées, et le devis a changé depuis.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setD(pendingLocal.draft);
+                setPendingLocal(null);
+                markDirty();
+              }}
+            >
+              Reprendre ces modifications
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                clearLocalDraft(initial.id);
+                setPendingLocal(null);
+              }}
+            >
+              Les abandonner
+            </button>
+          </div>
+        </div>
+      ) : null}
       {save === "conflict" ? (
         <div className="mb-4 rounded-md border border-danger/40 bg-danger-soft p-4 text-sm" role="alert">
           <p className="font-medium">Ce devis a été modifié ailleurs (autre onglet ou autre appareil).</p>
@@ -1355,13 +1419,14 @@ function SaveIndicator({ state, error }: { state: SaveState; error: string }) {
     saving: ["text-muted", "Enregistrement..."],
     error: ["text-danger", error || "Non enregistré"],
     conflict: ["text-danger", "Conflit de modification"],
+    offline: ["text-warning", "Hors connexion : gardé sur cet appareil"],
   };
   const [cls, label] = map[state];
   return (
     <div className={`flex items-center gap-1 text-xs ${cls}`} aria-live="polite">
       {state === "saved" ? (
         <Icon name="check" size={12} />
-      ) : state === "error" || state === "conflict" ? (
+      ) : state === "error" || state === "conflict" || state === "offline" ? (
         <Icon name="alert" size={12} />
       ) : (
         <Icon name="refresh" size={12} />

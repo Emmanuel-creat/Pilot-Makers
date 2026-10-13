@@ -888,6 +888,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/clients/import", label: "Importer des clients" },
   },
   {
+    slug: "travailler-sans-reseau",
+    category: "devis",
+    title: "Modifier un devis sans réseau",
+    summary: "En cave, dans une maison sans réseau ou en zone blanche, continuez à modifier vos devis : tout part au retour de la connexion.",
+    steps: [
+      "Ouvrez au moins une fois le devis avec du réseau : les 20 derniers devis ouverts restent ensuite disponibles sur l'appareil.",
+      "Sans réseau, modifiez le devis normalement. L'indicateur affiche « Hors connexion : gardé sur cet appareil ».",
+      "Au retour du réseau, les modifications sont envoyées seules et l'indicateur repasse à « Enregistré ».",
+    ],
+    notes: [
+      "Si le devis a été modifié ailleurs entre-temps, Pilot-Makers vous demande quelles modifications garder.",
+      "L'émission, l'envoi au client et le PDF demandent du réseau.",
+      "La déconnexion efface de l'appareil les devis gardés ; elle prévient s'il reste des modifications non envoyées.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

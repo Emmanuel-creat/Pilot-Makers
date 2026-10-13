@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { LogoutForm } from "@/components/app/LogoutForm";
 import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
-import { logoutAction } from "@/app/actions";
 import { unreadNewsCount } from "@/lib/services/news";
 import { can } from "@/lib/services/context";
 
@@ -44,11 +44,11 @@ export default async function MorePage() {
           </li>
         ))}
       </ul>
-      <form action={logoutAction} className="mt-4">
+      <LogoutForm className="mt-4">
         <button className="btn-secondary w-full">
           <Icon name="logout" size={16} /> Déconnexion
         </button>
-      </form>
+      </LogoutForm>
     </>
   );
 }

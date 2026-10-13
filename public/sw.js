@@ -1,10 +1,14 @@
 /*
  * Service de l'application installable.
  * - Fichiers statiques (scripts, styles, icônes) : servis depuis le cache, mis à jour en arrière-plan.
- * - Pages : toujours demandées au serveur ; sans réseau, la page « hors ligne » s'affiche.
+ * - Pages : toujours demandées au serveur ; sans réseau, la page « hors ligne » s'affiche. Exception : les
+ *   20 derniers devis ouverts restent consultables et modifiables sans réseau (copie effacée à la déconnexion).
  * - Données (API, PDF) : jamais mises en cache, elles sont propres à chaque compte.
  */
-const VERSION = "pm-v2";
+const VERSION = "pm-v3";
+const PAGES = "pm-devis-v1";
+const PAGES_MAX = 20;
+const QUOTE_PAGE = /^\/app\/devis\/[0-9a-f-]{36}$/;
 const OFFLINE = "/hors-ligne";
 const PRECACHE = [OFFLINE, "/icon.svg", "/icons/icon-192.png"];
 
@@ -21,7 +25,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== PAGES).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -37,6 +41,28 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (req.mode === "navigate") {
+    // Déconnexion ou changement de compte : les devis gardés pour le travail sans réseau sont effacés.
+    if (url.pathname === "/connexion" || url.pathname === "/inscription") event.waitUntil(caches.delete(PAGES));
+    if (QUOTE_PAGE.test(url.pathname)) {
+      event.respondWith(
+        fetch(req)
+          .then((res) => {
+            if (res.ok && !res.redirected && new URL(res.url).pathname === url.pathname) {
+              const copy = res.clone();
+              event.waitUntil(
+                caches.open(PAGES).then(async (cache) => {
+                  await cache.put(url.pathname, copy);
+                  const keys = await cache.keys();
+                  await Promise.all(keys.slice(0, Math.max(0, keys.length - PAGES_MAX)).map((k) => cache.delete(k)));
+                }),
+              );
+            }
+            return res;
+          })
+          .catch(() => caches.open(PAGES).then((cache) => cache.match(url.pathname)).then((r) => r || caches.match(OFFLINE)).then((r) => r || Response.error())),
+      );
+      return;
+    }
     event.respondWith(fetch(req).catch(() => caches.match(OFFLINE).then((r) => r || Response.error())));
     return;
   }

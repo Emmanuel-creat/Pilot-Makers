@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { LogoutForm } from "@/components/app/LogoutForm";
 import type { ReactNode } from "react";
 import { Icon, Logo } from "@/components/Icon";
 import { Notice } from "@/components/ui";
 import type { Ctx } from "@/lib/services/context";
-import { logoutAction, stopSupportAction } from "@/app/actions";
+import { stopSupportAction } from "@/app/actions";
 import { NavLinks, type NavItem } from "./NavLinks";
 import { ThemeToggle } from "./ThemeToggle";
 import { can, isReadOnlyMember } from "@/lib/services/context";
@@ -80,11 +81,11 @@ export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; or
           <div className="truncate px-2 text-sm font-medium">{orgName}</div>
           <div className="truncate px-2 text-xs text-muted">{ctx.email}</div>
           <div className="mt-2 flex items-center justify-between">
-            <form action={logoutAction}>
+            <LogoutForm>
               <button className="btn-ghost px-2 text-sm" type="submit">
                 <Icon name="logout" /> Déconnexion
               </button>
-            </form>
+            </LogoutForm>
             <ThemeToggle />
           </div>
         </div>

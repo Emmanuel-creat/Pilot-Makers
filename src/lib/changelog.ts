@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-sans-reseau",
+    date: "2026-10-13",
+    title: "Devis modifiables sans réseau",
+    text: "Plus de réseau sur le chantier ? Continuez à modifier vos devis : tout part au retour de la connexion.",
+    href: "/aide/travailler-sans-reseau",
+  },
+  {
     id: "import-assiste",
     date: "2026-10-13",
     title: "Import assisté depuis votre ancien logiciel",

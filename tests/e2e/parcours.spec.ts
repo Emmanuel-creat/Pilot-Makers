@@ -224,3 +224,30 @@ test("clé d'accès : ajout dans Mon compte puis connexion sans mot de passe", a
   await page.getByRole("button", { name: "Retirer la clé d'accès Téléphone de test" }).click();
   await expect(page.getByText("Aucune clé d'accès pour l'instant.")).toBeVisible();
 });
+
+test("devis modifié sans réseau puis envoyé au retour de la connexion", async ({ page, context }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Devis préparé sans réseau");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const url = page.url();
+  // Le service de l'application garde la page du devis : il doit d'abord contrôler l'onglet.
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
+  await expect(page.getByText("Enregistré")).toBeVisible();
+
+  await context.setOffline(true);
+  await page.locator("#q-title").fill("Salle de bain modifiée en cave");
+  await expect(page.getByText("Hors connexion : gardé sur cet appareil")).toBeVisible();
+  // Page rechargée sans réseau : le devis s'ouvre et les modifications sont reprises.
+  await page.reload();
+  await expect(page.locator("#q-title")).toHaveValue("Salle de bain modifiée en cave");
+  await context.setOffline(false);
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(page.getByText("Enregistré")).toBeVisible();
+
+  await page.goto(url);
+  await expect(page.locator("#q-title")).toHaveValue("Salle de bain modifiée en cave");
+});
