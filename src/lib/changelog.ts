@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "chantiers",
+    date: "2026-10-13",
+    title: "Suivi des chantiers",
+    text: "Un devis accepté devient un chantier : ses lignes deviennent des tâches, l'avancement se saisit d'un geste et donne le pourcentage de la prochaine situation. La fiche réunit adresse, accès, codes et contacts.",
+    href: "/app/chantiers",
+  },
+  {
     id: "webhooks",
     date: "2026-10-13",
     title: "Webhooks vers vos autres outils",

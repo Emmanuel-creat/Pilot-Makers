@@ -12,6 +12,7 @@ export default async function MorePage() {
   const unread = await unreadNewsCount(ctx);
   const links = [
     ["/app/factures", "Factures", "euro"],
+    ["/app/chantiers", "Chantiers", "hammer"],
     ["/app/demandes", "Demandes", "inbox"],
     ["/app/rapports", "Rapports", "chart"],
     ["/app/modeles", "Modèles de devis", "copy"],

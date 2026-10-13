@@ -5,6 +5,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
 import { setOrgFeature } from "@/lib/services/features";
+import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
@@ -507,6 +508,75 @@ export async function adminFeatureAction(_: ActionState, fd: FormData): Promise<
     await withCtx((ctx) => setOrgFeature(ctx, orgId, s(fd, "key"), s(fd, "value")));
     revalidatePath(`/admin/comptes/${orgId}`);
     return { ok: true, message: "Réglage enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function createJobAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createJobFromQuote(ctx, s(fd, "quoteId")));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/chantiers/${id}`);
+}
+
+export async function saveJobAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    const names = fd.getAll("contact_name").map(String);
+    const roles = fd.getAll("contact_role").map(String);
+    const phones = fd.getAll("contact_phone").map(String);
+    await withCtx((ctx) =>
+      updateJob(ctx, id, {
+        title: s(fd, "title"),
+        status: s(fd, "status"),
+        site_line1: s(fd, "site_line1"),
+        site_line2: s(fd, "site_line2"),
+        site_postal_code: s(fd, "site_postal_code"),
+        site_city: s(fd, "site_city"),
+        access_notes: s(fd, "access_notes"),
+        access_codes: s(fd, "access_codes"),
+        contacts: names.map((name, i) => ({ name, role: roles[i] ?? "", phone: phones[i] ?? "" })),
+        start_date: s(fd, "start_date"),
+        end_date: s(fd, "end_date"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${id}`);
+    return { ok: true, message: "Chantier enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function taskProgressAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = await withCtx((ctx) => setTaskProgress(ctx, s(fd, "taskId"), Number(s(fd, "percent"))));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function addTaskAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => addTask(ctx, jobId, { label: s(fd, "label"), section: s(fd, "section") }));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Tâche ajoutée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteTaskAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteTask(ctx, s(fd, "taskId")));
+    revalidatePath(`/app/chantiers/${s(fd, "jobId")}`);
+    return { ok: true };
   } catch (e) {
     return toState(e);
   }

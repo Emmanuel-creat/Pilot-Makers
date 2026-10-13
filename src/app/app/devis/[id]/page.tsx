@@ -18,6 +18,8 @@ import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuote
 import { snapshotOptions } from "@/lib/services/options";
 import { CancelQuote, IntegrityCheck, ManualResponse, SendButton, ShareLinkButton } from "./IssuedActions";
 import { QuoteBilling } from "./Billing";
+import { CreateJob } from "./CreateJob";
+import { jobForQuote } from "@/lib/services/jobs";
 import { listIndexValues } from "@/lib/services/revision";
 import { hasFeature } from "@/lib/services/features";
 import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
@@ -122,6 +124,7 @@ export default async function QuotePage({
   const hasFinal = invoices.some((i) => i.kind === "final" && i.status !== "canceled");
   const hasDeposits = invoices.some((i) => i.kind === "deposit" && i.status !== "canceled");
   const progress = await invoicedProgress(ctx, id);
+  const job = await jobForQuote(ctx, id);
   const revisionIndex = draft.priceRevision?.index;
   const revision = revisionIndex ? { index: revisionIndex, lastMonth: (await listIndexValues(ctx, revisionIndex))[0]?.month ?? "" } : null;
   const links = await ctx.db.query<{ n: unknown; viewed: Date | null }>(
@@ -265,6 +268,22 @@ export default async function QuotePage({
                   </button>
                 </form>
               ) : null}
+            </section>
+          ) : null}
+
+          {status === "accepted" && (job || writable) ? (
+            <section className="card space-y-3 p-4">
+              <h2 className="text-sm font-semibold">Chantier</h2>
+              {job ? (
+                <Link href={`/app/chantiers/${job.id}`} className="btn-secondary w-full">
+                  <Icon name="hammer" size={16} /> Ouvrir le chantier
+                </Link>
+              ) : (
+                <>
+                  <p className="text-xs text-muted">Les lignes du devis deviennent les tâches du chantier, avec leur avancement.</p>
+                  <CreateJob quoteId={id} />
+                </>
+              )}
             </section>
           ) : null}
 

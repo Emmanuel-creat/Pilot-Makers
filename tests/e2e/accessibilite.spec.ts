@@ -45,6 +45,7 @@ test("écrans de l'application", async ({ page }) => {
     "/app/rapports",
     "/app/catalogue",
     "/app/factures",
+    "/app/chantiers",
     "/app/entreprise",
     "/app/entreprise?onglet=tarifs",
     "/app/entreprise?onglet=webhooks",
@@ -100,4 +101,15 @@ test("application installable : manifeste, icônes et page hors ligne", async ({
   await page.goto("/hors-ligne");
   await expect(page.getByRole("heading", { name: "Pas de connexion" })).toBeVisible();
   await audit(page, "/hors-ligne");
+});
+
+test("suivi de chantier : avancement d'une tâche", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await audit(page, "fiche chantier");
+  const third = page.locator("form[aria-label^='Avancement de']").nth(2);
+  await third.getByRole("button", { name: "75 %" }).click();
+  await expect(third.getByRole("button", { name: "75 %" })).toHaveAttribute("aria-pressed", "true");
 });

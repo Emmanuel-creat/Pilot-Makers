@@ -36,6 +36,7 @@ test("application sur un petit écran", async ({ page }) => {
     "/app/clients",
     "/app/catalogue",
     "/app/factures",
+    "/app/chantiers",
     "/app/plus",
     "/app/entreprise",
     "/app/compte",

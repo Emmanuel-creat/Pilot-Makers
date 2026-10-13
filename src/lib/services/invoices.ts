@@ -246,7 +246,7 @@ export async function invoiceSummary(ctx: Ctx) {
 /* Émission                                                            */
 /* ------------------------------------------------------------------ */
 
-interface AcceptedQuote {
+export interface AcceptedQuote {
   id: string;
   number: string;
   customer_id: string | null;
@@ -255,7 +255,7 @@ interface AcceptedQuote {
   versionId: string;
 }
 
-async function acceptedQuote(q: Queryable, ctx: Ctx, quoteId: string): Promise<AcceptedQuote> {
+export async function acceptedQuote(q: Queryable, ctx: Ctx, quoteId: string): Promise<AcceptedQuote> {
   const r = await one<{ id: string; number: string | null; status: string; customer_id: string | null; accepted_version: unknown; accepted_options: unknown }>(
     q,
     "SELECT id, number, status, customer_id, accepted_version, accepted_options FROM quotes WHERE id=$1 AND org_id=$2 FOR UPDATE",

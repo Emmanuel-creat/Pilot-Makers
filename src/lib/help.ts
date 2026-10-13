@@ -278,6 +278,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "suivre-un-chantier",
+    category: "devis",
+    title: "Suivre un chantier et son avancement",
+    summary: "Du devis accepté aux tâches, avec l'avancement à reporter sur les situations.",
+    steps: [
+      "Ouvrez le devis accepté et cliquez sur « Créer le chantier » : chaque ligne devient une tâche, rangée par lot.",
+      "Sur la fiche, notez l'adresse, les consignes d'accès, les codes et les contacts sur place. Les codes sont chiffrés.",
+      "Au fil des travaux, touchez le pourcentage atteint pour chaque tâche : l'avancement par lot et l'avancement global se mettent à jour.",
+      "Pour facturer, reportez l'avancement global sur une facture de situation depuis le devis.",
+    ],
+    notes: ["L'avancement est pondéré par le montant de chaque ligne : une grosse tâche compte plus qu'une petite."],
+    link: { href: "/app/chantiers", label: "Voir les chantiers" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

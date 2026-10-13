@@ -11,7 +11,8 @@ import { installLibrary, searchItems } from "./services/catalog";
 import type { Ctx } from "./services/context";
 import { createCustomer } from "./services/customers";
 import { savePricing, updateOrganization } from "./services/organization";
-import { createQuote, getDraft, issueQuote, saveDraft, sendQuote } from "./services/quotes";
+import { createJobFromQuote, getJob, setTaskProgress } from "./services/jobs";
+import { createQuote, getDraft, issueQuote, recordResponseManually, saveDraft, sendQuote } from "./services/quotes";
 import { price4ToInput, bpToInput } from "./calc/format";
 
 export const DEMO_EMAIL = "demo@pilot-makers.fr";
@@ -237,6 +238,12 @@ export async function seedDemo(db: Database): Promise<{ created: boolean }> {
     },
   ]);
   await issueQuote(ctx, q2);
+  // Devis accepté et chantier commencé, pour montrer le suivi des travaux.
+  await recordResponseManually(ctx, q2, { decision: "accept", version: 1, proof: "Devis signé remis en main propre" });
+  const job = await createJobFromQuote(ctx, q2);
+  const { tasks } = await getJob(ctx, job);
+  if (tasks[0]) await setTaskProgress(ctx, tasks[0].id, 100);
+  if (tasks[1]) await setTaskProgress(ctx, tasks[1].id, 50);
 
   await make(2, "Réfection du carrelage du hall", "Remplacement des carreaux abîmés dans le hall d'entrée de la résidence.", [
     {
