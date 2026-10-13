@@ -765,6 +765,17 @@ test("rapports : budget annuel comparé au réalisé", async ({ page }) => {
   await audit(page, "budget annuel");
 });
 
+test("rapports : rentabilité par client et type de chantier", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Rentabilité" }).click();
+  await page.waitForURL(/\/app\/rapports\/rentabilite$/);
+  await expect(page.getByRole("heading", { name: "Rentabilité", level: 1 })).toBeVisible();
+  await audit(page, "rentabilité");
+  await page.getByRole("link", { name: "Depuis le début" }).click();
+  await expect(page.getByRole("link", { name: "Depuis le début" })).toHaveAttribute("aria-current", "page");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

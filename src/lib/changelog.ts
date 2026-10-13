@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "rentabilite",
+    date: "2026-10-13",
+    title: "Rentabilité réelle",
+    text: "La marge réelle des chantiers par client, par type de travaux et par nature de prestation, et les chantiers les moins rentables.",
+    href: "/aide/rentabilite-des-chantiers",
+  },
+  {
     id: "budget-annuel",
     date: "2026-10-13",
     title: "Budget annuel",

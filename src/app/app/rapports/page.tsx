@@ -22,14 +22,7 @@ function Progress({ label, value, target, format }: { label: string; value: numb
           {format(value)} sur {format(target)} ({ratio} %)
         </span>
       </div>
-      <div
-        className="h-2 rounded-full bg-surface-2"
-        role="progressbar"
-        aria-label={label}
-        aria-valuenow={ratio}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
+      <div className="h-2 rounded-full bg-surface-2" role="progressbar" aria-label={label} aria-valuenow={ratio} aria-valuemin={0} aria-valuemax={100}>
         <div className={`h-2 rounded-full ${ratio >= 100 ? "bg-success" : "bg-accent"}`} style={{ width: `${ratio}%` }} />
       </div>
     </div>
@@ -98,6 +91,11 @@ export default async function ReportsPage() {
                   <Icon name="calendar" size={16} /> Budget
                 </Link>
               </>
+            ) : null}
+            {can(ctx, "costs") ? (
+              <Link href="/app/rapports/rentabilite" className="btn-secondary print:hidden">
+                <Icon name="chart" size={16} /> Rentabilité
+              </Link>
             ) : null}
             <a href="/api/reports/csv" className="btn-secondary print:hidden">
               <Icon name="download" size={16} /> Tableur (CSV)

@@ -1263,6 +1263,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/rapports/budget", label: "Budget" },
   },
   {
+    slug: "rentabilite-des-chantiers",
+    category: "factures",
+    title: "Voir la rentabilité par client et par type de chantier",
+    summary: "La marge réelle de vos chantiers regroupée par client, par type de travaux et par nature de prestation.",
+    steps: [
+      "Pointez les heures et saisissez les achats sur vos chantiers au fil de l'eau.",
+      "Ouvrez Rapports, puis « Rentabilité » : la marge réelle apparaît par client, par type de chantier et par nature (main-d'œuvre, matériaux, sous-traitance).",
+      "Repérez les chantiers les moins rentables en bas de page, et ouvrez-les pour voir l'écart ligne par ligne.",
+    ],
+    notes: [
+      "Vendu : montant HT des lignes du devis accepté. Coûts : heures valorisées au coût de chaque personne (onglet Tarifs) et achats saisis.",
+      "Le type de chantier est déduit de son intitulé : nommez vos chantiers clairement (« Salle de bain Dubois », « Isolation des combles »).",
+      "Seuls les chantiers démarrés, terminés ou réceptionnés sont comptés.",
+    ],
+    link: { href: "/app/rapports/rentabilite", label: "Rentabilité" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
