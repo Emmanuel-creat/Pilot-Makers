@@ -6,6 +6,8 @@ import { listResources, planning, plannableJobs } from "@/lib/services/planning"
 import { addDays, mondayOf, monthRange, range } from "@/lib/services/planning-dates";
 import { parisDate } from "@/lib/services/quotes";
 import { AssignForm, PlanningGrid, SlotEditor, VehicleForm } from "./PlanningGrid";
+import { getFeed } from "@/lib/services/calendar";
+import { CalendarFeed } from "./CalendarFeed";
 
 export const metadata = { title: "Planning" };
 
@@ -19,7 +21,7 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
   const today = parisDate(new Date());
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
   const { from, to } = month ? monthRange(anchor) : { from: mondayOf(anchor), to: addDays(mondayOf(anchor), 6) };
-  const [resources, slots, jobs] = await Promise.all([listResources(ctx), planning(ctx, from, to), plannableJobs(ctx)]);
+  const [resources, slots, jobs, feed] = await Promise.all([listResources(ctx), planning(ctx, from, to), plannableJobs(ctx), getFeed(ctx)]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const prev = month ? monthRange(addDays(from, -1)).from : addDays(from, -7);
   const next = month ? addDays(to, 1) : addDays(from, 7);
@@ -93,6 +95,26 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
           )}
         </Section>
         <Section title="Véhicules">{canEdit ? <VehicleForm vehicles={resources.filter((r) => r.type === "vehicle")} /> : null}</Section>
+        <Section
+          title="Abonnement d'agenda"
+          description="Retrouvez le planning dans Google Agenda, Outlook ou l'agenda de l'iPhone, mis à jour tout seul."
+        >
+          <CalendarFeed
+            feed={
+              feed
+                ? {
+                    prefix: feed.prefix,
+                    scope: feed.scope,
+                    lastUsed: feed.last_used_at
+                      ? new Date(feed.last_used_at).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" })
+                      : null,
+                  }
+                : null
+            }
+            canChooseCompany={ctx.role !== "member"}
+            canEdit={canEdit}
+          />
+        </Section>
       </div>
     </div>
   );

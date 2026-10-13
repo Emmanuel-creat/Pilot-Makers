@@ -260,3 +260,18 @@ test("chantier : commande fournisseur, réception et rapprochement de la facture
   const pdf = await page.request.get(page.url().replace(/\/app\/chantiers\/[^/]+\/commandes\//, "/api/orders/") + "/pdf");
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
 });
+
+test("planning : lien d'abonnement d'agenda lisible sans session", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/planning");
+  await page.getByRole("button", { name: "Créer le lien d'abonnement" }).click();
+  const url = (await page.getByTestId("lien-agenda").textContent())!.trim();
+  expect(url).toMatch(/\/api\/agenda\/cal_[\w-]+\.ics$/);
+  await audit(page, "abonnement d'agenda");
+  const anon = await browser.newContext();
+  const res = await anon.request.get(new URL(url).pathname);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toContain("text/calendar");
+  expect(await res.text()).toContain("BEGIN:VCALENDAR");
+  await anon.close();
+});

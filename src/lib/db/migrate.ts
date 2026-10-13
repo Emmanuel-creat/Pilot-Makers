@@ -29,6 +29,7 @@ import { sql as m027 } from "./migrations/027_abonnements_automatisation";
 import { sql as m028 } from "./migrations/028_pointage";
 import { sql as m029 } from "./migrations/029_couts_chantier";
 import { sql as m030 } from "./migrations/030_commandes_fournisseurs";
+import { sql as m031 } from "./migrations/031_abonnement_agenda";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -62,6 +63,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "028_pointage", sql: m028 },
   { id: "029_couts_chantier", sql: m029 },
   { id: "030_commandes_fournisseurs", sql: m030 },
+  { id: "031_abonnement_agenda", sql: m031 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

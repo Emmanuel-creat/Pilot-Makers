@@ -10,6 +10,8 @@ import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/j
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
+import { createFeed, deleteFeed } from "@/lib/services/calendar";
+import { appUrl } from "@/lib/services/mail";
 import { addEntry, deleteEntry, reviewEntries, setMemberQualification, startTimer, stopTimer } from "@/lib/services/timesheets";
 import { formatMinutes } from "@/lib/services/timesheet-calc";
 import { addPurchase, deletePurchase, setBudgetThreshold } from "@/lib/services/job-costs";
@@ -859,6 +861,28 @@ export async function revokeApiKeyAction(_: ActionState, fd: FormData): Promise<
     await withCtx((ctx) => revokeApiKey(ctx, s(fd, "id")));
     revalidatePath("/app/entreprise");
     return { ok: true, message: "Clé révoquée : elle ne fonctionne plus." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Abonnement d'agenda --------------------------------------------- */
+
+export async function createCalendarFeedAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const { token } = await withCtx((ctx) => createFeed(ctx, s(fd, "scope")));
+    revalidatePath("/app/planning");
+    return { ok: true, message: appUrl(`/api/agenda/${token}.ics`) };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteCalendarFeedAction(_: ActionState): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteFeed(ctx));
+    revalidatePath("/app/planning");
+    return { ok: true, message: "Lien supprimé : l'agenda ne se met plus à jour." };
   } catch (e) {
     return toState(e);
   }

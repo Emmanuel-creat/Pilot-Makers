@@ -431,6 +431,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers", label: "Voir les chantiers" },
   },
   {
+    slug: "planning-dans-mon-agenda",
+    category: "demarrer",
+    title: "Voir le planning dans Google Agenda, Outlook ou l'iPhone",
+    summary: "Un lien d'abonnement personnel : l'agenda du téléphone se met à jour tout seul.",
+    steps: [
+      "Ouvrez « Planning » et, en bas de page, touchez « Créer le lien d'abonnement ».",
+      "Copiez le lien affiché, puis ajoutez-le dans votre agenda : « À partir de l'URL » dans Google Agenda, « S'abonner à partir du web » dans Outlook.",
+      "Sur iPhone ou Mac, touchez « Ouvrir dans l'agenda de l'appareil » : l'abonnement s'ajoute directement.",
+      "Chaque compagnon peut créer son propre lien : il n'y voit que les chantiers où il est affecté.",
+    ],
+    notes: [
+      "Pour l'encadrement, l'agenda peut aussi montrer les échéances de factures, la fin de validité des devis envoyés, les réserves à lever et les livraisons attendues.",
+      "Le lien donne accès à vos chantiers sans mot de passe : ne le partagez pas, et remplacez-le s'il a circulé. Il cesse de fonctionner si la personne quitte l'entreprise.",
+    ],
+    link: { href: "/app/planning", label: "Ouvrir le planning" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

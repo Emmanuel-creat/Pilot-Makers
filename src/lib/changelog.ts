@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "abonnement-agenda",
+    date: "2026-10-13",
+    title: "Le planning dans votre agenda",
+    text: "Un lien d'abonnement pour Google Agenda, Outlook ou l'iPhone : chantiers planifiés, échéances et livraisons, mis à jour tout seuls.",
+    href: "/app/planning",
+  },
+  {
     id: "commandes-fournisseurs",
     date: "2026-10-13",
     title: "Commandes aux fournisseurs",
