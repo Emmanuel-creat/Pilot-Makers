@@ -26,7 +26,9 @@ export default async function MorePage() {
     ["/app/abonnement", "Abonnement", "card"],
     ["/app/compte", "Mon compte", "user"],
     ["/app/boite-envoi", "E-mails envoyés", "mail"],
+    ...(can(ctx, "billing") ? [["/app/banque", "Banque", "card"]] : []),
     ["/app/assistance", "Assistance", "help"],
+    ["/app/menu", "Personnaliser le menu", "edit"],
     ["/app/nouveautes", unread ? `Nouveautés (${unread} non lue${unread > 1 ? "s" : ""})` : "Nouveautés", "star"],
     ...(ctx.isPlatformAdmin && !ctx.supportAccess ? [["/admin", "Administration", "shield"]] : []),
   ];
