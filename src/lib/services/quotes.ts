@@ -19,7 +19,8 @@ import { assertCanIssue } from "./billing";
 import { incrementUsage } from "./catalog";
 import { measureProposals } from "./assistant-habits";
 import { retentionBp } from "./btp";
-import { acceptedCalc, snapshotOptions, validChoice } from "./options";
+import { acceptedCalc, snapshotOptions, snapshotVariants, validChoice } from "./options";
+import { applyVariants } from "@/lib/calc/variants";
 import { REFUSAL_CODES, REFUSAL_REASONS } from "./refusal";
 import { consumerTerms, isContractPlace, reducedVatAttestation } from "./consumer";
 import { buildMentions, checkCompliance, COMPLIANCE_RULES_VERSION, type ComplianceIssue } from "./compliance";
@@ -77,6 +78,10 @@ const lineSchema = z.object({
 const sectionSchema = z.object({
   id: z.string().refine(isUuid, "Identifiant de section invalide"),
   group: z.string().trim().max(80).optional(),
+  choice: z
+    .object({ name: str(80), label: str(80) })
+    .transform((c) => (c.name ? { name: c.name, label: c.label } : undefined))
+    .optional(),
   title: str(200),
   description: str(2000),
   lines: z.array(lineSchema).max(500),
@@ -104,7 +109,8 @@ export const draftSchema = z.object({
   retentionPercent: str(10).refine((v) => retentionBp(v) !== null, "Retenue de garantie : 5 % au plus"),
   priceRevision: z.object({ index: str(10), baseMonth: str(7), fixedPercent: str(10) }).nullable().optional().default(null),
   energyAid: energyAidSchema,
-  sections: z.array(sectionSchema).max(50),
+  // Les lignes des variantes non comprises dans le total sont marquées hors total, comme des options.
+  sections: z.array(sectionSchema).max(50).transform((sections) => applyVariants(sections)),
 });
 
 export type DraftInput = z.input<typeof draftSchema>;
@@ -123,8 +129,8 @@ function iso(d: unknown): string {
 }
 
 async function loadSections(q: Queryable, quoteId: string, orgId: string): Promise<DraftSection[]> {
-  const secs = await q.query<{ id: string; grp: string; title: string; description: string }>(
-    "SELECT id, grp, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
+  const secs = await q.query<{ id: string; grp: string; choice_name: string; choice_label: string; title: string; description: string }>(
+    "SELECT id, grp, choice_name, choice_label, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
     [quoteId, orgId],
   );
   const lines = await q.query<Record<string, unknown>>("SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position", [
@@ -134,6 +140,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
   return secs.map((s) => ({
     id: s.id,
     ...(s.grp ? { group: s.grp } : {}),
+    ...(s.choice_name ? { choice: { name: s.choice_name, label: s.choice_label } } : {}),
     title: s.title,
     description: s.description,
     lines: lines
@@ -385,15 +392,9 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
   for (const s of sections) {
     if (seen.has(s.id)) throw badRequest("Identifiant de section en double");
     seen.add(s.id);
-    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title, description, grp) VALUES ($1,$2,$3,$4,$5,$6,$7)", [
-      s.id,
-      quoteId,
-      orgId,
-      sp++,
-      s.title,
-      s.description,
-      s.group ?? "",
-    ]);
+    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title, description, grp, choice_name, choice_label) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+      [s.id, quoteId, orgId, sp++, s.title, s.description, s.group ?? "", s.choice?.name ?? "", s.choice?.label ?? ""],
+    );
     let lp = 0;
     for (const l of s.lines) {
       if (seen.has(l.id)) throw badRequest("Identifiant de ligne en double");
@@ -971,9 +972,13 @@ export async function acceptedCopy(q: Queryable, orgId: string, quoteId: string)
 /** Ligne « options retenues » de l'exemplaire accepté, absente si le devis ne proposait pas d'option. */
 function acceptanceOptionsText(s: QuoteSnapshot, chosen: string[]): string | undefined {
   if (!s.calc.options) return undefined;
+  const variants = snapshotVariants(s).map((g) => `${g.name} : ${(g.choices.find((c) => chosen.includes(c.id)) ?? g.choices[0]).label}`);
   const labels = snapshotOptions(s)
     .filter((o) => chosen.includes(o.id))
     .map((o) => o.label);
+  const options = labels.length ? "Options retenues : " + labels.join(", ") : snapshotOptions(s).length ? "Aucune option retenue" : "";
+  if (variants.length)
+    return `Variantes retenues : ${variants.join(", ")}.${options ? ` ${options}.` : ""} Montant accepté : ${formatEuros(acceptedCalc(s, chosen).totalTtcCents)} TTC.`;
   const total = acceptedCalc(s, chosen).totalTtcCents;
   return `${labels.length ? "Options retenues : " + labels.join(", ") : "Aucune option retenue"}. Montant accepté : ${formatEuros(total)} TTC.`;
 }

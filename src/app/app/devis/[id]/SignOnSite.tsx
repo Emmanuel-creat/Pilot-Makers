@@ -7,6 +7,7 @@ import { Modal } from "@/components/Modal";
 import { SignaturePad } from "@/components/SignaturePad";
 import { apiFetch, ApiError } from "@/components/editor/api";
 import { formatEuros } from "@/lib/calc/format";
+import { pickedVariantIds, variantDelta, VariantPicker, type VariantOffer } from "@/components/VariantPicker";
 
 /** Le client signe sur la tablette ou le téléphone de l'artisan ; il reçoit son exemplaire signé par e-mail. */
 export function SignOnSite({
@@ -16,6 +17,7 @@ export function SignOnSite({
   baseTtcCents,
   customerName,
   options = [],
+  variants = [],
   vatAttestation = "",
   withdrawal = false,
 }: {
@@ -25,6 +27,7 @@ export function SignOnSite({
   baseTtcCents: number;
   customerName: string;
   options?: { id: string; label: string; ttcCents: number }[];
+  variants?: VariantOffer[];
   vatAttestation?: string;
   withdrawal?: boolean;
 }) {
@@ -39,7 +42,8 @@ export function SignOnSite({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<{ emailed: boolean } | null>(null);
-  const total = baseTtcCents + options.filter((o) => chosen.includes(o.id)).reduce((s, o) => s + o.ttcCents, 0);
+  const [picks, setPicks] = useState<Record<string, string>>({});
+  const total = baseTtcCents + variantDelta(variants, picks) + options.filter((o) => chosen.includes(o.id)).reduce((s, o) => s + o.ttcCents, 0);
 
   const submit = async () => {
     setBusy(true);
@@ -47,7 +51,7 @@ export function SignOnSite({
     try {
       const r = await apiFetch<{ emailed: boolean }>(`/api/quotes/${quoteId}/sign-onsite`, {
         method: "POST",
-        json: { version, name, consent, vatAttestation: attest, earlyStart, options: chosen, signature },
+        json: { version, name, consent, vatAttestation: attest, earlyStart, options: [...chosen, ...pickedVariantIds(variants, picks)], signature },
       });
       setDone(r);
     } catch (e) {
@@ -86,6 +90,7 @@ export function SignOnSite({
         ) : (
           <div className="space-y-4 text-sm">
             <p className="text-muted">Tendez l'écran au client : il relit le montant, coche son accord et signe au doigt ou au stylet.</p>
+            <VariantPicker groups={variants} picks={picks} onPick={(n, id) => setPicks((p) => ({ ...p, [n]: id }))} />
             {options.length ? (
               <fieldset className="space-y-1.5">
                 <legend className="label">Options retenues</legend>

@@ -7,6 +7,7 @@ import { Modal } from "@/components/Modal";
 import { apiFetch, ApiError, uid } from "@/components/editor/api";
 import { cancelQuoteAction } from "@/app/actions";
 import { formatEuros } from "@/lib/calc/format";
+import { pickedVariantIds, VariantPicker, type VariantOffer } from "@/components/VariantPicker";
 import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function SendButton({ quoteId, primary }: { quoteId: string; primary: boolean }) {
@@ -156,12 +157,15 @@ export function ManualResponse({
   quoteId,
   version,
   options = [],
+  variants = [],
 }: {
   quoteId: string;
   version: number;
   options?: { id: string; label: string; ttcCents: number }[];
+  variants?: VariantOffer[];
 }) {
   const [chosen, setChosen] = useState<string[]>([]);
+  const [picks, setPicks] = useState<Record<string, string>>({});
   const router = useRouter();
   const [open, setOpen] = useState<"accept" | "refuse" | null>(null);
   const [proof, setProof] = useState("");
@@ -172,7 +176,7 @@ export function ManualResponse({
     setBusy(true);
     setError("");
     try {
-      await apiFetch(`/api/quotes/${quoteId}/accept`, { method: "POST", json: { decision: open, version, proof, ...(open === "refuse" && reasonCode ? { reasonCode } : {}), ...(open === "accept" && options.length ? { options: chosen } : {}) } });
+      await apiFetch(`/api/quotes/${quoteId}/accept`, { method: "POST", json: { decision: open, version, proof, ...(open === "refuse" && reasonCode ? { reasonCode } : {}), ...(open === "accept" && (options.length || variants.length) ? { options: [...chosen, ...pickedVariantIds(variants, picks)] } : {}) } });
       setOpen(null);
       router.refresh();
     } catch (e) {
@@ -206,6 +210,7 @@ export function ManualResponse({
             placeholder={open === "accept" ? "Ex. : devis signé avec la mention « bon pour accord », reçu par courrier le 12/10" : "Ex. : appel téléphonique du 12/10"}
             aria-label="Preuve"
           />
+          {open === "accept" ? <VariantPicker groups={variants} picks={picks} onPick={(n, id) => setPicks((p) => ({ ...p, [n]: id }))} /> : null}
           {open === "accept" && options.length ? (
             <fieldset className="space-y-1.5">
               <legend className="label">Options retenues par le client</legend>

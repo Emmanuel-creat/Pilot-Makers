@@ -1,3 +1,4 @@
+import type { SectionChoice } from "@/lib/calc/variants";
 import type { EnergyAid } from "./aid-rules";
 import type { SnapshotMedia } from "./quote-media";
 import type { SnapshotDocument } from "./datasheets";
@@ -55,6 +56,8 @@ export interface DraftSection {
   id: string;
   /** Regroupement de niveau supérieur (bâtiment, étage, zone) ; les lots consécutifs du même nom forment un sous-total */
   group?: string;
+  /** Variante : alternative d'un choix proposé au client (base, confort, premium) */
+  choice?: SectionChoice;
   title: string;
   description: string;
   lines: DraftLine[];

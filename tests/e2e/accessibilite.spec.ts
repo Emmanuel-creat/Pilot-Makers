@@ -603,6 +603,29 @@ test("fiche d'établissement : horaires, contrôles et vérification", async ({ 
   await expect(page.getByText(/Dernière vérification le/)).toBeVisible();
 });
 
+test("devis : variantes base et confort au choix du client", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Salle de bain à variantes");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Faïence murale");
+  await page.getByLabel("Quantité", { exact: true }).last().fill("20");
+  await page.getByLabel("Prix unitaire HT", { exact: true }).last().fill("40");
+  await page.getByLabel("Titre de la section").first().fill("Carrelage");
+  await page.getByRole("button", { name: "Créer une variante de la section" }).first().click();
+  const variants = page.getByTestId("variante");
+  await expect(variants).toHaveCount(2);
+  await expect(page.getByLabel("Libellé de la variante").first()).toHaveValue("Base");
+  await expect(page.getByLabel("Libellé de la variante").last()).toHaveValue("Confort");
+  await page.getByLabel("Prix unitaire HT", { exact: true }).last().fill("60");
+  await expect(variants.first()).toContainText("Comprise dans le total");
+  await expect(variants.last()).toContainText("Au choix du client, 1 200,00 € HT");
+  await expect(page.getByText("Total calculé avec la première variante de chaque choix")).toBeVisible();
+  await audit(page, "variantes de devis");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

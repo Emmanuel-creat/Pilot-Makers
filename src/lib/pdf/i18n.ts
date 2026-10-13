@@ -53,6 +53,28 @@ const T = {
   excl: { fr: "HT", en: "excl. VAT", es: "sin IVA", pt: "s/ IVA", de: "netto" },
   incl: { fr: "TTC", en: "incl. VAT", es: "con IVA", pt: "c/ IVA", de: "brutto" },
   option: { fr: "Option : ", en: "Option: ", es: "Opción: ", pt: "Opção: ", de: "Option: " },
+  variantIncluded: {
+    fr: "variante comprise dans le total",
+    en: "option included in the total",
+    es: "variante incluida en el total",
+    pt: "variante incluída no total",
+    de: "Variante in der Summe enthalten",
+  },
+  variantAlternative: {
+    fr: "variante au choix, non comprise dans le total",
+    en: "alternative, not included in the total",
+    es: "variante a elegir, no incluida en el total",
+    pt: "variante à escolha, não incluída no total",
+    de: "Alternative zur Wahl, nicht in der Summe enthalten",
+  },
+  variantPrice: { fr: "Prix de la variante", en: "Price of this alternative", es: "Precio de la variante", pt: "Preço da variante", de: "Preis der Variante" },
+  variantsOffered: {
+    fr: "Variantes au choix du client",
+    en: "Alternatives for the client to choose",
+    es: "Variantes a elección del cliente",
+    pt: "Variantes à escolha do cliente",
+    de: "Varianten nach Wahl des Kunden",
+  },
   estimated: {
     fr: "Quantité estimée, à confirmer sur place",
     en: "Estimated quantity, to be confirmed on site",

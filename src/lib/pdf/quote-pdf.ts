@@ -11,6 +11,7 @@ import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb, t
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
 import { reducedVatAttestation, WITHDRAWAL_TEXT, withdrawalForm } from "@/lib/services/consumer";
 import type { QuoteSnapshot } from "@/lib/services/quote-types";
+import { snapshotOptions, snapshotVariants } from "@/lib/services/options";
 
 const A4 = { w: 595.28, h: 841.89 };
 const M = { left: 40, right: 40, top: 40, bottom: 56 };
@@ -374,6 +375,9 @@ export async function renderQuotePdf(
 
   // Tableau
   const calcSections = new Map(s.calc.sections.map((cs) => [cs.id, cs]));
+  // Variantes : la première de chaque choix est comprise dans le total, les autres sont chiffrées à côté.
+  const variantList = snapshotVariants(s);
+  const variantOf = new Map(variantList.flatMap((g) => g.choices.map((c) => [c.id, { group: g.name, choice: c }] as const)));
   const showSections = s.sections.length > 1 || (s.sections[0]?.title ?? "").trim() !== "";
   // Mise en page : réservée aux devis (les factures gardent le détail continu), utile dès deux lots.
   const layout = !opts && s.sections.length > 1 ? (s.layout ?? "detaille") : "detaille";
@@ -386,7 +390,9 @@ export async function renderQuotePdf(
     for (const sec of s.sections.slice(run.start, run.end + 1)) {
       if (!sec.lines.some((l) => l.kind === "item")) continue;
       lotNo++;
-      recap.push({ title: `${lotNo}. ${sec.title || `${t("lot")} ${lotNo}`}`, cents: calcSections.get(sec.id)?.subtotalCents ?? 0, level: run.group ? 1 : 0 });
+      const v = variantOf.get(sec.id);
+      const name = v ? `${v.group} : ${v.choice.label}${v.choice.included ? "" : ` (${t("variantAlternative")})`}` : sec.title || `${t("lot")} ${lotNo}`;
+      recap.push({ title: `${lotNo}. ${name}`, cents: v && !v.choice.included ? v.choice.netCents : (calcSections.get(sec.id)?.subtotalCents ?? 0), level: run.group ? 1 : 0 });
     }
   }
   const drawRecap = (title: string) => {
@@ -429,7 +435,19 @@ export async function renderQuotePdf(
     if (showSections) {
       w.ensure(40);
       w.y -= 16;
-      w.text(section.title || t("section"), cols.label + 4, w.y + 4, 9.5, f.bold, accent);
+      const variant = variantOf.get(section.id);
+      w.text(
+        variant ? `${variant.group} : ${variant.choice.label}${section.title && section.title !== variant.choice.label ? `, ${section.title}` : ""}` : section.title || t("section"),
+        cols.label + 4,
+        w.y + 4,
+        9.5,
+        f.bold,
+        accent,
+      );
+      if (variant) {
+        w.y -= 11;
+        w.text(t(variant.choice.included ? "variantIncluded" : "variantAlternative"), cols.label + 4, w.y + 4, 7.5, f.italic, GREY);
+      }
       if (section.description.trim()) {
         w.paragraph(section.description, cols.label + 4, CONTENT_W - 8, 8, f.italic, GREY);
       }
@@ -438,7 +456,7 @@ export async function renderQuotePdf(
     for (const line of section.lines) {
       const r = lineResults.get(line.id);
       const labelW = cols.qty - cols.label - 30;
-      const optional = line.kind === "item" && line.optional === true;
+      const optional = line.kind === "item" && line.optional === true && !variantOf.has(section.id);
       const labelLines = wrapText((optional ? t("option") : "") + (line.label || ""), f.bold, 8.5, labelW);
       const descLines = line.description.trim() ? wrapText(line.description, f.regular, 7.5, labelW) : [];
       const noteLines = [
@@ -483,7 +501,20 @@ export async function renderQuotePdf(
       w.y = ly - 6;
       w.page.drawLine({ start: { x: M.left, y: w.y + 2 }, end: { x: A4.w - M.right, y: w.y + 2 }, thickness: 0.4, color: LIGHT });
     }
-    if (showSections && cs && section.lines.some((l) => l.kind === "item")) {
+    const alternative = variantOf.get(section.id);
+    if (alternative && !alternative.choice.included) {
+      w.ensure(16);
+      w.y -= 13;
+      w.textRight(
+        `${t("variantPrice")} ${alternative.choice.label}${colon}${formatEuros(alternative.choice.netCents)} ${t("excl")}, ${formatEuros(alternative.choice.ttcCents)} ${t("incl")}`,
+        cols.total - 4,
+        w.y,
+        8.5,
+        f.bold,
+        GREY,
+      );
+      w.y -= 4;
+    } else if (showSections && cs && section.lines.some((l) => l.kind === "item")) {
       w.ensure(16);
       w.y -= 13;
       w.textRight(`${t("subtotal")} ${section.title || t("section").toLowerCase()}${colon}${formatEuros(cs.subtotalCents)} ${t("excl")}`, cols.total - 4, w.y, 8.5, f.bold, GREY);
@@ -545,13 +576,33 @@ export async function renderQuotePdf(
   w.text(t("totalTtc"), tx, w.y - 11, 11, f.bold, ttcColor);
   w.textRight(formatEuros(c.totalTtcCents), cols.total - 4, w.y - 11, 11, f.bold, ttcColor);
   w.y -= 26;
-  if (c.options) {
+  // Avec des variantes, le résumé des options ne compte que les vraies options.
+  const plainOptions = variantList.length
+    ? (() => {
+        const list = snapshotOptions(s);
+        return list.length
+          ? { count: list.length, htCents: list.reduce((n, o) => n + o.netCents, 0), ttcCents: list.reduce((n, o) => n + o.ttcCents, 0) }
+          : undefined;
+      })()
+    : c.options;
+  if (variantList.length) {
+    w.ensure(20 + variantList.length * 12);
+    w.y -= 12;
+    w.textRight(t("variantsOffered"), cols.total - 4, w.y, 8.5, f.bold, GREY);
+    for (const g of variantList) {
+      w.y -= 11;
+      w.textRight(`${g.name}${colon}${g.choices.map((x) => `${x.label} ${formatEuros(x.ttcCents)} ${t("incl")}`).join(", ")}`, cols.total - 4, w.y, 8, f.italic, GREY);
+    }
+    w.y -= 2;
+  }
+  if (plainOptions) {
+    const o = plainOptions;
     w.ensure(20);
     w.y -= 12;
     w.textRight(
       L === "fr"
-        ? `${c.options.count > 1 ? `${c.options.count} options proposées` : "1 option proposée"}, non comprise(s) : ${formatEuros(c.options.htCents)} HT, ${formatEuros(c.options.ttcCents)} TTC`
-        : `${c.options.count} ${t("optionsOffered")}${colon}${formatEuros(c.options.htCents)} ${t("excl")}, ${formatEuros(c.options.ttcCents)} ${t("incl")}`,
+        ? `${o.count > 1 ? `${o.count} options proposées` : "1 option proposée"}, non comprise(s) : ${formatEuros(o.htCents)} HT, ${formatEuros(o.ttcCents)} TTC`
+        : `${o.count} ${t("optionsOffered")}${colon}${formatEuros(o.htCents)} ${t("excl")}, ${formatEuros(o.ttcCents)} ${t("incl")}`,
       cols.total - 4,
       w.y,
       8.5,

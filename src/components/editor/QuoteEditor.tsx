@@ -8,6 +8,7 @@ import { Modal } from "@/components/Modal";
 import { appendDictated, Dictation } from "@/components/Dictation";
 import { StatusBadge } from "@/components/ui";
 import { draftToCalcInput } from "@/lib/calc/draft";
+import { variantGroups } from "@/lib/calc/variants";
 import { computeQuote } from "@/lib/calc/engine";
 import { groupRuns } from "@/lib/calc/groups";
 import { bpToInput, formatEuros, formatPercent, price4ToInput } from "@/lib/calc/format";
@@ -159,6 +160,15 @@ export function QuoteEditor({
 
   /* Calculs et contrôles en direct (même moteur que le serveur) */
   const calc = useMemo(() => computeQuote(draftToCalcInput(d, vatExempt)), [d, vatExempt]);
+  // Variantes : pour chaque section d'un choix, sa place (comprise ou non) et son prix HT.
+  const variantInfo = useMemo(() => {
+    const nets = new Map(calc.sections.flatMap((x) => x.lines.map((l) => [l.id, l.netCents] as const)));
+    return new Map(
+      variantGroups(d.sections).flatMap((g) =>
+        g.sections.map((sec, i) => [sec.id, { group: g.name, included: i === 0, netCents: sec.lines.reduce((n, l) => n + (l.kind === "item" ? (nets.get(l.id) ?? 0) : 0), 0) }] as const),
+      ),
+    );
+  }, [calc, d.sections]);
   // Sous-total de chaque bâtiment ou étage, affiché sous son dernier lot.
   const groupEnd = useMemo(() => {
     const subtotals = new Map(calc.sections.map((x) => [x.id, x.subtotalCents]));
@@ -411,6 +421,30 @@ export function QuoteEditor({
   const setLine = (sid: string, lid: string, patch: Partial<DraftLine>) =>
     setSection(sid, (s) => ({ ...s, lines: s.lines.map((l) => (l.id === lid ? { ...l, ...patch } : l)) }));
   const addLines = (sid: string, lines: DraftLine[]) => setSection(sid, (s) => ({ ...s, lines: [...s.lines, ...lines] }));
+  /** Crée une variante de la section (copie à ajuster), rattachée au même choix ; la première reste comprise dans le total. */
+  const addVariant = (sid: string) =>
+    update((o) => {
+      const i = o.sections.findIndex((x) => x.id === sid);
+      const src = o.sections[i];
+      const name = src.choice?.name || src.title.trim() || "Finitions";
+      const same = (x: DraftSection) => (x.choice?.name ?? "").trim().toLowerCase() === name.trim().toLowerCase();
+      const sections = o.sections.map((x) => (x.id === sid && !x.choice ? { ...x, choice: { name, label: "Base" } } : x));
+      const count = sections.filter(same).length;
+      let last = i;
+      sections.forEach((x, k) => {
+        if (same(x)) last = Math.max(last, k);
+      });
+      const base = sections[i];
+      sections.splice(last + 1, 0, {
+        ...base,
+        id: uid(),
+        choice: { name, label: VARIANT_LABELS[count] ?? `Variante ${count + 1}` },
+        lines: base.lines.map((l) => ({ ...l, id: uid() })),
+      });
+      return { ...o, sections };
+    });
+  const removeVariant = (sid: string) =>
+    setSection(sid, ({ choice: _c, ...x }) => ({ ...x, lines: x.lines.map(({ optional: _o, ...l }) => l) }));
 
   const moveLine = (sid: string, lid: string, dir: -1 | 1) =>
     update((o) => {
@@ -805,6 +839,36 @@ export function QuoteEditor({
                       aria-label="Regroupement de la section"
                     />
                   ) : null}
+                  {s.choice ? (
+                    <div className="mb-2 flex flex-wrap items-center gap-2 rounded-md bg-surface-2 p-2 text-xs" data-testid="variante">
+                      <Icon name="compare" size={16} className="text-accent" />
+                      <input
+                        value={s.choice.name}
+                        onChange={(e) => setSection(s.id, (x) => ({ ...x, choice: { name: e.target.value, label: x.choice?.label ?? "" } }))}
+                        list="quote-choices"
+                        maxLength={80}
+                        className="field-sm w-36 text-xs"
+                        aria-label="Choix proposé au client"
+                      />
+                      <input
+                        value={s.choice.label}
+                        onChange={(e) => setSection(s.id, (x) => ({ ...x, choice: { name: x.choice?.name ?? "", label: e.target.value } }))}
+                        maxLength={80}
+                        className="field-sm w-28 text-xs"
+                        aria-label="Libellé de la variante"
+                      />
+                      <span className="text-muted">
+                        {variantInfo.get(s.id)
+                          ? variantInfo.get(s.id)!.included
+                            ? "Comprise dans le total"
+                            : `Au choix du client, ${formatEuros(variantInfo.get(s.id)!.netCents)} HT`
+                          : "Ajoutez une autre variante pour proposer le choix"}
+                      </span>
+                      <button type="button" className="link ml-auto" onClick={() => removeVariant(s.id)}>
+                        Retirer du choix
+                      </button>
+                    </div>
+                  ) : null}
                   <div className="mb-3 flex items-start gap-2">
                     <input
                       value={s.title}
@@ -835,6 +899,15 @@ export function QuoteEditor({
                         </button>
                       </div>
                     ) : null}
+                    <button
+                      type="button"
+                      className="btn-ghost min-h-8 px-1.5 text-muted"
+                      onClick={() => addVariant(s.id)}
+                      aria-label="Créer une variante de la section"
+                      title="Créer une variante (base, confort, premium) au choix du client"
+                    >
+                      <Icon name="compare" size={16} />
+                    </button>
                     <button
                       type="button"
                       className="btn-ghost min-h-8 px-1.5 text-muted"
@@ -938,7 +1011,11 @@ export function QuoteEditor({
                         <Icon name="truck" size={16} /> Déplacement
                       </button>
                     ) : null}
-                    {sres && d.sections.length > 1 ? (
+                    {variantInfo.get(s.id) && !variantInfo.get(s.id)!.included ? (
+                      <span className="tabular ml-auto text-sm text-muted">
+                        Prix de la variante : <strong className="text-ink">{formatEuros(variantInfo.get(s.id)!.netCents)}</strong>
+                      </span>
+                    ) : sres && d.sections.length > 1 ? (
                       <span className="tabular ml-auto text-sm text-muted">
                         Sous-total : <strong className="text-ink">{formatEuros(sres.subtotalCents)}</strong>
                       </span>
@@ -962,6 +1039,11 @@ export function QuoteEditor({
                 </div>
               );
             })}
+            <datalist id="quote-choices">
+              {[...new Set(d.sections.map((x) => (x.choice?.name ?? "").trim()).filter(Boolean))].map((g) => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
             <datalist id="quote-groups">
               {[...new Set(d.sections.map((x) => (x.group ?? "").trim()).filter(Boolean))].map((g) => (
                 <option key={g} value={g} />
@@ -1234,7 +1316,7 @@ export function QuoteEditor({
         {/* Panneau latéral */}
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <section className="card p-4">
-            <Totals calc={calc} vatExempt={vatExempt} reverseCharge={!franchise && d.reverseCharge} />
+            <Totals calc={calc} vatExempt={vatExempt} reverseCharge={!franchise && d.reverseCharge} variantSections={new Set(variantInfo.keys())} />
             {showMargin ? (
               <div className="mt-3 rounded-md bg-surface-2 p-3 text-sm">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
@@ -1440,11 +1522,20 @@ export function Totals({
   calc,
   vatExempt,
   reverseCharge = false,
+  variantSections,
 }: {
   calc: ReturnType<typeof computeQuote>;
   vatExempt: boolean;
   reverseCharge?: boolean;
+  /** Sections faisant partie d'un choix de variantes : leurs lignes hors total ne sont pas des options */
+  variantSections?: Set<string>;
 }) {
+  const optionLines = calc.sections.filter((x) => !variantSections?.has(x.id)).flatMap((x) => x.lines.filter((l) => l.optional));
+  const options = variantSections?.size
+    ? optionLines.length
+      ? { count: optionLines.length, htCents: optionLines.reduce((n, l) => n + l.netCents, 0) }
+      : null
+    : calc.options;
   return (
     <div className="space-y-1.5 text-sm">
       <dl className="space-y-1.5">
@@ -1467,11 +1558,12 @@ export function Totals({
           {reverseCharge ? "TVA autoliquidée par le client, article 283-2 nonies du CGI" : "TVA non applicable, article 293 B du CGI"}
         </p>
       ) : null}
-      {calc.options ? (
+      {options ? (
         <p className="text-xs text-muted">
-          {calc.options.count > 1 ? `${calc.options.count} options` : "1 option"} non comprise(s) : {formatEuros(calc.options.htCents)} HT, au choix du client.
+          {options.count > 1 ? `${options.count} options` : "1 option"} non comprise(s) : {formatEuros(options.htCents)} HT, au choix du client.
         </p>
       ) : null}
+      {variantSections?.size ? <p className="text-xs text-muted">Total calculé avec la première variante de chaque choix ; le client choisit la sienne.</p> : null}
     </div>
   );
 }
@@ -1682,6 +1774,8 @@ function TravelForm({ travel, onAdd, onCancel }: { travel: TravelSettings; onAdd
     </div>
   );
 }
+
+const VARIANT_LABELS = ["Base", "Confort", "Premium"];
 
 const NO_AID: EnergyAid = { programs: [], domains: [], visitDate: "", estimatedAid: "" };
 

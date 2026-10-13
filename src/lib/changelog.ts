@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "variantes-devis",
+    date: "2026-10-13",
+    title: "Variantes au choix du client",
+    text: "Base, confort ou premium dans un même devis : le client choisit sa variante en acceptant, la facture suit son choix.",
+    href: "/aide/variantes-de-devis",
+  },
+  {
     id: "fiche-etablissement",
     date: "2026-10-13",
     title: "Fiche d'établissement à jour",

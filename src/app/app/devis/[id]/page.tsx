@@ -16,7 +16,7 @@ import { readPricing, type Pricing } from "@/lib/services/pricing";
 import { EDITABLE_STATUSES, PENDING_STATUSES, QUOTE_STATUSES } from "@/lib/services/quote-types";
 import { getDraft, getQuoteRow, getVersion, listAmendments, listVersions, quoteEmails, quoteEvents } from "@/lib/services/quotes";
 import { amendQuoteAction, archiveQuoteAction, deleteDraftAction, duplicateQuoteAction, reviseQuoteAction, revokeLinksAction } from "@/app/actions";
-import { acceptedCalc, snapshotOptions } from "@/lib/services/options";
+import { acceptedCalc, snapshotOptions, snapshotVariants } from "@/lib/services/options";
 import { reducedVatAttestation } from "@/lib/services/consumer";
 import { SignOnSite } from "./SignOnSite";
 import { QuoteMedia } from "./QuoteMedia";
@@ -366,6 +366,7 @@ export default async function QuotePage({
                   baseTtcCents={acceptedCalc(current.snapshot, []).totalTtcCents}
                   customerName={current.snapshot.customer.contact || (current.snapshot.customer.type === "particulier" ? current.snapshot.customer.name : "")}
                   options={snapshotOptions(current.snapshot).map((o) => ({ id: o.id, label: o.label, ttcCents: o.ttcCents }))}
+                  variants={snapshotVariants(current.snapshot)}
                   vatAttestation={current.snapshot.consumer?.reducedVatBp.length ? reducedVatAttestation(current.snapshot.consumer.reducedVatBp) : ""}
                   withdrawal={Boolean(current.snapshot.consumer?.withdrawal)}
                 />
@@ -374,6 +375,7 @@ export default async function QuotePage({
                 quoteId={id}
                 version={draft.currentVersion}
                 options={current ? snapshotOptions(current.snapshot).map((o) => ({ id: o.id, label: o.label, ttcCents: o.ttcCents })) : []}
+                variants={current ? snapshotVariants(current.snapshot) : []}
               />
             </section>
           ) : null}

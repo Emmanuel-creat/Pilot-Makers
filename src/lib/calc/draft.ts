@@ -2,12 +2,13 @@
 
 import type { CalcInput } from "./engine";
 import type { QuoteDraft } from "@/lib/services/quote-types";
+import { applyVariants } from "./variants";
 
 export function draftToCalcInput(d: Pick<QuoteDraft, "sections" | "globalDiscount">, vatExempt: boolean): CalcInput {
   return {
     vatExempt,
     globalDiscountPercent: d.globalDiscount,
-    sections: d.sections.map((s) => ({
+    sections: applyVariants(d.sections).map((s) => ({
       id: s.id,
       title: s.title,
       lines: s.lines.map((l) => ({

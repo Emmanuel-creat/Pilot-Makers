@@ -5,6 +5,7 @@
 
 import { computeQuote, type CalcResult } from "@/lib/calc/engine";
 import { draftToCalcInput } from "@/lib/calc/draft";
+import { chooseVariants, validVariantChoice, variantGroups, variantSectionIds } from "@/lib/calc/variants";
 import type { DraftSection, QuoteSnapshot } from "./quote-types";
 
 type OptionSnapshot = Pick<QuoteSnapshot, "sections" | "calc"> & {
@@ -24,7 +25,8 @@ export interface OptionLine {
 export function snapshotOptions(s: OptionSnapshot): OptionLine[] {
   const results = new Map(s.calc.sections.flatMap((sec) => sec.lines).map((r) => [r.id, r]));
   const exempt = s.org.vat_regime === "franchise" || s.quote.reverseCharge === true;
-  return s.sections.flatMap((sec) =>
+  const variants = variantSectionIds(s.sections);
+  return s.sections.filter((sec) => !variants.has(sec.id)).flatMap((sec) =>
     sec.lines
       .filter((l) => l.optional && l.kind === "item")
       .map((l) => {
@@ -36,10 +38,42 @@ export function snapshotOptions(s: OptionSnapshot): OptionLine[] {
   );
 }
 
-/** Sections du devis accepté : options choisies intégrées, options écartées retirées. */
+export interface VariantChoice {
+  /** Identifiant de la section */
+  id: string;
+  label: string;
+  title: string;
+  /** Comprise dans le total du devis tant que le client n'en choisit pas une autre */
+  included: boolean;
+  netCents: number;
+  ttcCents: number;
+}
+
+/** Choix de variantes proposés dans une version émise, avec le prix de chaque alternative. */
+export function snapshotVariants(s: OptionSnapshot): { name: string; choices: VariantChoice[] }[] {
+  const results = new Map(s.calc.sections.flatMap((sec) => sec.lines).map((r) => [r.id, r]));
+  const exempt = s.org.vat_regime === "franchise" || s.quote.reverseCharge === true;
+  return variantGroups(s.sections).map((g) => ({
+    name: g.name,
+    choices: g.sections.map((sec, i) => {
+      let net = 0;
+      let ttc = 0;
+      for (const l of sec.lines) {
+        const r = results.get(l.id);
+        if (l.kind !== "item" || !r) continue;
+        const vatBp = exempt ? 0 : r.vatBp;
+        net += r.netCents;
+        ttc += r.netCents + Math.round((r.netCents * vatBp) / 10000);
+      }
+      return { id: sec.id, label: sec.choice?.label || sec.title || `Variante ${i + 1}`, title: sec.title, included: i === 0, netCents: net, ttcCents: ttc };
+    }),
+  }));
+}
+
+/** Sections du devis accepté : variante retenue à la place des autres, options choisies intégrées, options écartées retirées. */
 export function withChosenOptions(sections: DraftSection[], chosen: readonly string[]): DraftSection[] {
   const keep = new Set(chosen);
-  return sections.map((sec) => ({
+  return chooseVariants(sections, chosen).map((sec) => ({
     ...sec,
     lines: sec.lines
       .filter((l) => !l.optional || keep.has(l.id))
@@ -58,11 +92,12 @@ export function acceptedCalc(s: OptionSnapshot, chosen: readonly string[]): Calc
   return computeQuote(draftToCalcInput({ sections: withChosenOptions(s.sections, chosen), globalDiscount: s.quote.globalDiscount }, exempt));
 }
 
-/** Contrôle les options choisies : elles doivent toutes être proposées dans la version. */
+/** Contrôle les options et variantes choisies : toutes proposées dans la version, une seule variante par choix. */
 export function validChoice(s: OptionSnapshot, chosen: readonly string[]): string[] | null {
-  const offered = new Set(snapshotOptions(s).map((o) => o.id));
+  const offered = new Set([...snapshotOptions(s).map((o) => o.id), ...variantSectionIds(s.sections)]);
   const unique = [...new Set(chosen)];
-  return unique.every((id) => offered.has(id)) ? unique : null;
+  if (!unique.every((id) => offered.has(id))) return null;
+  return validVariantChoice(s.sections, unique) ? unique : null;
 }
 
 /** Données suffisantes pour recalculer le total côté navigateur, sans les coûts internes. */

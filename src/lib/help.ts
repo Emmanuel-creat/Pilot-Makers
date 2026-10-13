@@ -1038,6 +1038,25 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=vitrine", label: "Ma fiche d'établissement" },
   },
   {
+    slug: "variantes-de-devis",
+    category: "devis",
+    title: "Proposer des variantes (base, confort, premium)",
+    summary: "Chiffrez plusieurs versions d'un même lot dans un seul devis : le client choisit la sienne en acceptant.",
+    steps: [
+      "Préparez la section de base (par exemple « Carrelage » avec la faïence standard).",
+      "Cliquez sur l'icône « Créer une variante » de la section : une copie apparaît juste après, nommée Confort. Recommencez pour Premium.",
+      "Ajustez les lignes et les prix de chaque variante ; le nom du choix et le libellé de chaque variante se modifient au-dessus de la section.",
+      "Émettez et envoyez le devis : le client choisit sa variante en ligne, sur votre écran ou dans l'acceptation que vous enregistrez.",
+    ],
+    notes: [
+      "Le total du devis compte la première variante de chaque choix ; les autres sont chiffrées à côté, sur le PDF comme dans l'éditeur.",
+      "Une fois le devis accepté, seule la variante retenue reste : acompte, facture de situation et solde sont calculés dessus.",
+      "Vous pouvez proposer plusieurs choix dans un même devis (finitions, robinetterie) et garder des options à cocher en plus.",
+      "« Retirer du choix » remet la section dans le devis comme une section ordinaire.",
+    ],
+    link: { href: "/app/devis/nouveau", label: "Nouveau devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

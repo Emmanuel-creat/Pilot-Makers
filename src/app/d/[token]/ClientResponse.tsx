@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { apiFetch, ApiError } from "@/components/editor/api";
 import { formatEuros } from "@/lib/calc/format";
-import { acceptedCalc, snapshotOptions, type OptionCalcSource } from "@/lib/services/options";
+import { acceptedCalc, snapshotOptions, snapshotVariants, type OptionCalcSource } from "@/lib/services/options";
 import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function ClientResponse({
@@ -40,7 +40,13 @@ export function ClientResponse({
   const [error, setError] = useState("");
   const [chosen, setChosen] = useState<string[]>([]);
   const offered = useMemo(() => (optionSource ? snapshotOptions(optionSource) : []), [optionSource]);
-  const total = useMemo(() => (optionSource ? acceptedCalc(optionSource, chosen).totalTtcCents : ttc), [optionSource, chosen, ttc]);
+  const variants = useMemo(() => (optionSource ? snapshotVariants(optionSource) : []), [optionSource]);
+  const [picks, setPicks] = useState<Record<string, string>>({});
+  const selection = useMemo(
+    () => [...chosen, ...variants.map((g) => picks[g.name]).filter((id): id is string => !!id && variants.some((g) => g.choices.some((c) => c.id === id && !c.included)))],
+    [chosen, picks, variants],
+  );
+  const total = useMemo(() => (optionSource ? acceptedCalc(optionSource, selection).totalTtcCents : ttc), [optionSource, selection, ttc]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +63,7 @@ export function ClientResponse({
           vatAttestation: attest,
           earlyStart,
           ...(mode === "refuse" && reasonCode ? { reasonCode } : {}),
-          ...(mode === "accept" && offered.length ? { options: chosen } : {}),
+          ...(mode === "accept" && (offered.length || variants.length) ? { options: selection } : {}),
         },
       });
       router.refresh();
@@ -92,6 +98,26 @@ export function ClientResponse({
         </label>
         <input id="r-name" className="field" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
       </div>
+      {mode === "accept"
+        ? variants.map((g) => (
+            <fieldset key={g.name} className="space-y-2 rounded-md bg-surface-2 p-3 text-sm">
+              <legend className="px-1 font-medium">Votre choix : {g.name}</legend>
+              {g.choices.map((c) => (
+                <label key={c.id} className="flex items-start gap-2">
+                  <input
+                    type="radio"
+                    name={`variante-${g.name}`}
+                    className="mt-0.5 h-4 w-4"
+                    checked={(picks[g.name] ?? g.choices[0].id) === c.id}
+                    onChange={() => setPicks((p) => ({ ...p, [g.name]: c.id }))}
+                  />
+                  <span className="flex-1">{c.label}</span>
+                  <span className="tabular shrink-0">{formatEuros(c.ttcCents)} TTC</span>
+                </label>
+              ))}
+            </fieldset>
+          ))
+        : null}
       {mode === "accept" && offered.length ? (
         <fieldset className="space-y-2 rounded-md bg-surface-2 p-3 text-sm">
           <legend className="px-1 font-medium">Options proposées</legend>
@@ -115,6 +141,7 @@ export function ClientResponse({
           <span>
             Bon pour accord : j'accepte le devis {number} (version {version}) d'un montant de{" "}
             <strong className="tabular">{formatEuros(total)} TTC</strong>
+            {variants.length ? `, ${variants.map((g) => `${g.name.toLowerCase()} : ${(g.choices.find((c) => c.id === picks[g.name]) ?? g.choices[0]).label}`).join(", ")}` : ""}
             {offered.length ? (chosen.length ? `, options cochées comprises` : ", sans option") : ""}, ainsi que ses conditions.
           </span>
         </label>
