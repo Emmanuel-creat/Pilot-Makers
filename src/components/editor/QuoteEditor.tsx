@@ -237,7 +237,19 @@ export function QuoteEditor({
           retention_percent: d.retentionPercent,
         },
         lines: d.sections.flatMap((s) =>
-          s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
+          s.lines.map((l) => ({
+            id: l.id,
+            kind: l.kind,
+            nature: l.nature,
+            label: l.label,
+            estimated: l.estimated,
+            vat_percent: l.vatPercent,
+            quantity: l.quantity,
+            unit: l.unit,
+            unit_price: l.unitPrice,
+            unit_cost: l.unitCost,
+            signed: l.signed,
+          })),
         ),
         calc,
       }),
@@ -1494,7 +1506,25 @@ export function QuoteEditor({
                   {warnings.map((i, n) => (
                     <li key={i.code + n} className="flex gap-2 text-warning">
                       <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
-                      <span className="text-ink">{i.message}</span>
+                      <span className="text-ink">
+                        {i.message}
+                        {i.field?.startsWith("line:") ? (
+                          <>
+                            {" "}
+                            <button
+                              type="button"
+                              className="link"
+                              onClick={() => {
+                                const el = document.getElementById(`ligne-${i.field!.slice(5)}`);
+                                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                el?.querySelector<HTMLElement>("input, textarea")?.focus({ preventScroll: true });
+                              }}
+                            >
+                              Voir la ligne
+                            </button>
+                          </>
+                        ) : null}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -1713,7 +1743,8 @@ function RoundingHints({
       ) : total ? (
         <>
           <p>
-            Pour un montant rond de {formatEuros(total.resultCents)}{vatExempt ? "" : " TTC"}, une remise de {formatPercent(total.discountBp)} sur l&apos;ensemble suffit.
+            Pour un montant rond de {formatEuros(total.resultCents)}
+            {vatExempt ? "" : " TTC"}, une remise de {formatPercent(total.discountBp)} sur l&apos;ensemble suffit.
           </p>
           <button type="button" className="btn-secondary w-full" onClick={() => onTotal(total.discountBp)}>
             Arrondir le total

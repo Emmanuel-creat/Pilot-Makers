@@ -6,13 +6,14 @@
  * professionnel compétent pour chaque métier.
  */
 
+import { findAnomalies, type AnomalyLine } from "./anomalies";
 import type { CalcResult } from "@/lib/calc/engine";
 import { formatPercent } from "@/lib/calc/format";
 import { isContractPlace, withdrawalApplies } from "./consumer";
 import { REVERSE_CHARGE_MENTION, retentionBp, retentionMention } from "./btp";
 import { frequentOmissions } from "./omissions";
 
-export const COMPLIANCE_RULES_VERSION = "2026-10-v1";
+export const COMPLIANCE_RULES_VERSION = "2026-10-v2";
 
 export interface ComplianceIssue {
   code: string;
@@ -67,7 +68,7 @@ export interface ComplianceInput {
     reverse_charge?: boolean;
     retention_percent?: string;
   };
-  lines: { kind: string; nature: string; label: string; estimated: boolean; vat_percent: string }[];
+  lines: (AnomalyLine & { estimated: boolean })[];
   calc: CalcResult;
 }
 
@@ -152,11 +153,7 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
     if (i.org.vat_regime === "franchise") {
       block("reverse_charge_franchise", "Autoliquidation impossible en franchise en base de TVA : décochez la sous-traitance", "reverse_charge");
     } else if (i.customer && i.customer.type === "particulier") {
-      block(
-        "reverse_charge_customer",
-        "Autoliquidation réservée à un donneur d'ordre professionnel : le client est un particulier",
-        "reverse_charge",
-      );
+      block("reverse_charge_customer", "Autoliquidation réservée à un donneur d'ordre professionnel : le client est un particulier", "reverse_charge");
     } else if (i.customer && !i.customer.vat_number?.trim()) {
       warn("reverse_charge_vat_number", "Autoliquidation : indiquez le numéro de TVA de l'entreprise cliente dans sa fiche", "customer");
     }
@@ -186,6 +183,9 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
     }
   }
   for (const o of frequentOmissions(i.lines, { travelFee: i.org.travel_fee })) warn("omission_" + o.code, o.message);
+  for (const a of findAnomalies(i.lines, { vatApplies: i.org.vat_regime === "normal" && !i.quote.reverse_charge })) {
+    warn("anomaly_" + a.code, a.message, a.lineId ? "line:" + a.lineId : undefined);
+  }
   if (i.calc.margin.linesWithoutCost > 0 && items.length > 0) {
     warn("no_cost", `${i.calc.margin.linesWithoutCost} ligne(s) sans coût interne : la marge prévisionnelle est incomplète`);
   }

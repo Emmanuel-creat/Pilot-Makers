@@ -91,9 +91,7 @@ export const draftSchema = z.object({
   customerId: z.string().refine(isUuid).nullable().optional().default(null),
   title: str(300),
   description: str(8000),
-  site: z
-    .object({ line1: str(300), line2: str(300), postalCode: str(10), city: str(120) })
-    .default({ line1: "", line2: "", postalCode: "", city: "" }),
+  site: z.object({ line1: str(300), line2: str(300), postalCode: str(10), city: str(120) }).default({ line1: "", line2: "", postalCode: "", city: "" }),
   validityDays: z.coerce.number().int().min(1).max(365).default(30),
   paymentTerms: str(2000),
   specialConditions: str(4000),
@@ -107,10 +105,17 @@ export const draftSchema = z.object({
   contractPlace: z.enum(["auto", "hors_etablissement", "etablissement"]).default("auto"),
   reverseCharge: z.boolean().default(false),
   retentionPercent: str(10).refine((v) => retentionBp(v) !== null, "Retenue de garantie : 5 % au plus"),
-  priceRevision: z.object({ index: str(10), baseMonth: str(7), fixedPercent: str(10) }).nullable().optional().default(null),
+  priceRevision: z
+    .object({ index: str(10), baseMonth: str(7), fixedPercent: str(10) })
+    .nullable()
+    .optional()
+    .default(null),
   energyAid: energyAidSchema,
   // Les lignes des variantes non comprises dans le total sont marquées hors total, comme des options.
-  sections: z.array(sectionSchema).max(50).transform((sections) => applyVariants(sections)),
+  sections: z
+    .array(sectionSchema)
+    .max(50)
+    .transform((sections) => applyVariants(sections)),
 });
 
 export type DraftInput = z.input<typeof draftSchema>;
@@ -133,10 +138,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
     "SELECT id, grp, choice_name, choice_label, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
     [quoteId, orgId],
   );
-  const lines = await q.query<Record<string, unknown>>("SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position", [
-    quoteId,
-    orgId,
-  ]);
+  const lines = await q.query<Record<string, unknown>>("SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position", [quoteId, orgId]);
   return secs.map((s) => ({
     id: s.id,
     ...(s.grp ? { group: s.grp } : {}),
@@ -392,7 +394,8 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
   for (const s of sections) {
     if (seen.has(s.id)) throw badRequest("Identifiant de section en double");
     seen.add(s.id);
-    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title, description, grp, choice_name, choice_label) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+    await tx.query(
+      "INSERT INTO quote_sections (id, quote_id, org_id, position, title, description, grp, choice_name, choice_label) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
       [s.id, quoteId, orgId, sp++, s.title, s.description, s.group ?? "", s.choice?.name ?? "", s.choice?.label ?? ""],
     );
     let lp = 0;
@@ -524,7 +527,13 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
   const issues = checkCompliance(complianceInput(org, customer, d, calc));
   const today = parisDate(new Date());
   issues.push(
-    ...aidIssues(normalizeAid(d.energyAid), await rgeQualifications(ctx.db, ctx.orgId), today, parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents),
+    ...aidIssues(
+      normalizeAid(d.energyAid),
+      await rgeQualifications(ctx.db, ctx.orgId),
+      today,
+      parisDate(addDays(new Date(), d.validityDays)),
+      calc.totalTtcCents,
+    ),
   );
   return { calc, issues, canIssue: !issues.some((i) => i.blocking) };
 }
@@ -534,16 +543,7 @@ function complianceInput(
   customer: Customer | null,
   d: Pick<
     QuoteDraft,
-    | "title"
-    | "description"
-    | "site"
-    | "validityDays"
-    | "paymentTerms"
-    | "sections"
-    | "depositPercent"
-    | "contractPlace"
-    | "reverseCharge"
-    | "retentionPercent"
+    "title" | "description" | "site" | "validityDays" | "paymentTerms" | "sections" | "depositPercent" | "contractPlace" | "reverseCharge" | "retentionPercent"
   >,
   calc: CalcResult,
 ) {
@@ -574,7 +574,19 @@ function complianceInput(
       retention_percent: d.retentionPercent,
     },
     lines: d.sections.flatMap((s) =>
-      s.lines.map((l) => ({ kind: l.kind, nature: l.nature, label: l.label, estimated: l.estimated, vat_percent: l.vatPercent })),
+      s.lines.map((l) => ({
+        id: l.id,
+        kind: l.kind,
+        nature: l.nature,
+        label: l.label,
+        estimated: l.estimated,
+        vat_percent: l.vatPercent,
+        quantity: l.quantity,
+        unit: l.unit,
+        unit_price: l.unitPrice,
+        unit_cost: l.unitCost,
+        signed: l.signed,
+      })),
     ),
     calc,
   };
@@ -767,9 +779,7 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
     const issues = checkCompliance(complianceInput(org, customer, d, calc));
     const rge = await rgeQualifications(tx, ctx.orgId);
-    issues.push(
-      ...aidIssues(normalizeAid(d.energyAid), rge, parisDate(new Date()), parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents),
-    );
+    issues.push(...aidIssues(normalizeAid(d.energyAid), rge, parisDate(new Date()), parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents));
     const blocking = issues.filter((i) => i.blocking);
     if (blocking.length || !customer) {
       throw new HttpError(422, "not_issuable", "Le devis ne peut pas être émis : " + blocking.map((b) => b.message).join(" ; "), { issues });
@@ -790,7 +800,11 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
 
     const now = new Date();
     const media = await snapshotMedia(tx, ctx.orgId, id);
-    const documents = await quoteDocuments(tx, ctx.orgId, d.sections.flatMap((x) => x.lines));
+    const documents = await quoteDocuments(
+      tx,
+      ctx.orgId,
+      d.sections.flatMap((x) => x.lines),
+    );
     const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now, rge, media, documents });
     const validUntil = snapshot.validUntil;
     const check = verifySnapshot(snapshot);
@@ -866,7 +880,11 @@ export async function previewPdf(ctx: Ctx, id: string, override?: QuoteDraft): P
     version: d.currentVersion + 1,
     rge: await rgeQualifications(ctx.db, ctx.orgId),
     media: await snapshotMedia(ctx.db, ctx.orgId, id),
-    documents: await quoteDocuments(ctx.db, ctx.orgId, d.sections.flatMap((x) => x.lines)),
+    documents: await quoteDocuments(
+      ctx.db,
+      ctx.orgId,
+      d.sections.flatMap((x) => x.lines),
+    ),
   });
   snapshot.preview = true;
   return renderQuotePdf(snapshot);
@@ -905,11 +923,7 @@ export async function listVersions(ctx: Ctx, quoteId: string) {
 }
 
 export async function getVersion(q: Queryable, orgId: string, quoteId: string, version: number) {
-  const r = await one<Record<string, unknown>>(q, "SELECT * FROM quote_versions WHERE quote_id=$1 AND org_id=$2 AND version=$3", [
-    quoteId,
-    orgId,
-    version,
-  ]);
+  const r = await one<Record<string, unknown>>(q, "SELECT * FROM quote_versions WHERE quote_id=$1 AND org_id=$2 AND version=$3", [quoteId, orgId, version]);
   if (!r) throw notFound("Version introuvable");
   return {
     id: String(r.id),
@@ -1006,10 +1020,7 @@ export async function createRevision(ctx: Ctx, quoteId: string) {
     }
     if (r.status === "canceled" || r.status === "superseded") throw conflict("Ce devis est clos");
     if (EDITABLE_STATUSES.includes(r.status)) return { status: r.status };
-    await tx.query("UPDATE quotes SET status='draft', draft_revision=draft_revision+1, updated_at=now() WHERE id=$1 AND org_id=$2", [
-      quoteId,
-      ctx.orgId,
-    ]);
+    await tx.query("UPDATE quotes SET status='draft', draft_revision=draft_revision+1, updated_at=now() WHERE id=$1 AND org_id=$2", [quoteId, ctx.orgId]);
     await addEvent(tx, ctx, quoteId, num(r.current_version), "revision.started", { from_status: r.status });
     return { status: "draft" as QuoteStatus };
   });
@@ -1291,11 +1302,9 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
   return db.transaction(async (tx) => {
     const r = await resolveShareToken(tx, token);
     if (!r) throw notFound("Lien invalide ou expiré");
-    const locked = await one<{ status: QuoteStatus; current_version: unknown }>(
-      tx,
-      "SELECT status, current_version FROM quotes WHERE id=$1 FOR UPDATE",
-      [r.link.quote_id],
-    );
+    const locked = await one<{ status: QuoteStatus; current_version: unknown }>(tx, "SELECT status, current_version FROM quotes WHERE id=$1 FOR UPDATE", [
+      r.link.quote_id,
+    ]);
     if (!locked || num(locked.current_version) !== r.version.version || r.revoked) {
       throw conflict("Ce devis a été remplacé par une nouvelle version. Utilisez le dernier lien reçu.");
     }
@@ -1349,7 +1358,12 @@ export async function respondFromLink(db: Ctx["db"], token: string, raw: unknown
       ],
     );
     if (accepted)
-      await enqueueWebhook(tx, r.link.org_id, "quote.accepted", acceptedPayload(r.link.quote_id, r.version.snapshot, r.version.version, finalCalc, "lien sécurisé"));
+      await enqueueWebhook(
+        tx,
+        r.link.org_id,
+        "quote.accepted",
+        acceptedPayload(r.link.quote_id, r.version.snapshot, r.version.version, finalCalc, "lien sécurisé"),
+      );
     const org = await one<{ email: string; trade_name: string }>(tx, "SELECT email, trade_name FROM organizations WHERE id=$1", [r.link.org_id]);
     if (org?.email) {
       await sendMail(tx, {
@@ -1432,7 +1446,8 @@ export async function recordResponseManually(ctx: Ctx, quoteId: string, raw: unk
       ...(accepted || !input.reasonCode ? {} : { reason_code: input.reasonCode }),
       ...(accepted && v.snapshot.calc.options ? { options: chosen } : {}),
     });
-    if (accepted) await enqueueWebhook(tx, ctx.orgId, "quote.accepted", acceptedPayload(quoteId, v.snapshot, input.version, finalCalc, "saisie par l'entreprise"));
+    if (accepted)
+      await enqueueWebhook(tx, ctx.orgId, "quote.accepted", acceptedPayload(quoteId, v.snapshot, input.version, finalCalc, "saisie par l'entreprise"));
     return { status: accepted ? "accepted" : "refused" };
   });
 }

@@ -674,6 +674,24 @@ test("devis : arrondis commerciaux des prix et du total", async ({ page }) => {
   await expect(page.getByLabel("Remise globale (%)")).not.toHaveValue("");
 });
 
+test("devis : incohérence de TVA signalée avec lien vers la ligne", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Carrelage à vérifier");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Pose de faïence");
+  await page.getByLabel("Quantité", { exact: true }).last().fill("12");
+  await page.getByLabel("Prix unitaire HT", { exact: true }).last().fill("40");
+  await page.getByLabel("Taux de TVA").last().selectOption("5,5");
+  await page.getByText(/point\(s\) d'attention/).click();
+  await expect(page.getByText("« Pose de faïence » : la TVA à 5,5 % est réservée aux travaux d'amélioration énergétique")).toBeVisible();
+  await page.getByRole("button", { name: "Voir la ligne" }).click();
+  await expect(page.getByLabel("Désignation", { exact: true }).last()).toBeFocused();
+  await audit(page, "incohérences");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -77,6 +77,7 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
   const wasted = line.kind === "item" && line.wastePercent ? withWaste(line.quantity, line.wastePercent) : null;
   return (
     <div
+      id={`ligne-${line.id}`}
       className={`group rounded-md border px-2 py-2 ${pending ? "border-warning/50 bg-warning-soft/40" : optional ? "border-dashed border-accent/50 bg-accent-soft/40" : "border-line bg-surface"} ${dragOver ? "ring-2 ring-accent" : ""}`}
       {...dragHandlers}
     >

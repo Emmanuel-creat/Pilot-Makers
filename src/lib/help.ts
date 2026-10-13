@@ -1127,6 +1127,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Mes devis" },
   },
   {
+    slug: "incoherences-signalees",
+    category: "devis",
+    title: "Les incohérences signalées dans un devis",
+    summary: "Pendant la saisie, Pilot-Makers repère les erreurs fréquentes : quantité anormale, prix hors norme, taux de TVA inadapté.",
+    steps: [
+      "Saisissez le devis normalement. Les incohérences apparaissent dans « Points d'attention », à côté des totaux.",
+      "Cliquez sur « Voir la ligne » pour aller directement à la ligne concernée et la corriger.",
+      "Si la ligne est juste (un prix volontairement élevé, une exonération justifiée), laissez-la : ce n'est qu'un avertissement.",
+    ],
+    notes: [
+      "Quantités : au-delà d'un seuil par unité (5 000 m², 2 000 heures, 20 forfaits) ou décimale sur une unité qui se compte.",
+      "Prix : vente sous le coût, prix plus de 5 fois supérieur au coût, taux horaire inhabituel, même désignation à deux prix très différents.",
+      "TVA : 5,5 % hors travaux d'amélioration énergétique, taux réduit sur une fourniture sans pose, 2,1 % ou 0 % sur des travaux.",
+    ],
+    link: { href: "/app/devis", label: "Mes devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "incoherences",
+    date: "2026-10-13",
+    title: "Incohérences repérées",
+    text: "Quantité anormale, prix sous le coût, TVA à 5,5 % hors rénovation énergétique : signalés pendant la saisie, avec un lien vers la ligne.",
+    href: "/aide/incoherences-signalees",
+  },
+  {
     id: "arrondis-commerciaux",
     date: "2026-10-13",
     title: "Arrondis commerciaux",
