@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "charge",
+    date: "2026-10-13",
+    title: "Charge et saisonnalité",
+    text: "La charge des 12 prochaines semaines face à la capacité de l'équipe, la première semaine libre, et vos mois forts et calmes.",
+    href: "/aide/charge-et-saisonnalite",
+  },
+  {
     id: "rapport-mensuel",
     date: "2026-10-13",
     title: "Rapport mensuel",

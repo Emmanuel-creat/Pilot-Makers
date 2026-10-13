@@ -843,6 +843,15 @@ test("rapports : rapport mensuel envoyé au gérant", async ({ page }) => {
   await audit(page, "rapport mensuel");
 });
 
+test("rapports : charge des semaines à venir et saisonnalité", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Charge et saisonnalité" }).click();
+  await page.waitForURL(/\/app\/rapports\/charge$/);
+  await expect(page.getByRole("table", { name: "Charge prévue par semaine" }).locator("tbody tr")).toHaveCount(12);
+  await audit(page, "charge et saisonnalité");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

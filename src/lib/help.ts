@@ -1368,6 +1368,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/rapports", label: "Voir les rapports" },
   },
   {
+    slug: "charge-et-saisonnalite",
+    category: "demarrer",
+    title: "Anticiper la charge de travail",
+    summary: "Semaines pleines, semaines libres et mois calmes de l'année.",
+    steps: [
+      "Dans Rapports, ouvrez « Charge et saisonnalité ».",
+      "Le tableau compare, pour les 12 prochaines semaines, les jours disponibles de l'équipe aux jours déjà planifiés et au reste à faire des chantiers signés non planifiés.",
+      "La première semaine avec de la place vous aide à annoncer une date de début réaliste au client.",
+      "Après douze mois d'activité, la saisonnalité montre vos mois forts et vos mois calmes.",
+    ],
+    notes: ["Le reste à faire se calcule sur les lignes de main-d'œuvre chiffrées en heures (7 heures par jour) ou en jours, moins l'avancement déjà saisi."],
+    link: { href: "/app/rapports/charge", label: "Voir la charge" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

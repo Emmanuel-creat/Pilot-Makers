@@ -255,3 +255,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 92 (13/10/2026) : ligne 367 (indemnités de petits et grands déplacements par zone, depuis le pointage validé)
 - Vague 93 (13/10/2026) : ligne 369 (messagerie d'équipe par chantier, notifications et non lus)
 - Vague 94 (13/10/2026) : ligne 416 (rapport mensuel envoyé au gérant par e-mail, désactivable)
+- Vague 95 (13/10/2026) : ligne 414 (saisonnalité des signatures et prévision de charge sur 12 semaines)
