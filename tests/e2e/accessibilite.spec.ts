@@ -479,3 +479,24 @@ test("devis : signature du client sur l'écran de l'artisan", async ({ page }) =
   const signed = await page.request.get(`${page.url().replace("/app/devis/", "/api/quotes/")}/pdf?signe=1`);
   expect(signed.status()).toBe(200);
 });
+
+test("devis : lots regroupés par bâtiment avec sous-total", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Résidence Les Tilleuls");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Peinture des cages d'escalier");
+  await page.getByLabel("Quantité", { exact: true }).last().fill("10");
+  await page.getByLabel("Prix unitaire HT", { exact: true }).last().fill("25");
+  await page.getByRole("button", { name: "Ajouter une section" }).click();
+  await page.getByLabel("Regroupement de la section").first().fill("Bâtiment A");
+  await page.getByLabel("Titre de la section").first().fill("Peinture");
+  await expect(page.getByTestId("sous-total-regroupement")).toHaveText("Sous-total Bâtiment A : 250,00 € HT");
+  // Le lot ajouté ensuite reste dans le bâtiment du lot précédent.
+  await page.getByLabel("Regroupement de la section").last().fill("Bâtiment B");
+  await page.getByRole("button", { name: "Ajouter une section" }).click();
+  await expect(page.getByLabel("Regroupement de la section").last()).toHaveValue("Bâtiment B");
+  await audit(page, "lots regroupés");
+});

@@ -1,3 +1,4 @@
+import { groupRuns, runAt } from "@/lib/calc/groups";
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
 import type { QuoteSnapshot } from "@/lib/services/quote-types";
 
@@ -19,6 +20,7 @@ export function SnapshotView({
 }) {
   const lines = new Map(s.calc.sections.flatMap((sec) => sec.lines.map((l) => [l.id, l] as const)));
   const subtotals = new Map(s.calc.sections.map((sec) => [sec.id, sec.subtotalCents]));
+  const runs = s.sections.length > 1 ? groupRuns(s.sections, (id) => subtotals.get(id) ?? 0) : [];
   const exempt = s.org.vat_regime === "franchise" || s.quote.reverseCharge === true;
   return (
     <article className="card overflow-hidden">
@@ -89,8 +91,9 @@ export function SnapshotView({
         ) : null}
       </div>
       <div className="divide-y divide-line border-b border-line sm:hidden">
-        {s.sections.map((sec) => (
+        {s.sections.map((sec, si) => (
           <div key={sec.id}>
+            {runAt(runs, si)?.start === si ? <div className="px-5 pt-3 pb-1 text-xs font-bold tracking-wide text-accent uppercase">{runAt(runs, si)!.group}</div> : null}
             {sec.title ? <div className="bg-surface-2 px-5 py-2 text-sm font-semibold">{sec.title}</div> : null}
             <ul className="divide-y divide-line">
               {sec.lines.map((l) => {
@@ -134,8 +137,15 @@ export function SnapshotView({
               <th className="px-5 py-2 text-right font-medium sm:px-8">Total HT</th>
             </tr>
           </thead>
-          {s.sections.map((sec) => (
+          {s.sections.map((sec, si) => (
             <tbody key={sec.id} className="border-b border-line">
+              {runAt(runs, si)?.start === si ? (
+                <tr>
+                  <td colSpan={exempt ? 4 : 5} className="px-5 pt-4 pb-1 text-xs font-bold tracking-wide text-accent uppercase sm:px-8">
+                    {runAt(runs, si)!.group}
+                  </td>
+                </tr>
+              ) : null}
               {sec.title ? (
                 <tr>
                   <td colSpan={5} className="bg-surface-2 px-5 py-2 font-semibold sm:px-8">
@@ -180,6 +190,14 @@ export function SnapshotView({
                     Sous-total {sec.title}
                   </td>
                   <td className="tabular px-5 py-1.5 text-right font-medium sm:px-8">{formatEuros(subtotals.get(sec.id) ?? 0)}</td>
+                </tr>
+              ) : null}
+              {runAt(runs, si)?.end === si && runAt(runs, si)!.items ? (
+                <tr>
+                  <td colSpan={exempt ? 3 : 4} className="px-5 py-2 text-right font-semibold text-accent sm:px-8">
+                    Sous-total {runAt(runs, si)!.group}
+                  </td>
+                  <td className="tabular px-5 py-2 text-right font-semibold text-accent sm:px-8">{formatEuros(runAt(runs, si)!.cents)}</td>
                 </tr>
               ) : null}
             </tbody>

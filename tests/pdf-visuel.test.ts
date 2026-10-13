@@ -25,7 +25,14 @@ const variants: [string, (s: QuoteSnapshot) => QuoteSnapshot][] = [
   ["aperçu de brouillon", (s) => ({ ...s, preview: true })],
   ["récapitulatif par lot en tête", (s) => ({ ...s, layout: "synthese" })],
   ["un lot par page", (s) => ({ ...s, layout: "lots" })],
+  ["lots regroupés par bâtiment", (s) => grouped(s)],
+  ["récapitulatif par bâtiment en tête", (s) => ({ ...grouped(s), layout: "synthese" })],
 ];
+
+/** Premier lot dans le bâtiment A, les suivants dans le bâtiment B. */
+function grouped(s: QuoteSnapshot): QuoteSnapshot {
+  return { ...s, sections: s.sections.map((sec, i) => ({ ...sec, group: i === 0 ? "Bâtiment A" : "Bâtiment B" })) };
+}
 const langs = ["en", "es", "pt", "de"] as const;
 
 describe("rendu des PDF de devis", () => {

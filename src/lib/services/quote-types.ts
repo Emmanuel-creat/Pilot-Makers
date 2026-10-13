@@ -50,6 +50,8 @@ export interface DraftLine {
 
 export interface DraftSection {
   id: string;
+  /** Regroupement de niveau supérieur (bâtiment, étage, zone) ; les lots consécutifs du même nom forment un sous-total */
+  group?: string;
   title: string;
   description: string;
   lines: DraftLine[];

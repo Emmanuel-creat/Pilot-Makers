@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "lots-par-batiment",
+    date: "2026-10-13",
+    title: "Lots regroupés par bâtiment",
+    text: "Regroupez les lots d'un devis par bâtiment, étage ou zone, avec un sous-total pour chaque ensemble sur le devis et le PDF.",
+    href: "/aide/lots-par-batiment",
+  },
+  {
     id: "signature-sur-place",
     date: "2026-10-13",
     title: "Signature sur place",

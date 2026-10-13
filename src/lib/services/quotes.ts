@@ -72,6 +72,7 @@ const lineSchema = z.object({
 
 const sectionSchema = z.object({
   id: z.string().refine(isUuid, "Identifiant de section invalide"),
+  group: z.string().trim().max(80).optional(),
   title: str(200),
   description: str(2000),
   lines: z.array(lineSchema).max(500),
@@ -117,8 +118,8 @@ function iso(d: unknown): string {
 }
 
 async function loadSections(q: Queryable, quoteId: string, orgId: string): Promise<DraftSection[]> {
-  const secs = await q.query<{ id: string; title: string; description: string }>(
-    "SELECT id, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
+  const secs = await q.query<{ id: string; grp: string; title: string; description: string }>(
+    "SELECT id, grp, title, description FROM quote_sections WHERE quote_id=$1 AND org_id=$2 ORDER BY position",
     [quoteId, orgId],
   );
   const lines = await q.query<Record<string, unknown>>("SELECT * FROM quote_lines WHERE quote_id=$1 AND org_id=$2 ORDER BY position", [
@@ -127,6 +128,7 @@ async function loadSections(q: Queryable, quoteId: string, orgId: string): Promi
   ]);
   return secs.map((s) => ({
     id: s.id,
+    ...(s.grp ? { group: s.grp } : {}),
     title: s.title,
     description: s.description,
     lines: lines
@@ -376,13 +378,14 @@ async function writeSections(tx: Queryable, quoteId: string, orgId: string, sect
   for (const s of sections) {
     if (seen.has(s.id)) throw badRequest("Identifiant de section en double");
     seen.add(s.id);
-    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title, description) VALUES ($1,$2,$3,$4,$5,$6)", [
+    await tx.query("INSERT INTO quote_sections (id, quote_id, org_id, position, title, description, grp) VALUES ($1,$2,$3,$4,$5,$6,$7)", [
       s.id,
       quoteId,
       orgId,
       sp++,
       s.title,
       s.description,
+      s.group ?? "",
     ]);
     let lp = 0;
     for (const l of s.lines) {

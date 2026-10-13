@@ -49,10 +49,24 @@ exports[`rendu des PDF de devis > reste identique : classique 1`] = `
 }
 `;
 
+exports[`rendu des PDF de devis > reste identique : lots regroupés par bâtiment 1`] = `
+{
+  "pages": 3,
+  "sha256": "930ade01e84cecc7537d9c74b691c051ae93f6519fddc68f215c1e8060a63ce6",
+}
+`;
+
 exports[`rendu des PDF de devis > reste identique : moderne 1`] = `
 {
   "pages": 3,
   "sha256": "c904bc19bae4f0433a4c147a0e46c3a03d1f69e8592febe6eb9b424e8a155327",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : récapitulatif par bâtiment en tête 1`] = `
+{
+  "pages": 3,
+  "sha256": "29fc63711bf5d6525f6da8ddee08c0820fb06ec5833d9924ffbbc8cbed5ef1f5",
 }
 `;
 

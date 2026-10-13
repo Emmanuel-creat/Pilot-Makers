@@ -40,6 +40,7 @@ import { sql as m038 } from "./migrations/038_metres";
 import { sql as m039 } from "./migrations/039_mise_en_page";
 import { sql as m040 } from "./migrations/040_journal_scelle_statut";
 import { sql as m041 } from "./migrations/041_signature_sur_place";
+import { sql as m042 } from "./migrations/042_lots_niveaux";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -84,6 +85,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "039_mise_en_page", sql: m039 },
   { id: "040_journal_scelle_statut", sql: m040 },
   { id: "041_signature_sur_place", sql: m041 },
+  { id: "042_lots_niveaux", sql: m042 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

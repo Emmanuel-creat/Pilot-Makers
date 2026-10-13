@@ -96,7 +96,7 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
             <select
               value={line.nature}
               onChange={(e) => onChange({ nature: e.target.value as DraftLine["nature"] })}
-              className="bg-transparent text-xs hover:text-ink"
+              className="min-h-6 bg-transparent text-xs hover:text-ink"
               disabled={readOnly}
               aria-label="Nature"
             >
@@ -113,7 +113,7 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
                   const rate = laborRates[Number(e.target.value)];
                   if (rate) onChange(laborPatch(rate));
                 }}
-                className="bg-transparent text-xs hover:text-ink"
+                className="min-h-6 bg-transparent text-xs hover:text-ink"
                 disabled={readOnly}
                 aria-label="Qualification"
               >
@@ -125,11 +125,11 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
                 ))}
               </select>
             ) : null}
-            <button type="button" className="hover:text-ink" onClick={() => setShowDesc((s) => !s)}>
+            <button type="button" className="min-h-6 hover:text-ink" onClick={() => setShowDesc((s) => !s)}>
               {showDesc ? "Masquer la description" : line.description ? "Description" : "Ajouter une description"}
             </button>
             {!readOnly && !pending ? (
-              <button type="button" className={`hover:text-ink ${line.measure ? "font-medium text-accent" : ""}`} onClick={() => setMeasuring(true)}>
+              <button type="button" className={`min-h-6 hover:text-ink ${line.measure ? "font-medium text-accent" : ""}`} onClick={() => setMeasuring(true)}>
                 {line.measure ? `Métré : ${line.quantity} ${line.unit}` : "Métré"}
               </button>
             ) : null}

@@ -618,6 +618,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Ouvrir les devis" },
   },
   {
+    slug: "lots-par-batiment",
+    category: "devis",
+    title: "Regrouper les lots par bâtiment, étage ou zone",
+    summary: "Pour un chantier sur plusieurs bâtiments ou niveaux : chaque ensemble de lots a son titre et son sous-total sur le devis.",
+    steps: [
+      "Dans le devis, créez au moins deux sections (lots).",
+      "Au-dessus du titre de chaque lot, indiquez son regroupement : « Bâtiment A », « Rez-de-chaussée », « Logement 12 ». Les noms déjà saisis sont proposés.",
+      "Les lots qui se suivent avec le même regroupement sont additionnés : le sous-total apparaît sous le dernier d'entre eux.",
+      "Un lot ajouté reprend le regroupement du lot précédent ; videz le champ pour un lot commun, comme l'installation de chantier.",
+    ],
+    notes: [
+      "Le PDF affiche le titre du regroupement, le sous-total de chaque lot puis celui du regroupement. Le récapitulatif en tête ou en fin de devis présente les regroupements avec leurs lots.",
+      "Pour qu'un bâtiment n'ait qu'un sous-total, placez ses lots les uns à la suite des autres avec les flèches de chaque section.",
+    ],
+    link: { href: "/app/devis", label: "Ouvrir les devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

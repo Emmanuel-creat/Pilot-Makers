@@ -5,6 +5,7 @@
  * enregistrées. Le coût interne et la marge n'y figurent jamais.
  */
 
+import { groupRuns, runAt } from "@/lib/calc/groups";
 import { type Key, type Lang, translator, unitLabel } from "./i18n";
 import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb, type RGB } from "pdf-lib";
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
@@ -375,19 +376,28 @@ export async function renderQuotePdf(
   const showSections = s.sections.length > 1 || (s.sections[0]?.title ?? "").trim() !== "";
   // Mise en page : réservée aux devis (les factures gardent le détail continu), utile dès deux lots.
   const layout = !opts && s.sections.length > 1 ? (s.layout ?? "detaille") : "detaille";
-  const recap = s.sections
-    .filter((sec) => sec.lines.some((l) => l.kind === "item"))
-    .map((sec, i) => ({ title: sec.title || `${t("lot")} ${i + 1}`, cents: calcSections.get(sec.id)?.subtotalCents ?? 0 }));
+  // Regroupements (bâtiment, étage, zone) : suites de lots consécutifs portant le même nom, avec leur sous-total.
+  const runs = groupRuns(s.sections, (id) => calcSections.get(id)?.subtotalCents ?? 0);
+  const recap: { title: string; cents: number; level: 0 | 1; group?: boolean }[] = [];
+  let lotNo = 0;
+  for (const run of runs) {
+    if (run.group && run.items) recap.push({ title: run.group, cents: run.cents, level: 0, group: true });
+    for (const sec of s.sections.slice(run.start, run.end + 1)) {
+      if (!sec.lines.some((l) => l.kind === "item")) continue;
+      lotNo++;
+      recap.push({ title: `${lotNo}. ${sec.title || `${t("lot")} ${lotNo}`}`, cents: calcSections.get(sec.id)?.subtotalCents ?? 0, level: run.group ? 1 : 0 });
+    }
+  }
   const drawRecap = (title: string) => {
     w.ensure(30 + recap.length * 14 + 20);
     w.y -= 6;
     w.text(title, M.left, w.y - 10, 10, f.bold, accent);
     w.y -= 18;
-    recap.forEach((r, i) => {
+    recap.forEach((r) => {
       w.ensure(14);
       w.y -= 14;
-      w.text(`${i + 1}. ${r.title}`, M.left + 4, w.y, 9);
-      w.textRight(`${formatEuros(r.cents)} ${t("excl")}`, cols.total - 4, w.y, 9);
+      w.text(r.title, M.left + 4 + r.level * 14, w.y, 9, r.group ? f.bold : f.regular);
+      w.textRight(`${formatEuros(r.cents)} ${t("excl")}`, cols.total - 4, w.y, 9, r.group ? f.bold : f.regular);
       w.page.drawLine({ start: { x: M.left, y: w.y - 4 }, end: { x: A4.w - M.right, y: w.y - 4 }, thickness: 0.4, color: LIGHT });
     });
     w.y -= 16;
@@ -407,6 +417,14 @@ export async function renderQuotePdf(
     if (layout === "lots" && index > 0 && section.lines.some((l) => l.kind === "item")) w.newPage();
     const cs = calcSections.get(section.id);
     const lineResults = new Map((cs?.lines ?? []).map((l) => [l.id, l]));
+    const run = showSections ? runAt(runs, index) : undefined;
+    if (run && run.start === index) {
+      w.ensure(60);
+      w.y -= 20;
+      w.text(run.group.toUpperCase(), cols.label + 4, w.y + 4, 10.5, f.bold, accent);
+      w.page.drawLine({ start: { x: M.left, y: w.y - 2 }, end: { x: A4.w - M.right, y: w.y - 2 }, thickness: 1, color: accent });
+      w.y -= 4;
+    }
     if (showSections) {
       w.ensure(40);
       w.y -= 16;
@@ -469,6 +487,13 @@ export async function renderQuotePdf(
       w.y -= 13;
       w.textRight(`${t("subtotal")} ${section.title || t("section").toLowerCase()}${colon}${formatEuros(cs.subtotalCents)} ${t("excl")}`, cols.total - 4, w.y, 8.5, f.bold, GREY);
       w.y -= 4;
+    }
+    if (run && run.end === index && run.items) {
+      w.ensure(20);
+      w.y -= 16;
+      w.page.drawLine({ start: { x: cols.qty, y: w.y + 11 }, end: { x: A4.w - M.right, y: w.y + 11 }, thickness: 0.6, color: accent });
+      w.textRight(`${t("subtotal")} ${run.group}${colon}${formatEuros(run.cents)} ${t("excl")}`, cols.total - 4, w.y, 9.5, f.bold, accent);
+      w.y -= 6;
     }
   }
   inTable = false;

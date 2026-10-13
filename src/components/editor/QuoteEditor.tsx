@@ -8,6 +8,7 @@ import { Modal } from "@/components/Modal";
 import { StatusBadge } from "@/components/ui";
 import { draftToCalcInput } from "@/lib/calc/draft";
 import { computeQuote } from "@/lib/calc/engine";
+import { groupRuns } from "@/lib/calc/groups";
 import { bpToInput, formatEuros, formatPercent, price4ToInput } from "@/lib/calc/format";
 import type { CatalogItem } from "@/lib/services/catalog";
 import { checkCompliance, type ComplianceInput } from "@/lib/services/compliance";
@@ -151,6 +152,12 @@ export function QuoteEditor({
 
   /* Calculs et contrôles en direct (même moteur que le serveur) */
   const calc = useMemo(() => computeQuote(draftToCalcInput(d, vatExempt)), [d, vatExempt]);
+  // Sous-total de chaque bâtiment ou étage, affiché sous son dernier lot.
+  const groupEnd = useMemo(() => {
+    const subtotals = new Map(calc.sections.map((x) => [x.id, x.subtotalCents]));
+    const runs = d.sections.length > 1 ? groupRuns(d.sections, (id) => subtotals.get(id) ?? 0) : [];
+    return new Map(runs.filter((r) => r.group && r.items).map((r) => [r.end, r]));
+  }, [calc, d.sections]);
   const issues = useMemo(
     () =>
       checkCompliance({
@@ -712,6 +719,17 @@ export function QuoteEditor({
                     if (dragOver === null) dropOn(s.id, null);
                   }}
                 >
+                  {d.sections.length > 1 ? (
+                    <input
+                      value={s.group ?? ""}
+                      onChange={(e) => setSection(s.id, (x) => ({ ...x, group: e.target.value }))}
+                      list="quote-groups"
+                      maxLength={80}
+                      placeholder="Bâtiment, étage ou zone (facultatif)"
+                      className="field-sm mb-2 w-full text-xs sm:w-80"
+                      aria-label="Regroupement de la section"
+                    />
+                  ) : null}
                   <div className="mb-3 flex items-start gap-2">
                     <input
                       value={s.title}
@@ -861,13 +879,29 @@ export function QuoteEditor({
                       onCancel={() => setTravelFor(null)}
                     />
                   ) : null}
+                  {groupEnd.get(si) ? (
+                    <p className="tabular mt-3 border-t border-line pt-2 text-right text-sm font-semibold text-accent" data-testid="sous-total-regroupement">
+                      Sous-total {groupEnd.get(si)!.group} : {formatEuros(groupEnd.get(si)!.cents)} HT
+                    </p>
+                  ) : null}
                 </div>
               );
             })}
+            <datalist id="quote-groups">
+              {[...new Set(d.sections.map((x) => (x.group ?? "").trim()).filter(Boolean))].map((g) => (
+                <option key={g} value={g} />
+              ))}
+            </datalist>
             <button
               type="button"
               className="btn-secondary w-full border-dashed"
-              onClick={() => update((o) => ({ ...o, sections: [...o.sections, { id: uid(), title: "", description: "", lines: [] }] }))}
+              onClick={() =>
+                update((o) => {
+                  // Le nouveau lot reste dans le bâtiment ou l'étage du précédent.
+                  const group = o.sections[o.sections.length - 1]?.group;
+                  return { ...o, sections: [...o.sections, { id: uid(), ...(group ? { group } : {}), title: "", description: "", lines: [] }] };
+                })
+              }
             >
               <Icon name="section" size={16} /> Ajouter une section
             </button>
@@ -1335,40 +1369,41 @@ export function Totals({
   reverseCharge?: boolean;
 }) {
   return (
-    <dl className="space-y-1.5 text-sm">
-      {calc.lineDiscountCents ? <Row label="Total avant remises" value={formatEuros(calc.grossCents)} muted /> : null}
-      {calc.lineDiscountCents ? <Row label="Remises sur lignes" value={"-" + formatEuros(calc.lineDiscountCents)} muted /> : null}
-      {calc.globalDiscountCents ? (
-        <>
-          <Row label="Sous-total HT" value={formatEuros(calc.subtotalCents)} muted />
+    <div className="space-y-1.5 text-sm">
+      <dl className="space-y-1.5">
+        {calc.lineDiscountCents ? <Row label="Total avant remises" value={formatEuros(calc.grossCents)} muted /> : null}
+        {calc.lineDiscountCents ? <Row label="Remises sur lignes" value={"-" + formatEuros(calc.lineDiscountCents)} muted /> : null}
+        {calc.globalDiscountCents ? <Row label="Sous-total HT" value={formatEuros(calc.subtotalCents)} muted /> : null}
+        {calc.globalDiscountCents ? (
           <Row label={`Remise globale ${formatPercent(calc.globalDiscountBp)}`} value={"-" + formatEuros(calc.globalDiscountCents)} muted />
-        </>
-      ) : null}
-      <Row label="Total HT" value={formatEuros(calc.totalHtCents)} strong />
+        ) : null}
+        <Row label="Total HT" value={formatEuros(calc.totalHtCents)} strong />
+        {vatExempt
+          ? null
+          : calc.vatGroups.map((g) => (
+              <Row key={g.vatBp} label={`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`} value={formatEuros(g.vatCents)} muted />
+            ))}
+        <Row label="Total TTC" value={formatEuros(calc.totalTtcCents)} big />
+      </dl>
       {vatExempt ? (
         <p className="text-xs text-muted">
           {reverseCharge ? "TVA autoliquidée par le client, article 283-2 nonies du CGI" : "TVA non applicable, article 293 B du CGI"}
         </p>
-      ) : (
-        calc.vatGroups.map((g) => (
-          <Row key={g.vatBp} label={`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`} value={formatEuros(g.vatCents)} muted />
-        ))
-      )}
-      <div className="border-t border-line pt-2">
-        <Row label="Total TTC" value={formatEuros(calc.totalTtcCents)} big />
-      </div>
+      ) : null}
       {calc.options ? (
         <p className="text-xs text-muted">
           {calc.options.count > 1 ? `${calc.options.count} options` : "1 option"} non comprise(s) : {formatEuros(calc.options.htCents)} HT, au choix du client.
         </p>
       ) : null}
-    </dl>
+    </div>
   );
 }
 
 function Row({ label, value, muted, strong, big }: { label: string; value: string; muted?: boolean; strong?: boolean; big?: boolean }) {
   return (
-    <div className={`flex justify-between gap-3 ${muted ? "text-muted" : ""} ${strong ? "font-medium" : ""} ${big ? "text-lg font-semibold" : ""}`}>
+    <div
+      className={`flex justify-between gap-3 ${muted ? "text-muted" : ""} ${strong ? "font-medium" : ""} ${big ? "border-t border-line pt-2 text-lg font-semibold" : ""}`}
+    >
       <dt>{label}</dt>
       <dd className="tabular text-right whitespace-nowrap">{value}</dd>
     </div>
