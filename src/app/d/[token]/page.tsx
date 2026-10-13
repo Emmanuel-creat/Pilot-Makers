@@ -1,5 +1,6 @@
 import { Logo } from "@/components/Icon";
 import { SnapshotView } from "@/components/SnapshotView";
+import { plainSummary } from "@/lib/plain-summary";
 import { Notice } from "@/components/ui";
 import { getDb } from "@/lib/db";
 import { requestMeta } from "@/lib/server/session";
@@ -91,6 +92,18 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
       {r.status === "refused" ? <Notice tone="info">Ce devis a été refusé.</Notice> : null}
       {r.status === "expired" ? <Notice tone="warning">La durée de validité de ce devis est dépassée.</Notice> : null}
       {r.status === "canceled" ? <Notice tone="warning">Ce devis a été annulé par l'entreprise.</Notice> : null}
+      {s.customer.type === "particulier" ? (
+        <section className="card mt-4 p-5" aria-labelledby="en-bref">
+          <h2 id="en-bref" className="font-semibold">
+            Ce devis en bref
+          </h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
+            {plainSummary(s).map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       <div className="mt-4">
         <SnapshotView s={s} />
       </div>

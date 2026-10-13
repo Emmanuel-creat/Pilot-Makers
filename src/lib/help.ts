@@ -1144,6 +1144,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Mes devis" },
   },
   {
+    slug: "devis-en-bref",
+    category: "devis",
+    title: "Le résumé « Ce devis en bref » vu par vos clients",
+    summary: "Quand le client est un particulier, sa page de consultation commence par un résumé en phrases simples.",
+    steps: [
+      "Envoyez le lien de consultation comme d'habitude.",
+      "Le client particulier voit d'abord « Ce devis en bref » : les travaux, le prix total TVA comprise, l'acompte, le calendrier et la date limite.",
+      "Il lit ensuite le détail complet, puis accepte ou refuse.",
+    ],
+    notes: [
+      "Le résumé reprend uniquement ce que dit votre devis : remplissez l'objet, le début et la durée estimés pour qu'il soit complet.",
+      "Il rappelle aussi ses droits : 14 jours pour changer d'avis après une signature hors de vos locaux, et l'attestation de TVA réduite.",
+      "Un client professionnel ne voit pas ce résumé.",
+    ],
+    link: { href: "/app/devis", label: "Mes devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

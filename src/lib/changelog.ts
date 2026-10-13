@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-en-bref",
+    date: "2026-10-13",
+    title: "Le devis expliqué simplement",
+    text: "Vos clients particuliers voient d'abord un résumé clair : travaux, prix TVA comprise, acompte, calendrier et leurs droits.",
+    href: "/aide/devis-en-bref",
+  },
+  {
     id: "incoherences",
     date: "2026-10-13",
     title: "Incohérences repérées",
