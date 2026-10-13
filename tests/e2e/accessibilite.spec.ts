@@ -48,6 +48,9 @@ test("écrans de l'application", async ({ page }) => {
     "/app/chantiers",
     "/app/planning",
     "/app/planning?vue=mois",
+    "/app/pointage",
+    "/app/pointage?vue=equipe",
+    "/app/equipe",
     "/app/entreprise",
     "/app/entreprise?onglet=tarifs",
     "/app/entreprise?onglet=webhooks",
@@ -193,4 +196,23 @@ test("API publique : clé créée à l'écran puis utilisée", async ({ page, re
   const write = await request.post("/api/v1/customers", { headers: { authorization: `Bearer ${key}` }, data: { last_name: "Essai" } });
   expect(write.status()).toBe(403);
   expect((await (await request.get("/api/v1/openapi.json")).json()).openapi).toBe("3.1.0");
+});
+
+test("pointage : chronomètre sur un chantier puis validation par l'encadrement", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/pointage");
+  await page.getByLabel("Enregistrer la position au départ").uncheck();
+  await page.getByRole("button", { name: "Commencer" }).click();
+  await expect(page.getByText("Pointage en cours depuis")).toBeVisible();
+  await audit(page, "pointage en cours");
+  await page.getByLabel("Note (facultative)").fill("Joints de la douche");
+  await page.getByRole("button", { name: "Terminer" }).click();
+  await expect(page.getByText("Joints de la douche").first()).toBeVisible();
+  await page.goto("/app/pointage?vue=equipe");
+  await page.getByRole("button", { name: /Tout cocher à valider/ }).click();
+  await page.getByRole("button", { name: /^Valider/ }).click();
+  await expect(page.getByText(/pointage\(s\) validé\(s\)/)).toBeVisible();
+  const csv = await page.request.get(`/api/timesheets/export?mois=${new Date().toISOString().slice(0, 7)}`);
+  expect(csv.status()).toBe(200);
+  expect(await csv.text()).toContain("heures_sup_25");
 });

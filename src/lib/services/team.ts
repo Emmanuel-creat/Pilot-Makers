@@ -11,8 +11,8 @@ import { audit, requireRole, requireWritable } from "./context";
 import { appUrl, sendMail } from "./mail";
 
 export async function listMembers(ctx: Ctx) {
-  return ctx.db.query<{ user_id: string; email: string; name: string; role: Role; created_at: Date }>(
-    "SELECT u.id AS user_id, u.email, u.name, m.role, m.created_at FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1 ORDER BY m.created_at",
+  return ctx.db.query<{ user_id: string; email: string; name: string; role: Role; created_at: Date; qualification: string }>(
+    "SELECT u.id AS user_id, u.email, u.name, m.role, m.created_at, m.qualification FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1 ORDER BY m.created_at",
     [ctx.orgId],
   );
 }

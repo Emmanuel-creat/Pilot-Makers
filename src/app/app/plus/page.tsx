@@ -14,6 +14,7 @@ export default async function MorePage() {
     ["/app/factures", "Factures", "euro"],
     ["/app/chantiers", "Chantiers", "hammer"],
     ["/app/planning", "Planning", "calendar"],
+    ["/app/pointage", "Pointage", "clock"],
     ["/app/demandes", "Demandes", "inbox"],
     ["/app/rapports", "Rapports", "chart"],
     ["/app/modeles", "Modèles de devis", "copy"],

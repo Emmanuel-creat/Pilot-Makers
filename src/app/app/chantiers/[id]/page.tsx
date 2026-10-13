@@ -9,6 +9,9 @@ import { pct } from "@/lib/services/jobs-labels";
 import { AddTaskForm, DeleteTask, JobInfoForm, TaskProgress } from "./JobForms";
 import { DeleteJournal, JournalForm, LiftReserveForm, ReceptionForm } from "./SiteForms";
 import { getReception, listJournal } from "@/lib/services/job-site";
+import { formatMinutes } from "@/lib/services/timesheet-calc";
+import { jobHours } from "@/lib/services/timesheets";
+import { formatEuros } from "@/lib/calc/format";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -23,7 +26,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     throw e;
   });
   const { job, sections, progressBp } = data;
-  const [journal, rec] = await Promise.all([listJournal(ctx, id), getReception(ctx, id)]);
+  const [journal, rec, hours] = await Promise.all([listJournal(ctx, id), getReception(ctx, id), jobHours(ctx, id)]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const address = [job.site_line1, job.site_line2, [job.site_postal_code, job.site_city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return (
@@ -76,6 +79,17 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
               et émettez une situation à {pct(progressBp)} %.
             </>
           ) : null}
+        </p>
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm">
+          <Icon name="clock" size={16} className="text-muted" />
+          <span>
+            Heures pointées : <strong className="tabular">{formatMinutes(hours.minutes)}</strong>
+            {hours.minutes ? ` dont ${formatMinutes(hours.validatedMinutes)} validées` : ""}
+            {ctx.role !== "member" && hours.costCents ? `, coût ${formatEuros(hours.costCents)}` : ""}
+          </span>
+          <Link href="/app/pointage" className="link">
+            Pointer
+          </Link>
         </p>
       </section>
 

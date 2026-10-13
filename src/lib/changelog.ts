@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "pointage",
+    date: "2026-10-13",
+    title: "Pointage des heures et export de paie",
+    text: "Chronomètre par chantier sur le téléphone, validation par l'encadrement, heures supplémentaires calculées et récapitulatif mensuel pour la paie.",
+    href: "/app/pointage",
+  },
+  {
     id: "automatisation",
     date: "2026-10-13",
     title: "Zapier, Make et n8n",

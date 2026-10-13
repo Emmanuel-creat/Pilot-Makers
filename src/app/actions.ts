@@ -10,6 +10,8 @@ import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/j
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
+import { addEntry, deleteEntry, reviewEntries, setMemberQualification, startTimer, stopTimer } from "@/lib/services/timesheets";
+import { formatMinutes } from "@/lib/services/timesheet-calc";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
 import {
@@ -845,6 +847,72 @@ export async function revokeApiKeyAction(_: ActionState, fd: FormData): Promise<
     await withCtx((ctx) => revokeApiKey(ctx, s(fd, "id")));
     revalidatePath("/app/entreprise");
     return { ok: true, message: "Clé révoquée : elle ne fonctionne plus." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Pointage --------------------------------------------------------- */
+
+export async function startTimerAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => startTimer(ctx, { jobId: s(fd, "jobId"), latitude: s(fd, "latitude"), longitude: s(fd, "longitude") }));
+    revalidatePath("/app/pointage");
+    return { ok: true, message: "Pointage commencé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function stopTimerAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => stopTimer(ctx, { note: s(fd, "note") }));
+    revalidatePath("/app/pointage");
+    return { ok: true, message: `Pointage terminé : ${formatMinutes(r.minutes)}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function addEntryAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      addEntry(ctx, { jobId: s(fd, "jobId"), date: s(fd, "date"), duration: s(fd, "duration"), note: s(fd, "note"), userId: s(fd, "userId") }),
+    );
+    revalidatePath("/app/pointage");
+    return { ok: true, message: "Heures enregistrées." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteEntryAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteEntry(ctx, s(fd, "id")));
+    revalidatePath("/app/pointage");
+    return { ok: true, message: "Pointage supprimé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function reviewEntriesAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const decision = s(fd, "decision") as "valide" | "refuse" | "saisi";
+    const r = await withCtx((ctx) => reviewEntries(ctx, fd.getAll("ids").map(String), decision, s(fd, "note")));
+    revalidatePath("/app/pointage");
+    const verb = decision === "valide" ? "validé(s)" : decision === "refuse" ? "refusé(s)" : "rouvert(s)";
+    return { ok: true, message: `${r.updated} pointage(s) ${verb}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function setQualificationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => setMemberQualification(ctx, s(fd, "userId"), s(fd, "qualification")));
+    revalidatePath("/app/equipe");
+    return { ok: true, message: "Qualification enregistrée." };
   } catch (e) {
     return toState(e);
   }

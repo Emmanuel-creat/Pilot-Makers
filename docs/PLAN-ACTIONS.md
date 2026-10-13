@@ -192,3 +192,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 29 (13/10/2026) : 436 (import des clients et du catalogue depuis Excel .xlsx, LibreOffice .ods et CSV Windows, colonnes des autres logiciels reconnues).
 - Vague 30 (13/10/2026) : 434 (API publique v1 : clés d'accès en lecture ou écriture, limite de 120 requêtes par minute, clients, devis, factures et PDF, catalogue, chantiers, description OpenAPI).
 - Vague 31 (13/10/2026) : 438 (connexion aux outils d'automatisation Zapier, Make et n8n : abonnement et désabonnement par l'API, exemples de données, retrait automatique sur réponse 410 ou révocation de la clé).
+- Vague 32 (13/10/2026) : 360 (pointage des heures par chantier sur téléphone : chronomètre, position, saisie après coup), 361 (feuilles de temps validées par l'encadrement, export mensuel pour la paie avec heures supplémentaires à 25 % et 50 %).

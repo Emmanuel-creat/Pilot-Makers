@@ -383,6 +383,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=api", label: "Ouvrir l'onglet API" },
   },
   {
+    slug: "pointer-ses-heures",
+    category: "demarrer",
+    title: "Pointer ses heures et préparer la paie",
+    summary: "Chronomètre sur le téléphone, validation par l'encadrement, export pour le cabinet de paie.",
+    steps: [
+      "Sur le chantier, ouvrez « Pointage », choisissez le chantier et touchez « Commencer ». Touchez « Terminer » en partant : la durée est calculée.",
+      "Un oubli ? Saisissez les heures après coup : date, durée (7:30 ou 7,5) et chantier.",
+      "Le gérant ou un administrateur ouvre l'onglet « Équipe » du pointage, coche les heures et les valide ou les refuse avec une raison.",
+      "En fin de mois, téléchargez le récapitulatif : heures normales, supplémentaires à 25 % et à 50 % par salarié, à transmettre au cabinet de paie.",
+    ],
+    notes: [
+      "Une heure validée n'est plus modifiable par la personne. Les heures supplémentaires sont calculées par semaine civile au-delà de 35 heures.",
+      "Renseignez la qualification de chaque membre dans « Équipe » : le coût des heures apparaît alors sur chaque chantier.",
+    ],
+    link: { href: "/app/pointage", label: "Ouvrir le pointage" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

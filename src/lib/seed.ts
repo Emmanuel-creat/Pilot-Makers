@@ -14,6 +14,7 @@ import { savePricing, updateOrganization } from "./services/organization";
 import { createJobFromQuote, getJob, setTaskProgress } from "./services/jobs";
 import { addVehicle, assign } from "./services/planning";
 import { addDays, mondayOf } from "./services/planning-dates";
+import { addEntry, listEntries, reviewEntries } from "./services/timesheets";
 import { createQuote, getDraft, issueQuote, parisDate, recordResponseManually, saveDraft, sendQuote } from "./services/quotes";
 import { price4ToInput, bpToInput } from "./calc/format";
 
@@ -250,6 +251,15 @@ export async function seedDemo(db: Database): Promise<{ created: boolean }> {
   const monday = mondayOf(parisDate(new Date()));
   await assign(ctx, { jobId: job, resourceType: "user", resourceId: ctx.userId, start: monday, end: addDays(monday, 2) });
   await assign(ctx, { jobId: job, resourceType: "vehicle", resourceId: van, start: monday, end: monday });
+  // Heures de la semaine précédente, validées, pour montrer le pointage et l'export de paie.
+  const lastMonday = addDays(monday, -7);
+  for (let i = 0; i < 4; i++) await addEntry(ctx, { jobId: job, date: addDays(lastMonday, i), duration: i === 3 ? "9:30" : "8", note: "" });
+  const past = await listEntries(ctx, { from: lastMonday, to: addDays(lastMonday, 6) });
+  await reviewEntries(
+    ctx,
+    past.map((e) => e.id),
+    "valide",
+  );
 
   await make(2, "Réfection du carrelage du hall", "Remplacement des carreaux abîmés dans le hall d'entrée de la résidence.", [
     {

@@ -4,6 +4,9 @@ import { PageHeader, Section, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listMembers, listUserOrgs } from "@/lib/services/team";
 import { changeRoleAction, inviteAction, removeMemberAction, switchOrgAction } from "@/app/actions";
+import { getOrganization } from "@/lib/services/organization";
+import { readPricing } from "@/lib/services/pricing";
+import { QualificationForm } from "./QualificationForm";
 
 export const metadata = { title: "Équipe" };
 
@@ -11,7 +14,8 @@ const ROLES = { owner: "Propriétaire", admin: "Administrateur", member: "Membre
 
 export default async function TeamPage() {
   const ctx = await requirePageCtx();
-  const [members, orgs] = await Promise.all([listMembers(ctx), listUserOrgs(ctx)]);
+  const [members, orgs, org] = await Promise.all([listMembers(ctx), listUserOrgs(ctx), getOrganization(ctx)]);
+  const qualifications = readPricing(org.pricing).laborRates.map((r) => r.label);
   const max = ctx.entitlements.plan.maxUsers;
   const canInvite = ctx.role !== "member" && !ctx.entitlements.readOnly && !ctx.supportAccess;
   return (
@@ -29,6 +33,11 @@ export default async function TeamPage() {
                 <div className="text-xs text-muted">
                   {m.email}, depuis le {fmtDate(m.created_at)}
                 </div>
+                {canInvite && qualifications.length ? (
+                  <QualificationForm userId={m.user_id} name={m.name} value={m.qualification} options={qualifications} />
+                ) : m.qualification ? (
+                  <div className="text-xs text-muted">{m.qualification}</div>
+                ) : null}
               </div>
               <div className="flex items-center gap-2">
                 {ctx.role === "owner" && m.role !== "owner" && m.user_id !== ctx.userId ? (
@@ -55,7 +64,7 @@ export default async function TeamPage() {
         </ul>
         <p className="mt-3 text-xs text-muted">
           Propriétaire : tous les droits, dont l'abonnement. Administrateur : profil, équipe, catalogue et devis. Membre : clients, catalogue et devis,
-          sans accès aux coordonnées bancaires.
+          sans accès aux coordonnées bancaires. La qualification (taux de l'onglet Tarifs de l'entreprise) sert au coût des heures pointées.
         </p>
       </Section>
       {canInvite ? (
