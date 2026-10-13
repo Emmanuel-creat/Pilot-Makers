@@ -870,6 +870,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/compte", label: "Ouvrir Mon compte" },
   },
   {
+    slug: "reprendre-ancien-logiciel",
+    category: "demarrer",
+    title: "Reprendre ses clients et ses prix d'un ancien logiciel",
+    summary: "Exportez vos clients et vos articles depuis l'ancien logiciel ou Excel, puis importez-les : les colonnes sont reconnues ou désignées à la main.",
+    steps: [
+      "Dans l'ancien logiciel, exportez la liste des clients puis la bibliothèque d'articles, au format Excel ou CSV.",
+      "Ouvrez Clients puis Importer, et déposez le fichier des clients. Faites de même dans Catalogue puis Importer pour les articles.",
+      "Vérifiez la correspondance des colonnes : pour une colonne non reconnue, choisissez à quoi elle correspond ou ignorez-la. L'aperçu se met à jour.",
+      "Contrôlez l'aperçu ligne par ligne puis confirmez. Rien n'est enregistré avant.",
+    ],
+    notes: [
+      "Les titres de colonnes courants des logiciels de devis du bâtiment et des tableurs sont reconnus seuls (Raison sociale, Désignation, Prix unitaire HT...).",
+      "Un fichier déposé au mauvais endroit est signalé : un catalogue dans l'import des clients, ou l'inverse.",
+      "Les doublons probables d'un client existant peuvent être ignorés à l'import. 5 000 lignes au plus par fichier.",
+    ],
+    link: { href: "/app/clients/import", label: "Importer des clients" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

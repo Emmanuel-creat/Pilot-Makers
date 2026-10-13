@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { apiFetch, ApiError } from "@/components/editor/api";
+import { IMPORT_FIELDS, type ImportColumn } from "@/lib/import-fields";
 
 export interface PreviewRow {
   line: number;
@@ -45,17 +46,28 @@ export function CsvImport({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
+  const [columns, setColumns] = useState<ImportColumn[]>([]);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [problem, setProblem] = useState("");
+  const [other, setOther] = useState(false);
 
-  const preview = async (data: string, fileName: string) => {
+  const preview = async (data: string, fileName: string, map: Record<string, string> = mapping) => {
     setBusy(true);
     setError("");
     setRows(null);
     try {
+      type Extra = { columns?: ImportColumn[]; looksLikeOther?: boolean; problem?: string };
+      const keep = (r: Extra) => {
+        setColumns(r.columns ?? []);
+        setOther(!!r.looksLikeOther);
+        setProblem(r.problem ?? "");
+      };
       if (kind === "customers") {
-        const r = await apiFetch<{ rows: { line: number; data: Record<string, string> | null; errors: string[]; duplicateOf: string | null }[] }>(endpoint, {
+        const r = await apiFetch<Extra & { rows: { line: number; data: Record<string, string> | null; errors: string[]; duplicateOf: string | null }[] }>(endpoint, {
           method: "POST",
-          json: { file: data, name: fileName },
+          json: { file: data, name: fileName, mapping: map },
         });
+        keep(r);
         setRows(
           r.rows.map((x) => ({
             line: x.line,
@@ -65,10 +77,11 @@ export function CsvImport({
           })),
         );
       } else {
-        const r = await apiFetch<{ results: { line: number; ok: boolean; message: string; reference?: string }[] }>(endpoint, {
+        const r = await apiFetch<Extra & { results: { line: number; ok: boolean; message: string; reference?: string }[] }>(endpoint, {
           method: "POST",
-          json: { file: data, name: fileName },
+          json: { file: data, name: fileName, mapping: map },
         });
+        keep(r);
         setRows(r.results.map((x) => ({ line: x.line, ok: x.ok, label: x.reference ?? "", message: x.message })));
       }
     } catch (e) {
@@ -82,7 +95,7 @@ export function CsvImport({
     setBusy(true);
     setError("");
     try {
-      const r = await apiFetch<{ imported: number; skipped?: number }>(endpoint, { method: "POST", json: { file, name, commit: true, skipDuplicates: skipDup } });
+      const r = await apiFetch<{ imported: number; skipped?: number }>(endpoint, { method: "POST", json: { file, name, mapping, commit: true, skipDuplicates: skipDup } });
       setDone(`${r.imported} ligne(s) importée(s)${r.skipped ? `, ${r.skipped} ignorée(s)` : ""}.`);
       router.refresh();
     } catch (e) {
@@ -128,7 +141,8 @@ export function CsvImport({
               const data = await toBase64(f);
               setName(f.name);
               setFile(data);
-              preview(data, f.name);
+              setMapping({});
+              preview(data, f.name, {});
             }}
           />
         </label>
@@ -136,7 +150,8 @@ export function CsvImport({
           <summary className="cursor-pointer text-muted">Format attendu</summary>
           <p className="mt-2 text-muted">
             Les colonnes sont reconnues d&apos;après leur titre, y compris dans les exports des autres logiciels de devis et de gestion
-            (par exemple « Désignation », « Prix unitaire HT », « Raison sociale », « Code postal »). Les colonnes inconnues sont ignorées.
+            (par exemple « Désignation », « Prix unitaire HT », « Raison sociale », « Code postal »). Une colonne non reconnue peut être
+            désignée à la main après la lecture du fichier.
           </p>
           <pre className="mt-2 overflow-x-auto rounded bg-surface-2 p-3 text-xs">{example}</pre>
         </details>
@@ -147,7 +162,52 @@ export function CsvImport({
           {error}
         </p>
       ) : null}
-      {rows ? (
+      {other ? (
+        <p className="text-sm text-warning" role="status">
+          Ce fichier ressemble plutôt à {kind === "customers" ? "un catalogue d'articles" : "une liste de clients"} :{" "}
+          <a className="link" href={kind === "customers" ? "/app/catalogue/import" : "/app/clients/import"}>
+            ouvrir l&apos;import {kind === "customers" ? "du catalogue" : "des clients"}
+          </a>
+          .
+        </p>
+      ) : null}
+      {columns.length ? (
+        <details className="card p-4" open={!!problem || columns.some((c) => !c.field)}>
+          <summary className="cursor-pointer text-sm font-medium">
+            Correspondance des colonnes : {columns.filter((c) => c.field).length} reconnue(s) sur {columns.length}
+          </summary>
+          {problem ? <p className="mt-2 text-sm text-danger">{problem}. Indiquez ci-dessous à quoi correspondent vos colonnes.</p> : null}
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {columns.map((c) => (
+              <li key={c.index} className="rounded-md border border-line p-2 text-sm">
+                <label className="label" htmlFor={`col-${c.index}`}>
+                  {c.header || `Colonne ${c.index + 1}`}
+                  {c.sample ? <span className="block truncate text-xs font-normal text-muted">ex. {c.sample}</span> : null}
+                </label>
+                <select
+                  id={`col-${c.index}`}
+                  className="field"
+                  value={mapping[c.index] ?? c.field ?? ""}
+                  disabled={busy}
+                  onChange={(e) => {
+                    const next = { ...mapping, [c.index]: e.target.value };
+                    setMapping(next);
+                    preview(file, name, next);
+                  }}
+                >
+                  <option value="">Ignorer cette colonne</option>
+                  {IMPORT_FIELDS[kind].map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {rows && rows.length ? (
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
             <span className="text-sm">

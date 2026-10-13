@@ -385,7 +385,7 @@ const HEADER_ALIASES: Record<string, ImportField> = {
   "mots cles": "tags",
 };
 
-function importField(h: string): ImportField | undefined {
+export function customerImportField(h: string): ImportField | undefined {
   const raw = h.trim().toLowerCase();
   if ((COLUMNS as readonly string[]).includes(raw)) return raw as ImportField;
   const k = headerKey(h);
@@ -413,7 +413,7 @@ function repairCell(col: ImportField, v: string, country: unknown): string {
 export async function previewCustomerImport(ctx: Ctx, input: string | string[][]): Promise<ImportPreviewRow[]> {
   const table = typeof input === "string" ? parseCsv(input) : input;
   if (table.length < 2) throw badRequest("Le fichier doit contenir une ligne d'en-tête et au moins une ligne");
-  const header = table[0].map(importField);
+  const header = table[0].map(customerImportField);
   if (!header.some(Boolean)) throw badRequest("Aucune colonne reconnue dans l'en-tête");
   if (table.length > 5001) throw badRequest("5 000 lignes maximum par import");
   const countryCol = header.indexOf("billing_country");

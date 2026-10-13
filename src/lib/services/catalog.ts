@@ -515,7 +515,7 @@ const CATALOG_ALIASES: Record<string, CatalogField> = {
   "mots cles": "tags",
 };
 
-function catalogField(h: string): CatalogField | undefined {
+export function catalogImportField(h: string): CatalogField | undefined {
   const raw = h.trim().toLowerCase();
   if ((CSV_COLUMNS as readonly string[]).includes(raw)) return raw as CatalogField;
   return CATALOG_ALIASES[headerKey(h)];
@@ -541,7 +541,7 @@ export async function importCatalogCsv(ctx: Ctx, input: string | string[][], dry
   const table = typeof input === "string" ? parseCsv(input) : input;
   if (table.length < 2) throw badRequest("Fichier vide");
   if (table.length > 5001) throw badRequest("5 000 lignes maximum par import");
-  const header = table[0].map(catalogField);
+  const header = table[0].map(catalogImportField);
   if (!header.includes("name")) throw badRequest("Colonne du nom de la prestation introuvable (name, désignation ou libellé)");
   const results: { line: number; ok: boolean; message: string; reference?: string }[] = [];
   const existing = new Set((await ctx.db.query<{ reference: string }>("SELECT reference FROM catalog_items WHERE org_id=$1", [ctx.orgId])).map((r) => r.reference));

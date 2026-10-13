@@ -182,6 +182,23 @@ test("import du catalogue depuis un fichier d'un autre logiciel", async ({ page 
   await expect(page.getByText("1 ligne(s) importée(s)")).toBeVisible();
 });
 
+test("import de clients : colonnes inconnues désignées à la main", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/clients/import");
+  const csv = Buffer.from("Ident;Intitulé client;Joignable au;Remarque libre\nC001;Lefèvre Import;0612345678;client fidèle\n", "utf8");
+  await page.locator("input[type=file]").setInputFiles({ name: "ancien-logiciel.csv", mimeType: "text/csv", buffer: csv });
+  // Aucune colonne reconnue : l'écran de correspondance s'ouvre avec un exemple de chaque colonne.
+  await expect(page.getByText("ex. Lefèvre Import")).toBeVisible();
+  await audit(page, "correspondance des colonnes");
+  await page.getByLabel(/Intitulé client/).selectOption("last_name");
+  await page.getByLabel(/Joignable au/).selectOption("phone");
+  await expect(page.getByText("Prêt à importer")).toBeVisible();
+  await page.getByRole("button", { name: "Importer 1 ligne(s)" }).click();
+  await expect(page.getByText("1 ligne(s) importée(s)")).toBeVisible();
+  await page.goto("/app/clients?q=Lef%C3%A8vre%20Import");
+  await expect(page.getByText("Lefèvre Import").first()).toBeVisible();
+});
+
 test("API publique : clé créée à l'écran puis utilisée", async ({ page, request }) => {
   await login(page);
   await page.goto("/app/entreprise?onglet=api");

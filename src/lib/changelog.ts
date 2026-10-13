@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "import-assiste",
+    date: "2026-10-13",
+    title: "Import assisté depuis votre ancien logiciel",
+    text: "Une colonne non reconnue dans votre fichier se désigne maintenant à la main, avec un exemple de valeur sous les yeux.",
+    href: "/aide/reprendre-ancien-logiciel",
+  },
+  {
     id: "notifications-telephone",
     date: "2026-10-13",
     title: "Notifications sur le téléphone",
