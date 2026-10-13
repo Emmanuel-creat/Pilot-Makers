@@ -568,6 +568,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis/nouveau", label: "Créer un devis" },
   },
   {
+    slug: "mise-en-page-du-devis",
+    category: "devis",
+    title: "Choisir la mise en page du devis",
+    summary: "Détail continu, récapitulatif des lots en première page, ou un lot par page pour les gros chantiers.",
+    steps: [
+      "Dans le devis, ouvrez les informations du devis et choisissez « Mise en page ».",
+      "« Détaillée » enchaîne toutes les lignes avec un sous-total par section.",
+      "« Récapitulatif en tête » montre en première page le montant de chaque lot, puis tout le détail : pratique pour un client qui compare.",
+      "« Un lot par page » sépare chaque section, puis récapitule les lots avant les totaux : idéal pour un maître d'œuvre ou un dossier par corps d'état.",
+    ],
+    notes: [
+      "Toutes les mises en page gardent le détail des prestations en quantité et en prix, comme l'exige la réglementation.",
+      "La mise en page ne s'applique qu'à partir de deux sections. Les factures gardent toujours le détail continu.",
+    ],
+    link: { href: "/app/devis/nouveau", label: "Créer un devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

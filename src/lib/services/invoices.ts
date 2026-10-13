@@ -458,6 +458,7 @@ async function issueInvoiceTx(tx: Queryable, ctx: Ctx, a: IssueArgs): Promise<{ 
     estimatedStart: "",
     globalDiscount: a.globalDiscount,
     template: a.quote?.snapshot.template ?? org.quote_template,
+    layout: "detaille",
     internalNotes: "",
     contractPlace: "etablissement",
     reverseCharge: a.reverseCharge === true,

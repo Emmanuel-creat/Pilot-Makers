@@ -23,6 +23,8 @@ const variants: [string, (s: QuoteSnapshot) => QuoteSnapshot][] = [
   ["sobre", (s) => ({ ...s, template: "sobre" })],
   ["sans rétractation ni TVA réduite", (s) => ({ ...s, consumer: { withdrawal: false, reducedVatBp: [] } })],
   ["aperçu de brouillon", (s) => ({ ...s, preview: true })],
+  ["récapitulatif par lot en tête", (s) => ({ ...s, layout: "synthese" })],
+  ["un lot par page", (s) => ({ ...s, layout: "lots" })],
 ];
 
 describe("rendu des PDF de devis", () => {
@@ -38,6 +40,19 @@ describe("rendu des PDF de devis", () => {
     const withForm = await PDFDocument.load(await renderQuotePdf(base));
     const without = await PDFDocument.load(await renderQuotePdf({ ...base, consumer: { withdrawal: false, reducedVatBp: [1000] } }));
     expect(withForm.getPageCount()).toBe(without.getPageCount() + 1);
+  });
+
+  it("un lot par page : une page par lot chiffré en plus du récapitulatif", async () => {
+    const lotsWithItems = base.sections.filter((sec) => sec.lines.some((l) => l.kind === "item")).length;
+    expect(lotsWithItems).toBeGreaterThan(1);
+    const detailed = await PDFDocument.load(await renderQuotePdf(base));
+    const lots = await PDFDocument.load(await renderQuotePdf({ ...base, layout: "lots" }));
+    expect(lots.getPageCount()).toBeGreaterThanOrEqual(detailed.getPageCount() + lotsWithItems - 1);
+    // Une facture garde toujours le détail continu.
+    const opts = { title: "FACTURE", label: "Facture", meta: ["Facture"], sections: [] as [string, string][] };
+    const inv = await PDFDocument.load(await renderQuotePdf({ ...base, layout: "lots" }, opts));
+    const invDetailed = await PDFDocument.load(await renderQuotePdf(base, opts));
+    expect(inv.getPageCount()).toBe(invDetailed.getPageCount());
   });
 
   it("rend une facture avec ses blocs propres", async () => {

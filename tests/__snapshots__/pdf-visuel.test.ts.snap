@@ -28,6 +28,13 @@ exports[`rendu des PDF de devis > reste identique : moderne 1`] = `
 }
 `;
 
+exports[`rendu des PDF de devis > reste identique : récapitulatif par lot en tête 1`] = `
+{
+  "pages": 3,
+  "sha256": "00cbd2eeac667a7b715c1a5f9c668d19f66afaff4712d408f0b83341a799f593",
+}
+`;
+
 exports[`rendu des PDF de devis > reste identique : sans rétractation ni TVA réduite 1`] = `
 {
   "pages": 2,
@@ -39,5 +46,12 @@ exports[`rendu des PDF de devis > reste identique : sobre 1`] = `
 {
   "pages": 3,
   "sha256": "2bf5af419ec76a597b926eb5cdb48c18a0f4e9bc95f9a382a4c0fdf87bb4615e",
+}
+`;
+
+exports[`rendu des PDF de devis > reste identique : un lot par page 1`] = `
+{
+  "pages": 4,
+  "sha256": "1a0660b902889c1a884377263f10732a50104085d6f5eaf9fb1c9eb61a13cfdb",
 }
 `;

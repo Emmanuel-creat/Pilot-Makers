@@ -352,11 +352,40 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   w.y -= 12;
 
   // Tableau
-  inTable = true;
-  tableHeader(w);
   const calcSections = new Map(s.calc.sections.map((cs) => [cs.id, cs]));
   const showSections = s.sections.length > 1 || (s.sections[0]?.title ?? "").trim() !== "";
-  for (const section of s.sections) {
+  // Mise en page : réservée aux devis (les factures gardent le détail continu), utile dès deux lots.
+  const layout = !opts && s.sections.length > 1 ? (s.layout ?? "detaille") : "detaille";
+  const recap = s.sections
+    .filter((sec) => sec.lines.some((l) => l.kind === "item"))
+    .map((sec, i) => ({ title: sec.title || `Lot ${i + 1}`, cents: calcSections.get(sec.id)?.subtotalCents ?? 0 }));
+  const drawRecap = (title: string) => {
+    w.ensure(30 + recap.length * 14 + 20);
+    w.y -= 6;
+    w.text(title, M.left, w.y - 10, 10, f.bold, accent);
+    w.y -= 18;
+    recap.forEach((r, i) => {
+      w.ensure(14);
+      w.y -= 14;
+      w.text(`${i + 1}. ${r.title}`, M.left + 4, w.y, 9);
+      w.textRight(`${formatEuros(r.cents)} HT`, cols.total - 4, w.y, 9);
+      w.page.drawLine({ start: { x: M.left, y: w.y - 4 }, end: { x: A4.w - M.right, y: w.y - 4 }, thickness: 0.4, color: LIGHT });
+    });
+    w.y -= 16;
+    w.text(s.calc.globalDiscountCents > 0 ? "Total des lots HT, avant remise globale" : "Total des lots HT", M.left + 4, w.y, 9, f.bold);
+    w.textRight(formatEuros(s.calc.subtotalCents), cols.total - 4, w.y, 9, f.bold);
+    w.y -= 14;
+  };
+  if (layout === "synthese") {
+    drawRecap("Récapitulatif par lot");
+    w.ensure(60);
+    w.text("Détail des prestations", M.left, w.y - 10, 10, f.bold, accent);
+    w.y -= 18;
+  }
+  inTable = true;
+  tableHeader(w);
+  for (const [index, section] of s.sections.entries()) {
+    if (layout === "lots" && index > 0 && section.lines.some((l) => l.kind === "item")) w.newPage();
     const cs = calcSections.get(section.id);
     const lineResults = new Map((cs?.lines ?? []).map((l) => [l.id, l]));
     if (showSections) {
@@ -424,6 +453,10 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     }
   }
   inTable = false;
+  if (layout === "lots") {
+    w.newPage();
+    drawRecap("Récapitulatif des lots");
+  }
 
   function drawAmounts(y: number, r: QuoteSnapshot["calc"]["sections"][number]["lines"][number], unit: string) {
     const draw = (t: string, xr: number, font = f.regular) => w.textRight(t, xr, y, 8.5, font);

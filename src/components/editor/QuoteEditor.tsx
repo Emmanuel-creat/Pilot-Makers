@@ -12,7 +12,8 @@ import { bpToInput, formatEuros, formatPercent, price4ToInput } from "@/lib/calc
 import type { CatalogItem } from "@/lib/services/catalog";
 import { checkCompliance, type ComplianceInput } from "@/lib/services/compliance";
 import { CONTRACT_PLACES, consumerTerms, type ContractPlace } from "@/lib/services/consumer";
-import type { DraftLine, DraftSection, QuoteDraft } from "@/lib/services/quote-types";
+import type { DraftLine, DraftSection, PdfLayout, QuoteDraft } from "@/lib/services/quote-types";
+import { PDF_LAYOUTS } from "@/lib/services/quote-types";
 import { EDITOR_SHORTCUTS, shortcutText } from "@/lib/shortcuts";
 import { apiFetch, ApiError, uid } from "./api";
 import { AssistantPanel } from "./AssistantPanel";
@@ -91,6 +92,7 @@ function payload(d: QuoteDraft) {
     estimatedStart: d.estimatedStart,
     globalDiscount: d.globalDiscount,
     template: d.template,
+    layout: d.layout,
     internalNotes: d.internalNotes,
     contractPlace: d.contractPlace,
     reverseCharge: d.reverseCharge,
@@ -959,6 +961,19 @@ export function QuoteEditor({
                   <option value="moderne">Moderne</option>
                   <option value="sobre">Sobre</option>
                 </select>
+              </div>
+              <div>
+                <label className="label" htmlFor="q-layout">
+                  Mise en page
+                </label>
+                <select id="q-layout" className="field" value={d.layout} onChange={(e) => set("layout", e.target.value as PdfLayout)}>
+                  {(Object.entries(PDF_LAYOUTS) as [PdfLayout, { label: string; hint: string }][]).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted">{PDF_LAYOUTS[d.layout]?.hint}</p>
               </div>
               <div className="sm:col-span-2">
                 <label className="label" htmlFor="q-place">

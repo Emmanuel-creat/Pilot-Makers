@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "mise-en-page-du-devis",
+    date: "2026-10-13",
+    title: "Trois mises en page du devis",
+    text: "Détail continu, récapitulatif des lots en première page, ou un lot par page avec récapitulatif avant les totaux.",
+    href: "/aide/mise-en-page-du-devis",
+  },
+  {
     id: "metres",
     date: "2026-10-13",
     title: "Métrés dans le devis",

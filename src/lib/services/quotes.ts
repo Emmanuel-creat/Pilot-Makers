@@ -32,6 +32,7 @@ import {
   PENDING_STATUSES,
   type DraftLine,
   type DraftSection,
+  type PdfLayout,
   type PriceRevision,
   type QuoteDraft,
   type QuoteSnapshot,
@@ -91,6 +92,7 @@ export const draftSchema = z.object({
   estimatedStart: str(120),
   globalDiscount: str(10),
   template: str(20),
+  layout: z.enum(["detaille", "synthese", "lots"]).default("detaille"),
   internalNotes: str(4000),
   contractPlace: z.enum(["auto", "hors_etablissement", "etablissement"]).default("auto"),
   reverseCharge: z.boolean().default(false),
@@ -190,6 +192,7 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     estimatedStart: String(r.estimated_start),
     globalDiscount: String(r.global_discount),
     template: String(r.template),
+    layout: (["detaille", "synthese", "lots"].includes(String(r.pdf_layout)) ? r.pdf_layout : "detaille") as PdfLayout,
     internalNotes: String(r.internal_notes),
     contractPlace: isContractPlace(r.contract_place) ? r.contract_place : ("auto" as const),
     reverseCharge: r.reverse_charge === true,
@@ -458,7 +461,7 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
       `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
          validity_days=$10, payment_terms=$11, special_conditions=$12, deposit_percent=$13, estimated_duration=$14,
          estimated_start=$15, global_discount=$16, template=$17, internal_notes=$18, status=$19,
-         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, contract_place=$23, reverse_charge=$24, retention_percent=$25, draft_revision=draft_revision+1, updated_at=now()
+         total_ht_cents=$20, total_ttc_cents=$21, margin_cents=$22, contract_place=$23, reverse_charge=$24, retention_percent=$25, pdf_layout=$26, draft_revision=draft_revision+1, updated_at=now()
        WHERE id=$1 AND org_id=$2`,
       [
         id,
@@ -486,6 +489,7 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
         d.contractPlace,
         d.reverseCharge,
         d.retentionPercent,
+        d.layout,
       ],
     );
     if (d.customerId) await tx.query("UPDATE customers SET last_activity_at=now() WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]);
@@ -618,6 +622,7 @@ export function buildSnapshot(args: {
     validUntil,
     author: d.authorName || ctx.userName,
     template: d.template || org.quote_template,
+    ...(d.layout && d.layout !== "detaille" ? { layout: d.layout } : {}),
     accentColor: org.accent_color,
     watermark: Boolean(ctx.entitlements.plan.features.watermark),
     org: {

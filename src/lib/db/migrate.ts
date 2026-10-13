@@ -37,6 +37,7 @@ import { sql as m035 } from "./migrations/035_espace_client";
 import { sql as m036 } from "./migrations/036_devis_sous_traitants";
 import { sql as m037 } from "./migrations/037_itineraires";
 import { sql as m038 } from "./migrations/038_metres";
+import { sql as m039 } from "./migrations/039_mise_en_page";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -78,6 +79,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "036_devis_sous_traitants", sql: m036 },
   { id: "037_itineraires", sql: m037 },
   { id: "038_metres", sql: m038 },
+  { id: "039_mise_en_page", sql: m039 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

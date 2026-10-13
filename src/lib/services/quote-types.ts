@@ -89,6 +89,8 @@ export interface QuoteDraft {
   estimatedStart: string;
   globalDiscount: string;
   template: string;
+  /** Mise en page du PDF : tout le détail, récapitulatif par lot en tête, ou un lot par page */
+  layout: PdfLayout;
   internalNotes: string;
   contractPlace: ContractPlace;
   /** Sous-traitance : TVA autoliquidée par l'entreprise cliente */
@@ -119,6 +121,8 @@ export interface QuoteSnapshot {
   validUntil: string;
   author: string;
   template: string;
+  /** Absent des versions émises avant les mises en page : détaillée */
+  layout?: PdfLayout;
   accentColor: string;
   watermark: boolean;
   org: {
@@ -182,3 +186,10 @@ export interface QuoteSnapshot {
   /** Aperçu d'un brouillon : jamais enregistré, marqué comme tel sur le PDF */
   preview?: boolean;
 }
+
+export type PdfLayout = "detaille" | "synthese" | "lots";
+export const PDF_LAYOUTS: Record<PdfLayout, { label: string; hint: string }> = {
+  detaille: { label: "Détaillée", hint: "Toutes les lignes, sous-totaux par section" },
+  synthese: { label: "Récapitulatif en tête", hint: "Montant de chaque lot en première page, puis le détail" },
+  lots: { label: "Un lot par page", hint: "Chaque section sur sa page, récapitulatif des lots avant les totaux" },
+};
