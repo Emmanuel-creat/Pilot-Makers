@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon, Logo } from "@/components/Icon";
 import { getDb } from "@/lib/db";
+import { businessJsonLd, hasHours, hoursLines, jsonLdScript } from "@/lib/business-listing";
+import { appUrl } from "@/lib/services/mail";
 import { publicShowcase } from "@/lib/services/showcase";
 import { RequestForm } from "./RequestForm";
 
@@ -24,8 +26,10 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
   const p = await publicShowcase(await getDb(), slug);
   if (!p) notFound();
   const website = p.website && /^https?:\/\//.test(p.website) ? p.website : p.website ? `https://${p.website}` : "";
+  const ld = businessJsonLd({ ...p, url: appUrl(`/pro/${p.slug}`), logoUrl: null, website: p.website });
   return (
     <div className="min-h-screen bg-bg">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(ld) }} />
       <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
         <header className="card flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
           {p.logo ? <img src={p.logo} alt={`Logo de ${p.name}`} className="h-16 w-auto max-w-40 object-contain" /> : null}
@@ -80,6 +84,16 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
               </p>
             ) : null}
             {!p.phone && !p.email && !website ? <p className="text-muted">Contact par le formulaire ci-dessous.</p> : null}
+            {hasHours(p.hours) ? (
+              <div className="flex items-start gap-2">
+                <Icon name="clock" size={16} className="mt-0.5 text-muted" />
+                <ul aria-label="Horaires d'ouverture">
+                  {hoursLines(p.hours).map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
           <div className="card space-y-2 p-5 text-sm">
             <h2 className="font-semibold">Garanties</h2>

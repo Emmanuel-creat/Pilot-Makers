@@ -84,7 +84,8 @@ import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction
 import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } from "@/lib/services/subcontractor-quotes";
 import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes";
 import { createIncident, retryDeadJob, updateIncident } from "@/lib/services/status";
-import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/services/showcase";
+import { addShowcasePhoto, markListingChecked, removeShowcasePhoto, updateListing, updateShowcase } from "@/lib/services/showcase";
+import { DAYS } from "@/lib/business-listing";
 import { dismissCostAlert } from "@/lib/services/supplier-prices";
 import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/services/roadmap";
 import { addRge, removeRge } from "@/lib/services/aids";
@@ -1697,6 +1698,29 @@ export async function showcaseAction(_: ActionState, fd: FormData): Promise<Acti
     );
     revalidatePath("/app/entreprise");
     return { ok: true, message: r.enabled ? "Vitrine publiée." : "Vitrine enregistrée, non publiée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function listingAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const hours = Object.fromEntries(DAYS.map((d) => [d.key, s(fd, `hours_${d.key}`)]));
+    const links = fd.getAll("link_url").map((url, i) => ({ site: String(fd.getAll("link_site")[i] ?? "Autre"), url: String(url) }));
+    await withCtx((ctx) => updateListing(ctx, { hours, links }));
+    revalidatePath("/app/entreprise");
+    revalidatePath("/pro/[slug]", "page");
+    return { ok: true, message: "Fiche d'établissement enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function listingCheckedAction(_: ActionState): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => markListingChecked(ctx));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Vérification notée. Prochain rappel dans six mois." };
   } catch (e) {
     return toState(e);
   }

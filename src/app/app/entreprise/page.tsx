@@ -17,7 +17,8 @@ import { PricingForm } from "./PricingForm";
 import { listIndexValues } from "@/lib/services/revision";
 import { readPricing } from "@/lib/services/pricing";
 import { can } from "@/lib/services/context";
-import { getShowcase, listShowcasePhotos } from "@/lib/services/showcase";
+import { getListing, getShowcase, listShowcasePhotos } from "@/lib/services/showcase";
+import { Listing } from "./Listing";
 import { Showcase } from "./Showcase";
 import { RgeList } from "./RgeList";
 import { AccountingForm } from "./AccountingForm";
@@ -146,7 +147,10 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
       ) : tab === "relances" ? (
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "vitrine" ? (
-        <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
+        <>
+          <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
+          <Listing listing={await getListing(ctx)} canEdit={canEdit} />
+        </>
       ) : tab === "historique" ? (
         <History ctxPromise={organizationHistory(ctx)} />
       ) : tab === "comptabilite" ? (

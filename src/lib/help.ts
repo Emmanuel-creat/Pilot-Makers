@@ -1020,6 +1020,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/menu", label: "Personnaliser le menu" },
   },
   {
+    slug: "fiche-d-etablissement",
+    category: "clients",
+    title: "Tenir à jour sa fiche Google et PagesJaunes",
+    summary: "Les mêmes nom, adresse, téléphone, site et horaires partout : prêts à copier, contrôlés et vérifiés tous les six mois.",
+    steps: [
+      "Ouvrez Entreprise, onglet Vitrine, puis la partie « Fiche d'établissement en ligne ».",
+      "Complétez ce qui est signalé : métier, adresse, téléphone, horaires d'ouverture (par exemple 8h-12h, 14h-18h), description et zone d'intervention.",
+      "Copiez chaque information, ou toute la fiche, et collez-la dans votre fiche Google, PagesJaunes ou celle de votre fédération.",
+      "Notez l'adresse de vos fiches pour les rouvrir en un clic, puis cliquez sur « J'ai vérifié mes fiches ».",
+    ],
+    notes: [
+      "Sans site web, publiez la vitrine et indiquez son adresse comme site sur vos fiches.",
+      "Les horaires et les coordonnées sont aussi lus par les moteurs de recherche sur votre vitrine, sous une forme qu'ils comprennent.",
+      "Un rappel s'affiche six mois après la dernière vérification.",
+    ],
+    link: { href: "/app/entreprise?onglet=vitrine", label: "Ma fiche d'établissement" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

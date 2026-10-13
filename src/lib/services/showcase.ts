@@ -8,6 +8,8 @@
  */
 
 import { notifyOrg } from "./push";
+import { cleanHours, DAYS, parseDayHours } from "@/lib/business-listing";
+import type { Hours, ListingSource } from "@/lib/business-listing";
 import { z } from "zod";
 import { one } from "@/lib/db";
 import type { Queryable } from "@/lib/db";
@@ -187,13 +189,14 @@ export interface PublicShowcase {
   logo: string | null;
   siret: string;
   decennale: { insurer: string; area: string } | null;
+  hours: Hours;
   photos: { id: string; caption: string; city: string }[];
 }
 
 export async function publicShowcase(db: Queryable, slug: string): Promise<PublicShowcase | null> {
   const r = await one<Record<string, unknown>>(
     db,
-    `SELECT s.org_id, s.slug, s.intro, s.area, s.show_phone, s.show_email, o.trade_name, o.trade, o.city, o.postal_code, o.phone, o.email,
+    `SELECT s.org_id, s.slug, s.intro, s.area, s.hours, s.show_phone, s.show_email, o.trade_name, o.trade, o.city, o.postal_code, o.phone, o.email,
             o.website, o.logo_data, o.siret, o.insurance_decennale, o.insurance_name, o.insurance_area
      FROM showcases s JOIN organizations o ON o.id=s.org_id
      WHERE s.slug=$1 AND s.enabled`,
@@ -219,6 +222,7 @@ export async function publicShowcase(db: Queryable, slug: string): Promise<Publi
     logo: (r.logo_data as string | null) || null,
     siret: String(r.siret ?? ""),
     decennale: r.insurance_decennale ? { insurer: String(r.insurance_name ?? ""), area: String(r.insurance_area ?? "") } : null,
+    hours: cleanHours(r.hours),
     photos: photos.map((p) => ({ id: p.id, caption: p.caption, city: p.show_city ? p.city : "" })),
   };
 }
@@ -290,4 +294,96 @@ export async function requestFromShowcase(
     await notifyOrg(tx, s.org_id, { title: `Nouvelle demande de devis : ${l.name}`, body: l.description.slice(0, 140), url: "/app/demandes" });
   });
   return { ok: true };
+}
+
+/** Ligne de vitrine existante, créée non publiée si besoin (adresse libre la plus proche du nom). */
+async function ensureShowcaseRow(ctx: Ctx) {
+  if (await one(ctx.db, "SELECT 1 FROM showcases WHERE org_id=$1", [ctx.orgId])) return;
+  const base = (await getShowcase(ctx)).slug;
+  let slug = RESERVED.has(base) ? `${base}-pro` : base;
+  if (await one(ctx.db, "SELECT 1 FROM showcases WHERE slug=$1", [slug])) slug = `${slug.slice(0, 33)}-${ctx.orgId.slice(0, 6)}`;
+  await ctx.db.query("INSERT INTO showcases (org_id, slug) VALUES ($1,$2) ON CONFLICT (org_id) DO NOTHING", [ctx.orgId, slug]);
+}
+
+/** Informations de la fiche d'établissement, telles qu'elles sont à reporter sur les annuaires. */
+export async function getListing(ctx: Ctx): Promise<ListingSource> {
+  const sc = await getShowcase(ctx);
+  const o = await one<Record<string, string>>(
+    ctx.db,
+    "SELECT trade_name, trade, address_line1, address_line2, postal_code, city, phone, email, website, siret FROM organizations WHERE id=$1",
+    [ctx.orgId],
+  );
+  const extra = await one<{ hours: unknown; listing_links: unknown; listing_checked_at: Date | null }>(
+    ctx.db,
+    "SELECT hours, listing_links, listing_checked_at FROM showcases WHERE org_id=$1",
+    [ctx.orgId],
+  );
+  const links = Array.isArray(extra?.listing_links) ? (extra.listing_links as { site: string; url: string }[]) : [];
+  return {
+    name: o?.trade_name ?? "",
+    trade: o?.trade ?? "",
+    addressLine1: o?.address_line1 ?? "",
+    addressLine2: o?.address_line2 ?? "",
+    postalCode: o?.postal_code ?? "",
+    city: o?.city ?? "",
+    phone: o?.phone ?? "",
+    email: o?.email ?? "",
+    website: o?.website ?? "",
+    siret: o?.siret ?? "",
+    intro: sc.intro,
+    area: sc.area,
+    hours: cleanHours(extra?.hours),
+    showcaseUrl: appUrl(`/pro/${sc.slug}`),
+    showcaseEnabled: sc.enabled,
+    showPhone: sc.show_phone,
+    links: links.filter((l) => l && typeof l.url === "string"),
+    checkedAt: extra?.listing_checked_at ?? null,
+  };
+}
+
+export const LISTING_SITES = ["Google", "PagesJaunes", "Facebook", "Annuaire de la fédération", "Autre"] as const;
+
+const linkSchema = z.object({
+  site: z.enum(LISTING_SITES),
+  url: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((u) => /^https:\/\/[^\s/]+\.[^\s]+$/i.test(u), "Adresse de fiche : elle doit commencer par https://"),
+});
+
+/** Enregistre les horaires (texte libre par jour) et les adresses des fiches tenues ailleurs. */
+export async function updateListing(ctx: Ctx, raw: { hours: Partial<Record<string, string>>; links: { site: string; url: string }[] }) {
+  requireWritable(ctx);
+  requirePermission(ctx, "settings");
+  const hours: Hours = {};
+  for (const d of DAYS) {
+    const ranges = parseDayHours(raw.hours[d.key] ?? "");
+    if (ranges === null) throw badRequest(`Horaires du ${d.label.toLowerCase()} non compris : écrivez par exemple 8h-12h, 14h-18h, ou fermé`);
+    if (ranges.length > 4) throw badRequest(`${d.label} : quatre plages au plus`);
+    if (ranges.length) hours[d.key] = ranges;
+  }
+  const links: { site: string; url: string }[] = [];
+  for (const l of raw.links.filter((x) => x.url.trim()).slice(0, 10)) {
+    const p = linkSchema.safeParse(l);
+    if (!p.success) throw badRequest(p.error.issues[0].message);
+    links.push(p.data);
+  }
+  await ensureShowcaseRow(ctx);
+  await ctx.db.query("UPDATE showcases SET hours=$2, listing_links=$3, updated_at=now() WHERE org_id=$1", [
+    ctx.orgId,
+    JSON.stringify(hours),
+    JSON.stringify(links),
+  ]);
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "showcase.listing", target: ctx.orgId, data: { links: links.length }, ip: ctx.ip });
+  return { hours, links };
+}
+
+/** Note que les fiches en ligne ont été relues et concordent avec le profil. */
+export async function markListingChecked(ctx: Ctx) {
+  requireWritable(ctx);
+  requirePermission(ctx, "settings");
+  await ensureShowcaseRow(ctx);
+  await ctx.db.query("UPDATE showcases SET listing_checked_at=now() WHERE org_id=$1", [ctx.orgId]);
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "showcase.listing_checked", target: ctx.orgId, ip: ctx.ip });
 }

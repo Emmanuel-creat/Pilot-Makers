@@ -586,6 +586,23 @@ test("assistant vocal : demande relue puis confirmée", async ({ page }) => {
   await page.waitForURL(/\/app\/planning/);
 });
 
+test("fiche d'établissement : horaires, contrôles et vérification", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=vitrine");
+  await expect(page.getByRole("heading", { name: "Fiche d'établissement en ligne" })).toBeVisible();
+  await page.getByLabel("Lundi", { exact: true }).fill("8h-12h, 14h-18h");
+  await page.getByLabel("Mardi", { exact: true }).fill("8h à 17h");
+  await page.getByLabel("Adresse de la fiche 1").fill("https://g.page/exemple");
+  await page.getByRole("button", { name: "Enregistrer la fiche" }).click();
+  await expect(page.getByText("Fiche d'établissement enregistrée.")).toBeVisible();
+  await expect(page.getByText("Lundi : 8h - 12h, 14h - 18h")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ouvrir ma fiche Google" })).toBeVisible();
+  await audit(page, "fiche d'établissement");
+  await page.getByRole("button", { name: "J'ai vérifié mes fiches" }).click();
+  await expect(page.getByText("Vérification notée.")).toBeVisible();
+  await expect(page.getByText(/Dernière vérification le/)).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
@@ -688,7 +705,7 @@ test("vitrine : page publique publiée puis demande de devis reçue", async ({ p
   await page.getByLabel("Adresse de la page").fill("demo-vitrine");
   await page.getByLabel("Présentation").fill("Carreleur à Lyon, salles de bains et cuisines.");
   await page.getByLabel("Zone d'intervention").fill("Lyon et 30 km");
-  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
   await expect(page.getByText("Vitrine publiée.")).toBeVisible();
   await audit(page, "réglages de la vitrine");
 

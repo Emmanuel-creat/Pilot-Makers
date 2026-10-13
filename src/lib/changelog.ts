@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "fiche-etablissement",
+    date: "2026-10-13",
+    title: "Fiche d'établissement à jour",
+    text: "Les informations à reporter sur Google et PagesJaunes, prêtes à copier, avec les points à revoir et un rappel de vérification.",
+    href: "/aide/fiche-d-etablissement",
+  },
+  {
     id: "assistant-vocal",
     date: "2026-10-13",
     title: "Assistant vocal",
