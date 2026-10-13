@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
 import type { DraftSection } from "@/lib/services/quote-types";
+import { answersToText, type FollowUp } from "@/lib/services/assistant-followups";
 import { apiFetch, ApiError, uid } from "./api";
 
 interface Proposal {
@@ -17,6 +18,7 @@ interface Proposal {
   proposalId?: string;
   habitsApplied?: number;
   quality?: { lines: number; keptPercent: number | null };
+  followUps?: FollowUp[];
 }
 
 /**
@@ -43,6 +45,7 @@ export function AssistantPanel({
   const [error, setError] = useState("");
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [excluded, setExcluded] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const ran = useRef(false);
 
   const run = async (value = text) => {
@@ -52,6 +55,7 @@ export function AssistantPanel({
       const p = await apiFetch<Proposal>("/api/ai/quote-draft", { method: "POST", json: { text: value, quoteId } });
       setProposal(p);
       setExcluded([]);
+      setAnswers({});
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Erreur inattendue");
     } finally {
@@ -83,6 +87,17 @@ export function AssistantPanel({
     onClose();
   };
 
+  // Les réponses s'ajoutent à la description, visible et modifiable, puis la proposition est relancée.
+  const followUps = proposal?.followUps ?? [];
+  const added = answersToText(followUps, answers);
+  const relaunch = () => {
+    if (!added) return;
+    const base = text.trim();
+    const next = `${base}${/[.!?]$/.test(base) ? "" : "."} ${added}`;
+    setText(next);
+    run(next);
+  };
+
   const count = proposal ? proposal.sections.reduce((n, s) => n + s.lines.filter((l) => !excluded.includes(l.id)).length, 0) : 0;
 
   return (
@@ -109,6 +124,68 @@ export function AssistantPanel({
       {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
       {proposal ? (
         <div className="mt-5 space-y-4">
+          {followUps.length ? (
+            <section className="rounded-md border border-line bg-surface-2 p-3" aria-labelledby="relances-titre">
+              <h3 id="relances-titre" className="flex items-center gap-2 text-sm font-semibold">
+                <Icon name="info" size={16} className="text-accent" /> Informations manquantes
+              </h3>
+              <p className="mt-0.5 text-xs text-muted">Répondez à ce que vous savez déjà : vos réponses complètent la description et la proposition est relancée.</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {followUps.map((f) =>
+                  f.kind === "number" ? (
+                    <div key={f.id}>
+                      <label className="label text-xs" htmlFor={`relance-${f.id}`}>
+                        {f.question}
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          id={`relance-${f.id}`}
+                          inputMode="decimal"
+                          className="field"
+                          value={answers[f.id] ?? ""}
+                          onChange={(e) => setAnswers((a) => ({ ...a, [f.id]: e.target.value }))}
+                          aria-describedby={`relance-${f.id}-pourquoi`}
+                        />
+                        <span className="shrink-0 text-sm text-muted">{f.unit}</span>
+                      </div>
+                      <p id={`relance-${f.id}-pourquoi`} className="mt-0.5 text-xs text-muted">
+                        {f.why}
+                      </p>
+                    </div>
+                  ) : (
+                    <div key={f.id}>
+                      <label className="label text-xs" htmlFor={`relance-${f.id}`}>
+                        {f.question}
+                      </label>
+                      <select
+                        id={`relance-${f.id}`}
+                        className="field"
+                        value={answers[f.id] ?? ""}
+                        onChange={(e) => setAnswers((a) => ({ ...a, [f.id]: e.target.value }))}
+                        aria-describedby={`relance-${f.id}-pourquoi`}
+                      >
+                        <option value="">Je ne sais pas encore</option>
+                        {f.choices?.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                      <p id={`relance-${f.id}-pourquoi`} className="mt-0.5 text-xs text-muted">
+                        {f.why}
+                      </p>
+                    </div>
+                  ),
+                )}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+                {added ? <span className="text-xs text-muted">Ajouté à la description : « {added} »</span> : null}
+                <button type="button" className="btn-secondary" onClick={relaunch} disabled={busy || !added}>
+                  <Icon name="wand" size={16} /> Relancer avec ces réponses
+                </button>
+              </div>
+            </section>
+          ) : null}
           {proposal.habitsApplied || (proposal.quality?.keptPercent ?? null) !== null ? (
             <p className="text-xs text-muted">
               {proposal.habitsApplied

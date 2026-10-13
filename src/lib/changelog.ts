@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "assistant-relances",
+    date: "2026-10-13",
+    title: "L'assistant demande ce qui manque",
+    text: "Surface, hauteur sous plafond, support, gravats, accès : répondez dans l'assistant et la proposition se recalcule avec vos réponses.",
+    href: "/aide/assistant-de-preparation",
+  },
+  {
     id: "lots-par-batiment",
     date: "2026-10-13",
     title: "Lots regroupés par bâtiment",

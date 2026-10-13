@@ -500,3 +500,22 @@ test("devis : lots regroupés par bâtiment avec sous-total", async ({ page }) =
   await expect(page.getByLabel("Regroupement de la section").last()).toHaveValue("Bâtiment B");
   await audit(page, "lots regroupés");
 });
+
+test("assistant : réponses aux informations manquantes puis relance", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Carrelage de l'entrée");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Assistant", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Description du chantier").fill("Dépose de l'ancien carrelage et pose de carrelage au sol dans l'entrée");
+  await dialog.getByRole("button", { name: "Proposer des lignes" }).click();
+  await expect(dialog.getByRole("heading", { name: "Informations manquantes" })).toBeVisible();
+  await dialog.getByLabel("Quelle surface faut-il traiter ?").fill("9,5");
+  await dialog.getByLabel("Qui fournit les matériaux ?").selectOption("fournis par l'entreprise");
+  await audit(page, "assistant avec relances");
+  await dialog.getByRole("button", { name: "Relancer avec ces réponses" }).click();
+  await expect(dialog.getByLabel("Description du chantier")).toHaveValue(/Surface à traiter : 9,5 m²\. Matériaux fournis par l'entreprise\.$/);
+  await expect(dialog.getByLabel("Quelle surface faut-il traiter ?")).toHaveCount(0);
+});

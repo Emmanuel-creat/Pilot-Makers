@@ -25,6 +25,7 @@ import { searchItems, type CatalogItem } from "./catalog";
 import type { Ctx } from "./context";
 import { recordUsage, requireWritable } from "./context";
 import type { DraftLine, DraftSection } from "./quote-types";
+import { followUps, REPLACED_QUESTIONS, type FollowUp } from "./assistant-followups";
 import { assistantQuality, habitKey, loadHabits, samePrice, type Habit, type ProposedLine } from "./assistant-habits";
 
 export interface AssistantProposal {
@@ -37,7 +38,9 @@ export interface AssistantProposal {
   explanations: Record<string, string>;
   /** Métiers reconnus dans la description */
   trades: { code: LibraryTrade; label: string }[];
-  detected: { surfaceM2: number | null; lengthMl: number | null; rooms: string[] };
+  detected: { surfaceM2: number | null; lengthMl: number | null; volumeM3?: number | null; rooms: string[] };
+  /** Informations manquantes, avec un champ de réponse ; les réponses complètent la description */
+  followUps?: FollowUp[];
   /** Proposition conservée, pour mesurer ce qui est gardé à l'émission */
   proposalId?: string;
   /** Lignes ajustées selon les habitudes de l'entreprise */
@@ -67,6 +70,7 @@ export function detectMeasures(text: string) {
   const t = text.toLowerCase();
   const surfaces = [...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:m²|m2|metres? carres?|mètres? carrés?)/g)].map((m) => parseNumber(m[1]));
   const lengths = [...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:ml|metres? lineaires?|mètres? linéaires?)\b/g)].map((m) => parseNumber(m[1]));
+  const volumes = [...t.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:m³|m3|metres? cubes?|mètres? cubes?)/g)].map((m) => parseNumber(m[1]));
   const roomWords = [
     "salle de bains",
     "salle de bain",
@@ -84,7 +88,7 @@ export function detectMeasures(text: string) {
     "hall",
   ];
   const rooms = roomWords.filter((r) => t.includes(r));
-  return { surfaceM2: surfaces[0] ?? null, lengthMl: lengths[0] ?? null, rooms };
+  return { surfaceM2: surfaces[0] ?? null, lengthMl: lengths[0] ?? null, volumeM3: volumes[0] ?? null, rooms };
 }
 
 const SECTION_ORDER = [
@@ -211,6 +215,10 @@ export const localProvider: AssistantProvider = {
         } else if (unit === "ml" && (local.lengthMl ?? measures.lengthMl) !== null) {
           quantity = String(local.lengthMl ?? measures.lengthMl).replace(".", ",");
           qtyNote = `déduite de la description (${quantity} ml), à mesurer`;
+        } else if (unit === "m³" && local.volumeM3 !== null) {
+          // Un volume ne se reprend que de la même partie de phrase : celui des gravats n'est pas celui du béton.
+          quantity = String(local.volumeM3).replace(".", ",");
+          qtyNote = `déduite de la description (${quantity} m³), à confirmer`;
         } else if (unit === "u") {
           const n = countIn(clause.raw);
           quantity = String(n ?? 1);
@@ -393,6 +401,9 @@ export async function proposeDraft(ctx: Ctx, raw: unknown): Promise<AssistantPro
   ]);
   const quality = await assistantQuality(ctx.db, ctx.orgId);
   result.proposalId = saved[0].id;
+  result.followUps = followUps(parsed.data.text, result);
+  const covered = new Set(result.followUps.length ? REPLACED_QUESTIONS : []);
+  result.questions = result.questions.filter((q) => !covered.has(q));
   result.habitsApplied = applied;
   result.quality = { lines: quality.lines, keptPercent: quality.keptPercent };
   // Coût mesuré par compte : nul pour le moteur local, à renseigner pour un fournisseur externe.

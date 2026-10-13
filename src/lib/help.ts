@@ -136,6 +136,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     steps: [
       "Dans l'éditeur, cliquez sur « Assistant » et décrivez les travaux, avec les surfaces et les quantités connues.",
       "L'assistant reconnaît le métier, réutilise d'abord votre catalogue et explique pourquoi chaque ligne est proposée.",
+      "S'il manque une information (surface, hauteur sous plafond, type de support, volume de gravats, accès), répondez dans « Informations manquantes » puis cliquez sur « Relancer avec ces réponses » : vos réponses s'ajoutent à la description et les quantités se remplissent.",
       "Décochez ce qui ne convient pas, puis ajoutez les lignes au devis.",
       "Vérifiez chaque quantité marquée « estimée » et posez au client les questions listées.",
     ],
