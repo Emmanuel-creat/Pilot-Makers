@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
-import { assignAction, deleteAssignmentAction, moveAssignmentAction, vehicleAction } from "@/app/actions";
+import { absenceAction, assignAction, deleteAssignmentAction, moveAssignmentAction, vehicleAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { FormMessage, Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
@@ -19,7 +19,9 @@ type Slot = {
   title: string;
   city: string;
   conflict: boolean;
+  absence?: string | null;
 };
+type Absence = { id: string; userId: string; userName: string; kind: string; start: string; end: string; note: string };
 
 const dayLabel = (iso: string, compact: boolean) => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -29,7 +31,21 @@ const dayLabel = (iso: string, compact: boolean) => {
 };
 
 /** Grille du planning : une ligne par personne ou véhicule, une colonne par jour. Les affectations se glissent d'une case à l'autre. */
-export function PlanningGrid({ resources, days, slots, canEdit }: { resources: Resource[]; days: string[]; slots: Slot[]; canEdit: boolean }) {
+export function PlanningGrid({
+  resources,
+  days,
+  slots,
+  absences = [],
+  absenceLabels = {},
+  canEdit,
+}: {
+  resources: Resource[];
+  days: string[];
+  slots: Slot[];
+  absences?: Absence[];
+  absenceLabels?: Record<string, string>;
+  canEdit: boolean;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ ok?: boolean; error?: string; message?: string } | null>(null);
@@ -63,11 +79,7 @@ export function PlanningGrid({ resources, days, slots, canEdit }: { resources: R
                 Équipe et véhicules
               </th>
               {days.map((d) => (
-                <th
-                  scope="col"
-                  key={d}
-                  className={`table-head px-1 py-2 text-center ${compact ? "min-w-10" : "min-w-28"} ${isWeekend(d) ? "italic" : ""}`}
-                >
+                <th scope="col" key={d} className={`table-head px-1 py-2 text-center ${compact ? "min-w-10" : "min-w-28"} ${isWeekend(d) ? "italic" : ""}`}>
                   {dayLabel(d, compact)}
                 </th>
               ))}
@@ -89,6 +101,7 @@ export function PlanningGrid({ resources, days, slots, canEdit }: { resources: R
                   {days.map((d) => {
                     const cell = `${key}@${d}`;
                     const here = mine.filter((s) => s.start <= d && s.end >= d);
+                    const away = r.type === "user" ? absences.find((a) => a.userId === r.id && a.start <= d && a.end >= d) : undefined;
                     return (
                       <td
                         key={d}
@@ -106,6 +119,15 @@ export function PlanningGrid({ resources, days, slots, canEdit }: { resources: R
                           if (data.id) move(data.id, key, addDays(d, -(data.offset ?? 0)));
                         }}
                       >
+                        {away ? (
+                          <div
+                            data-testid="absence"
+                            title={`${absenceLabels[away.kind] ?? away.kind} du ${away.start} au ${away.end}${away.note ? ` : ${away.note}` : ""}`}
+                            className="mb-0.5 truncate rounded border border-dashed border-line bg-surface-2 px-1.5 py-1 text-xs text-muted"
+                          >
+                            {compact ? (absenceLabels[away.kind] ?? away.kind).slice(0, 3) : (absenceLabels[away.kind] ?? away.kind)}
+                          </div>
+                        ) : null}
                         {here.map((s) => (
                           <div
                             key={s.id}
@@ -194,12 +216,7 @@ export function SlotEditor({ slot, resources }: { slot: Slot; resources: Resourc
     <div className="flex flex-wrap items-end gap-2">
       <ActionForm action={moveAssignmentAction} className="flex flex-wrap items-end gap-2">
         <input type="hidden" name="id" value={slot.id} />
-        <select
-          name="resource"
-          className="field w-auto"
-          defaultValue={`${slot.resourceType}:${slot.resourceId}`}
-          aria-label={`Ressource pour ${slot.title}`}
-        >
+        <select name="resource" className="field w-auto" defaultValue={`${slot.resourceType}:${slot.resourceId}`} aria-label={`Ressource pour ${slot.title}`}>
           {resources.map((r) => (
             <option key={`${r.type}:${r.id}`} value={`${r.type}:${r.id}`}>
               {r.name}
@@ -255,5 +272,89 @@ export function VehicleForm({ vehicles }: { vehicles: Resource[] }) {
         </ul>
       ) : null}
     </div>
+  );
+}
+
+/** Saisie d'un congé ou d'une absence ; une personne sans droit de gestion de l'équipe ne déclare que les siennes. */
+export function AbsenceForm({
+  people,
+  kinds,
+  defaultUser,
+  canChoose,
+  defaultStart,
+}: {
+  people: { id: string; name: string }[];
+  kinds: Record<string, string>;
+  defaultUser: string;
+  canChoose: boolean;
+  defaultStart: string;
+}) {
+  const [state, run] = useActionState(absenceAction, null);
+  return (
+    <form action={run} className="grid gap-3 sm:grid-cols-2">
+      {canChoose ? (
+        <div>
+          <label className="label" htmlFor="ab-user">
+            Personne
+          </label>
+          <select id="ab-user" name="userId" className="field" defaultValue={defaultUser}>
+            {people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <input type="hidden" name="userId" value={defaultUser} />
+      )}
+      <div>
+        <label className="label" htmlFor="ab-kind">
+          Motif
+        </label>
+        <select id="ab-kind" name="kind" className="field">
+          {Object.entries(kinds).map(([k, l]) => (
+            <option key={k} value={k}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="label" htmlFor="ab-start">
+          Absent du
+        </label>
+        <input id="ab-start" name="start" type="date" className="field" defaultValue={defaultStart} required />
+      </div>
+      <div>
+        <label className="label" htmlFor="ab-end">
+          Au (inclus)
+        </label>
+        <input id="ab-end" name="end" type="date" className="field" defaultValue={defaultStart} />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="label" htmlFor="ab-note">
+          Commentaire <span className="font-normal text-muted">(facultatif)</span>
+        </label>
+        <input id="ab-note" name="note" className="field" maxLength={200} />
+      </div>
+      <div className="flex items-center gap-3 sm:col-span-2">
+        <Submit pendingLabel="Enregistrement...">
+          <Icon name="calendar" size={16} /> Enregistrer l&apos;absence
+        </Submit>
+        <FormMessage state={state} />
+      </div>
+    </form>
+  );
+}
+
+export function DeleteAbsence({ id, label }: { id: string; label: string }) {
+  return (
+    <ActionForm action={absenceAction} className="inline">
+      <input type="hidden" name="deleteId" value={id} />
+      <button className="btn-ghost min-h-9 px-2" aria-label={`Retirer l'absence ${label}`}>
+        <Icon name="trash" size={16} />
+      </button>
+    </ActionForm>
   );
 }

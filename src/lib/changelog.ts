@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "absences-planning",
+    date: "2026-10-13",
+    title: "Congés dans le planning",
+    text: "Congés, repos, arrêts et formations apparaissent dans la grille ; une affectation pendant une absence est signalée.",
+    href: "/aide/conges-et-absences",
+  },
+  {
     id: "relances-devis-adaptees",
     date: "2026-10-13",
     title: "Relances de devis sur mesure",

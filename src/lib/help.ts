@@ -1178,6 +1178,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise", label: "Mon entreprise" },
   },
   {
+    slug: "conges-et-absences",
+    category: "compte",
+    title: "Saisir les congés et absences de l'équipe",
+    summary: "Les congés, repos, arrêts et formations apparaissent dans le planning ; une affectation pendant une absence est signalée.",
+    steps: [
+      "Ouvrez Planning, puis la partie « Congés et absences » sous la grille.",
+      "Choisissez la personne, le motif et les dates (le dernier jour est inclus), puis « Enregistrer l'absence ».",
+      "L'absence s'affiche en pointillés dans la grille. Si la personne était déjà affectée à un chantier ces jours-là, l'affectation passe en rouge.",
+    ],
+    notes: [
+      "Chacun peut déclarer ses propres absences. Saisir ou retirer celles des autres demande le droit de gérer l'équipe (gérant, conducteur de travaux, secrétariat).",
+      "L'affectation reste possible : vous décidez, mais le conflit est signalé tant que vous ne la déplacez pas.",
+    ],
+    link: { href: "/app/planning", label: "Planning" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

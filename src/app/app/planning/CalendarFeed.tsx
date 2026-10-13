@@ -44,8 +44,7 @@ export function CalendarFeed({
         </div>
       ) : feed ? (
         <p>
-          Lien actif ({feed.scope === "entreprise" ? "toute l'entreprise" : "mes chantiers"}), commençant par{" "}
-          <span className="font-mono">{feed.prefix}</span>.{" "}
+          Lien actif ({feed.scope === "entreprise" ? "toute l'entreprise" : "mes chantiers"}), commençant par <span className="font-mono">{feed.prefix}</span>.{" "}
           {feed.lastUsed ? `Dernière lecture par l'agenda : ${feed.lastUsed}.` : "Pas encore lu par un agenda."}
         </p>
       ) : (
@@ -85,14 +84,11 @@ export function CalendarFeed({
         <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
           <li>Google Agenda : sur un ordinateur, « Autres agendas », « + », « À partir de l'URL », collez le lien.</li>
           <li>Outlook : « Ajouter un calendrier », « S'abonner à partir du web », collez le lien.</li>
-          <li>
-            iPhone et Mac : touchez « Ouvrir dans l'agenda de l'appareil », ou Réglages, Calendrier, Comptes, « Ajouter un calendrier avec abonnement
-            ».
-          </li>
+          <li>iPhone et Mac : touchez « Ouvrir dans l'agenda de l'appareil », ou Réglages, Calendrier, Comptes, « Ajouter un calendrier avec abonnement ».</li>
         </ul>
         <p className="mt-2 text-muted">
-          L'agenda se met à jour tout seul, en général en quelques heures selon l'application. Gardez le lien pour vous : qui le connaît voit vos
-          chantiers. Remplacez-le s'il a circulé.
+          L'agenda se met à jour tout seul, en général en quelques heures selon l'application. Gardez le lien pour vous : qui le connaît voit vos chantiers.
+          Remplacez-le s'il a circulé.
         </p>
       </details>
     </div>

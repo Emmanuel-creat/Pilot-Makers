@@ -9,6 +9,7 @@ import { setOrgFeature } from "@/lib/services/features";
 import { addVehicle, assign, deleteAssignment, deleteVehicle, moveAssignment } from "@/lib/services/planning";
 import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/job-site";
 import { releaseRetention } from "@/lib/services/warranties";
+import { addAbsence, deleteAbsence } from "@/lib/services/absences";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
@@ -64,7 +65,17 @@ import type { Ctx } from "@/lib/services/context";
 import { setCustomerArchived } from "@/lib/services/customers";
 import { savePricing, updateOrganization } from "@/lib/services/organization";
 import { saveGoals } from "@/lib/services/reports";
-import { cancelQuote, createAmendment, createQuote, duplicateQuote, setArchived, deleteDraft, createRevision, recordResponseManually, revokeShareLinks } from "@/lib/services/quotes";
+import {
+  cancelQuote,
+  createAmendment,
+  createQuote,
+  duplicateQuote,
+  setArchived,
+  deleteDraft,
+  createRevision,
+  recordResponseManually,
+  revokeShareLinks,
+} from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
 import { convertLeadToQuote, createLead, updateLead } from "@/lib/services/leads";
 import { createQuoteFromTemplate, deleteTemplate, renameTemplate } from "@/lib/services/templates";
@@ -117,8 +128,7 @@ function toState(e: unknown): ActionState {
   unstable_rethrow(e);
   if (e instanceof HttpError) {
     const details = e.details;
-    const fieldErrors =
-      details && typeof details === "object" && !Array.isArray(details) ? (details as Record<string, string>) : undefined;
+    const fieldErrors = details && typeof details === "object" && !Array.isArray(details) ? (details as Record<string, string>) : undefined;
     return { error: e.message, fieldErrors };
   }
   console.error(e);
@@ -527,7 +537,14 @@ export async function deleteDraftAction(fd: FormData) {
 
 export async function manualResponseAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    await withCtx((ctx) => recordResponseManually(ctx, s(fd, "id"), { decision: s(fd, "decision"), version: s(fd, "version"), proof: s(fd, "proof"), reasonCode: s(fd, "reasonCode") || undefined }));
+    await withCtx((ctx) =>
+      recordResponseManually(ctx, s(fd, "id"), {
+        decision: s(fd, "decision"),
+        version: s(fd, "version"),
+        proof: s(fd, "proof"),
+        reasonCode: s(fd, "reasonCode") || undefined,
+      }),
+    );
     revalidatePath(`/app/devis/${s(fd, "id")}`);
     return { ok: true };
   } catch (e) {
@@ -587,7 +604,10 @@ export async function sessionRegistrationAction(_: ActionState, fd: FormData): P
     const leave = s(fd, "leave") === "1";
     await withCtx((ctx) => (leave ? unregisterFromSession(ctx, s(fd, "id")) : registerToSession(ctx, s(fd, "id"))));
     revalidatePath("/app/assistance");
-    return { ok: true, message: leave ? "Désinscription enregistrée." : "Inscription confirmée : le lien et l'invitation d'agenda vous sont envoyés par e-mail." };
+    return {
+      ok: true,
+      message: leave ? "Désinscription enregistrée." : "Inscription confirmée : le lien et l'invitation d'agenda vous sont envoyés par e-mail.",
+    };
   } catch (e) {
     return toState(e);
   }
@@ -808,6 +828,20 @@ export async function deleteAssignmentAction(_: ActionState, fd: FormData): Prom
   }
 }
 
+export async function absenceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    if (s(fd, "deleteId")) await withCtx((ctx) => deleteAbsence(ctx, s(fd, "deleteId")));
+    else
+      await withCtx((ctx) =>
+        addAbsence(ctx, { userId: s(fd, "userId"), kind: s(fd, "kind"), start: s(fd, "start"), end: s(fd, "end") || s(fd, "start"), note: s(fd, "note") }),
+      );
+    revalidatePath("/app/planning");
+    return { ok: true, message: s(fd, "deleteId") ? "Absence retirée." : "Absence enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
 export async function vehicleAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     if (s(fd, "deleteId")) await withCtx((ctx) => deleteVehicle(ctx, s(fd, "deleteId")));
@@ -909,7 +943,12 @@ export async function savePricingAction(_: ActionState, fd: FormData): Promise<A
         perKm: s(fd, "per_km"),
         fixed: s(fd, "fixed"),
         freeKm: s(fd, "free_km"),
-        coefficients: { materiau: s(fd, "coef_materiau"), sous_traitance: s(fd, "coef_sous_traitance"), main_oeuvre: s(fd, "coef_main_oeuvre"), autre: s(fd, "coef_autre") },
+        coefficients: {
+          materiau: s(fd, "coef_materiau"),
+          sous_traitance: s(fd, "coef_sous_traitance"),
+          main_oeuvre: s(fd, "coef_main_oeuvre"),
+          autre: s(fd, "coef_autre"),
+        },
       }),
     );
     revalidatePath("/app/entreprise");
@@ -1377,7 +1416,10 @@ export async function receiveOrderAction(_: ActionState, fd: FormData): Promise<
     for (const [k, v] of fd.entries()) if (k.startsWith("recu_") && typeof v === "string") received[k.slice(5)] = v;
     const status = await withCtx((ctx) => receiveOrder(ctx, id, received));
     revalidatePath(orderPath(s(fd, "jobId")), "layout");
-    return { ok: true, message: status === "recu" ? "Commande reçue en totalité." : status === "recu_partiel" ? "Réception partielle enregistrée." : "Réception enregistrée." };
+    return {
+      ok: true,
+      message: status === "recu" ? "Commande reçue en totalité." : status === "recu_partiel" ? "Réception partielle enregistrée." : "Réception enregistrée.",
+    };
   } catch (e) {
     return toState(e);
   }
@@ -1632,9 +1674,7 @@ export async function locateMissingAction(_: ActionState, fd: FormData): Promise
 
 export async function createIncidentAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    await withCtx((ctx) =>
-      createIncident(ctx, { title: s(fd, "title"), body: s(fd, "body"), severity: s(fd, "severity"), startsAt: s(fd, "startsAt") }),
-    );
+    await withCtx((ctx) => createIncident(ctx, { title: s(fd, "title"), body: s(fd, "body"), severity: s(fd, "severity"), startsAt: s(fd, "startsAt") }));
     revalidatePath("/admin/statut");
     return { ok: true, message: "Incident publié sur la page de statut." };
   } catch (e) {
@@ -1824,7 +1864,26 @@ export async function treasuryAction(_: ActionState, fd: FormData): Promise<Acti
 
 export async function accountingPlanAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const keys = ["customers", "sales", "goods", "subcontracting", "travel", "deposits", "bank", "staff", "vatDeductible", "travelExpenses", "fuel", "supplies", "otherExpenses", "vat2000", "vat1000", "vat550", "vat210", "auxPrefix"];
+    const keys = [
+      "customers",
+      "sales",
+      "goods",
+      "subcontracting",
+      "travel",
+      "deposits",
+      "bank",
+      "staff",
+      "vatDeductible",
+      "travelExpenses",
+      "fuel",
+      "supplies",
+      "otherExpenses",
+      "vat2000",
+      "vat1000",
+      "vat550",
+      "vat210",
+      "auxPrefix",
+    ];
     await withCtx((ctx) => savePlan(ctx, { ...Object.fromEntries(keys.map((k) => [k, s(fd, k)])), ventilate: fd.get("ventilate") === "on" }));
     revalidatePath("/app/entreprise");
     revalidatePath("/app/comptabilite");

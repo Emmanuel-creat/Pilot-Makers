@@ -5,14 +5,15 @@ import { requirePageCtx } from "@/lib/server/session";
 import { listResources, planning, plannableJobs } from "@/lib/services/planning";
 import { addDays, mondayOf, monthRange, range } from "@/lib/services/planning-dates";
 import { parisDate } from "@/lib/services/quotes";
-import { AssignForm, PlanningGrid, SlotEditor, VehicleForm } from "./PlanningGrid";
+import { AbsenceForm, AssignForm, DeleteAbsence, PlanningGrid, SlotEditor, VehicleForm } from "./PlanningGrid";
+import { ABSENCE_KINDS, listAbsences } from "@/lib/services/absences";
+import { can } from "@/lib/services/context";
 import { getFeed } from "@/lib/services/calendar";
 import { CalendarFeed } from "./CalendarFeed";
 
 export const metadata = { title: "Planning" };
 
-const fr = (iso: string) =>
-  new Date(`${iso}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const fr = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
 export default async function PlanningPage({ searchParams }: { searchParams: Promise<{ vue?: string; date?: string }> }) {
   const sp = await searchParams;
@@ -21,7 +22,14 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
   const today = parisDate(new Date());
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? "") ? sp.date! : today;
   const { from, to } = month ? monthRange(anchor) : { from: mondayOf(anchor), to: addDays(mondayOf(anchor), 6) };
-  const [resources, slots, jobs, feed] = await Promise.all([listResources(ctx), planning(ctx, from, to), plannableJobs(ctx), getFeed(ctx)]);
+  const [resources, slots, jobs, feed, absences] = await Promise.all([
+    listResources(ctx),
+    planning(ctx, from, to),
+    plannableJobs(ctx),
+    getFeed(ctx),
+    listAbsences(ctx, from, to),
+  ]);
+  const manageTeam = can(ctx, "staff");
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const prev = month ? monthRange(addDays(from, -1)).from : addDays(from, -7);
   const next = month ? addDays(to, 1) : addDays(from, 7);
@@ -58,8 +66,8 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
       {conflicts.length ? (
         <div className="mb-4">
           <Notice tone="warning" title="Conflits de planning">
-            {[...new Set(conflicts.map((c) => c.title))].join(", ")} : une même personne ou un même véhicule est prévu sur deux chantiers les mêmes
-            jours.
+            {[...new Set(conflicts.map((c) => c.title))].join(", ")} : une même personne ou un même véhicule est prévu sur deux chantiers les mêmes jours, ou
+            une personne est affectée pendant une absence.
           </Notice>
         </div>
       ) : null}
@@ -68,7 +76,7 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
           <AssignForm jobs={jobs} resources={resources} defaultStart={from > today ? from : today} />
         </section>
       ) : null}
-      <PlanningGrid resources={resources} days={range(from, to)} slots={slots} canEdit={canEdit} />
+      <PlanningGrid resources={resources} days={range(from, to)} slots={slots} absences={absences} absenceLabels={ABSENCE_KINDS} canEdit={canEdit} />
       {canEdit ? (
         <p className="mt-2 text-xs text-muted">
           Glissez une affectation vers une autre case pour changer de jour ou de personne. Au clavier, utilisez la liste ci-dessous.
@@ -81,12 +89,12 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
               {slots.map((s) => (
                 <li key={s.id} className="space-y-2 py-2 text-sm">
                   <div className="flex flex-wrap justify-between gap-2">
-                    <Link href={`/app/chantiers/${s.jobId}`} className="link font-medium">
+                    <Link href={`/app/chantiers/${s.jobId}`} className="link inline-flex min-h-6 items-center font-medium">
                       {s.title}
                     </Link>
                     <span className={s.conflict ? "text-danger" : "text-muted"}>
                       {resources.find((r) => r.type === s.resourceType && r.id === s.resourceId)?.name ?? "?"}, du {fr(s.start)} au {fr(s.end)}
-                      {s.conflict ? " (conflit)" : ""}
+                      {s.absence ? ` (absence : ${s.absence.toLowerCase()})` : s.conflict ? " (conflit)" : ""}
                     </span>
                   </div>
                   {canEdit ? <SlotEditor slot={s} resources={resources} /> : null}
@@ -97,11 +105,34 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
             <p className="text-sm text-muted">Aucune affectation sur la période.</p>
           )}
         </Section>
+        <Section title="Congés et absences" description="Une affectation pendant une absence apparaît en conflit dans le planning.">
+          {absences.length ? (
+            <ul className="mb-4 divide-y divide-line text-sm" aria-label="Absences de la période">
+              {absences.map((a) => (
+                <li key={a.id} className="flex items-center justify-between gap-2 py-2">
+                  <span>
+                    <span className="font-medium">{a.userName}</span> : {ABSENCE_KINDS[a.kind].toLowerCase()} du {fr(a.start)} au {fr(a.end)}
+                    {a.note ? <span className="text-muted"> ({a.note})</span> : null}
+                  </span>
+                  {canEdit && (manageTeam || a.userId === ctx.userId) ? <DeleteAbsence id={a.id} label={`de ${a.userName} du ${fr(a.start)}`} /> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mb-4 text-sm text-muted">Aucune absence sur la période.</p>
+          )}
+          {canEdit ? (
+            <AbsenceForm
+              people={resources.filter((r) => r.type === "user").map((r) => ({ id: r.id, name: r.name }))}
+              kinds={ABSENCE_KINDS}
+              defaultUser={ctx.userId}
+              canChoose={manageTeam}
+              defaultStart={from > today ? from : today}
+            />
+          ) : null}
+        </Section>
         <Section title="Véhicules">{canEdit ? <VehicleForm vehicles={resources.filter((r) => r.type === "vehicle")} /> : null}</Section>
-        <Section
-          title="Abonnement d'agenda"
-          description="Retrouvez le planning dans Google Agenda, Outlook ou l'agenda de l'iPhone, mis à jour tout seul."
-        >
+        <Section title="Abonnement d'agenda" description="Retrouvez le planning dans Google Agenda, Outlook ou l'agenda de l'iPhone, mis à jour tout seul.">
           <CalendarFeed
             feed={
               feed

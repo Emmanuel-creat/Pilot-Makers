@@ -10,6 +10,7 @@ import { badRequest, notFound } from "@/lib/http";
 import type { Ctx } from "./context";
 import { requireWritable } from "./context";
 import { addDays, daysBetween, findConflicts, type Slot } from "./planning-dates";
+import { ABSENCE_KINDS, absenceDuring, listAbsences } from "./absences";
 
 export interface Resource {
   type: "user" | "vehicle";
@@ -40,11 +41,7 @@ export async function addVehicle(ctx: Ctx, raw: { name: string; plate?: string }
     .trim()
     .toUpperCase()
     .slice(0, 20);
-  const r = await one<{ id: string }>(ctx.db, "INSERT INTO org_vehicles (org_id, name, plate) VALUES ($1,$2,$3) RETURNING id", [
-    ctx.orgId,
-    name,
-    plate,
-  ]);
+  const r = await one<{ id: string }>(ctx.db, "INSERT INTO org_vehicles (org_id, name, plate) VALUES ($1,$2,$3) RETURNING id", [ctx.orgId, name, plate]);
   return r!.id;
 }
 
@@ -89,7 +86,12 @@ async function conflictsFor(q: Queryable, orgId: string, id: string) {
      JOIN jobs j ON j.id=b.job_id WHERE a.id=$1 AND a.org_id=$2`,
     [id, orgId],
   );
-  return r.map((x) => x.title);
+  const absent = await q.query<{ kind: keyof typeof ABSENCE_KINDS }>(
+    `SELECT m.kind FROM job_assignments a JOIN member_absences m ON m.org_id=a.org_id AND a.resource_type='user' AND m.user_id=a.resource_id
+       AND m.start_date<=a.end_date AND m.end_date>=a.start_date WHERE a.id=$1 AND a.org_id=$2 LIMIT 1`,
+    [id, orgId],
+  );
+  return [...r.map((x) => x.title), ...absent.map((x) => `absence (${ABSENCE_KINDS[x.kind].toLowerCase()})`)];
 }
 
 export async function assign(ctx: Ctx, raw: unknown) {
@@ -151,6 +153,8 @@ export interface PlannedSlot extends Slot {
   city: string;
   status: string;
   conflict: boolean;
+  /** Type d'absence de la personne pendant l'affectation, ou null */
+  absence: string | null;
 }
 
 /** Affectations qui touchent la période, avec les conflits repérés. */
@@ -174,9 +178,14 @@ export async function planning(ctx: Ctx, from: string, to: string): Promise<Plan
     city: String(r.site_city ?? ""),
     status: String(r.status),
     conflict: false,
+    absence: null,
   }));
   const conflicts = findConflicts(slots);
-  return slots.map((s) => ({ ...s, conflict: conflicts.has(s.id) }));
+  const absences = await listAbsences(ctx, from, to);
+  return slots.map((s) => {
+    const a = s.resourceType === "user" ? absenceDuring(absences, s.resourceId, s.start, s.end) : null;
+    return { ...s, conflict: conflicts.has(s.id) || !!a, absence: a ? ABSENCE_KINDS[a.kind] : null };
+  });
 }
 
 /** Chantiers à planifier (pour le formulaire d'affectation). */

@@ -692,6 +692,25 @@ test("devis : incohérence de TVA signalée avec lien vers la ligne", async ({ p
   await audit(page, "incohérences");
 });
 
+test("planning : congés saisis et affichés dans la grille", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/planning");
+  await page.getByLabel("Motif").selectOption({ label: "Formation" });
+  await page.getByLabel("Commentaire").fill("Habilitation électrique");
+  await page.getByRole("button", { name: "Enregistrer l'absence" }).click();
+  await expect(page.getByText("Absence enregistrée.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Absences de la période" })).toContainText("formation");
+  await expect(page.getByTestId("absence").first()).toHaveText("Formation");
+  await audit(page, "absences au planning");
+  const remove = page.getByRole("button", { name: /^Retirer l'absence/ });
+  while (await remove.count()) {
+    const n = await remove.count();
+    await remove.first().click();
+    await expect(remove).toHaveCount(n - 1);
+  }
+  await expect(page.getByText("Aucune absence sur la période.")).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
