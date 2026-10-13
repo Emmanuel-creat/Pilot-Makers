@@ -852,6 +852,34 @@ test("rapports : charge des semaines à venir et saisonnalité", async ({ page }
   await audit(page, "charge et saisonnalité");
 });
 
+test("avis client : invitation, dépôt puis gestion", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  const send = page.getByLabel("Envoyer l'invitation par e-mail au client");
+  if (await send.count()) await send.uncheck();
+  await page.getByRole("button", { name: /^(Demander un avis au client|Renvoyer une invitation)$/ }).click();
+  const status = page.getByText(/Lien à transmettre au client : /);
+  await expect(status).toBeVisible();
+  const url = (await status.textContent())!.match(/https?:\/\/\S+\/avis\/[A-Za-z0-9_-]+/)![0];
+
+  const client = await browser.newContext({ locale: "fr-FR" });
+  const cp = await client.newPage();
+  await cp.goto(new URL(url).pathname);
+  await expect(cp.getByRole("heading", { level: 1 })).toContainText("Votre avis sur");
+  await audit(cp, "dépôt d'un avis");
+  await cp.getByText("4", { exact: true }).click();
+  await cp.getByLabel("Votre avis (facultatif)").fill("Travail soigné, équipe ponctuelle.");
+  await cp.getByRole("button", { name: "Envoyer mon avis" }).click();
+  await expect(cp.getByRole("status")).toContainText("Merci");
+  await client.close();
+
+  await page.goto("/app/avis");
+  await expect(page.getByRole("list", { name: "Avis reçus" })).toContainText("Travail soigné, équipe ponctuelle.");
+  await audit(page, "avis clients");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "avis-clients",
+    date: "2026-10-13",
+    title: "Avis clients",
+    text: "Invitez vos clients à noter le chantier terminé ; leurs avis, publiés avec leur accord, apparaissent sur votre vitrine avec la note moyenne.",
+    href: "/aide/avis-clients",
+  },
+  {
     id: "formulaire-integre",
     date: "2026-10-13",
     title: "Formulaire de devis pour votre site",

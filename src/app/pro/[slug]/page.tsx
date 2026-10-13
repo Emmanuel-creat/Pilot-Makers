@@ -154,6 +154,38 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
           </section>
         ) : null}
 
+        {p.reviews.count ? (
+          <section className="card space-y-3 p-6" aria-labelledby="avis">
+            <div>
+              <h2 id="avis" className="font-semibold">
+                Avis clients : {p.reviews.average!.toLocaleString("fr-FR")} sur 5 ({p.reviews.count} avis)
+              </h2>
+              <p className="text-xs text-muted">
+                Avis déposés par des clients après leurs travaux, sur invitation de l&apos;entreprise, et publiés tels quels avec leur accord. L&apos;entreprise
+                ne peut masquer un avis que s&apos;il est injurieux, hors sujet ou s&apos;il cite un tiers.
+              </p>
+            </div>
+            <ul className="divide-y divide-line text-sm">
+              {p.reviews.reviews.map((r, i) => (
+                <li key={i} className="space-y-1 py-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 font-medium">
+                      <Icon name="star" size={16} className="text-accent" /> {r.rating} sur 5
+                    </span>
+                    <span className="text-muted">
+                      {r.authorName}
+                      {r.city ? `, ${r.city}` : ""}, avis du {r.submittedAt.split("-").reverse().join("/")}
+                      {r.workDate ? `, travaux du ${r.workDate.split("-").reverse().join("/")}` : ""}
+                    </span>
+                  </div>
+                  {r.comment ? <p className="whitespace-pre-line">{r.comment}</p> : null}
+                  {r.reply ? <p className="border-l-2 border-line pl-3 text-muted">Réponse de l&apos;entreprise : {r.reply}</p> : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
         <section id="demande" className="card scroll-mt-4 p-6" aria-labelledby="demande-titre">
           <h2 id="demande-titre" className="mb-3 font-semibold">
             Demander un devis

@@ -19,9 +19,14 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         title="Chantiers"
         subtitle="Créés depuis les devis acceptés : tâches, avancement et informations d'accès."
         actions={
-          <Link href="/app/chantiers/garanties" className="btn-secondary">
-            <Icon name="shield" size={16} /> Garanties
-          </Link>
+          <>
+            <Link href="/app/avis" className="btn-secondary">
+              <Icon name="star" size={16} /> Avis clients
+            </Link>
+            <Link href="/app/chantiers/garanties" className="btn-secondary">
+              <Icon name="shield" size={16} /> Garanties
+            </Link>
+          </>
         }
       />
       <nav className="mb-4 flex gap-1 overflow-x-auto" aria-label="Filtrer par état">

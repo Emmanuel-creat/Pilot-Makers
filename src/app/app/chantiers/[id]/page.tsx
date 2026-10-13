@@ -29,6 +29,8 @@ import { WarrantySummary } from "../garanties/WarrantySummary";
 import { listJobMessages } from "@/lib/services/job-chat";
 import { deleteJobMessageAction } from "@/app/actions";
 import { JobMessageForm } from "./JobChat";
+import { jobReview } from "@/lib/services/reviews";
+import { RequestReviewForm } from "../../avis/ReviewForms";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -50,6 +52,12 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     publishedJournalIds(ctx, id),
     getWarranty(ctx, id),
     listJobMessages(ctx, id),
+  ]);
+  const [review, customerEmail] = await Promise.all([
+    jobReview(ctx, id),
+    job.customer_id
+      ? ctx.db.query<{ email: string }>("SELECT email FROM customers WHERE id=$1 AND org_id=$2", [job.customer_id, ctx.orgId]).then((r) => r[0]?.email ?? "")
+      : Promise.resolve(""),
   ]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const costsAllowed = can(ctx, "costs");
@@ -291,6 +299,29 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <p className="text-sm text-muted">Pas encore de réception.</p>
           )}
         </Section>
+        <div className="lg:col-span-2">
+          <Section
+            title="Avis du client"
+            description="Une fois les travaux terminés, invitez le client à donner son avis : il pourra être publié sur votre vitrine."
+          >
+            {review?.submittedAt ? (
+              <div className="space-y-1 text-sm" data-testid="avis-client">
+                <p className="font-medium">
+                  {review.rating} sur 5, le {fmtDate(review.submittedAt)}
+                </p>
+                {review.comment ? <p className="whitespace-pre-line">{review.comment}</p> : null}
+                <Link className="link inline-flex min-h-6 items-center" href="/app/avis">
+                  Gérer les avis
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {review ? <p className="text-sm text-muted">Invitation envoyée le {fmtDate(review.requestedAt)}, sans réponse pour l&apos;instant.</p> : null}
+                {canEdit ? <RequestReviewForm jobId={job.id} canEmail={Boolean(customerEmail)} again={Boolean(review)} /> : null}
+              </div>
+            )}
+          </Section>
+        </div>
       </div>
       {costs ? (
         <div className="mt-6">

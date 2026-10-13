@@ -257,3 +257,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 94 (13/10/2026) : ligne 416 (rapport mensuel envoyé au gérant par e-mail, désactivable)
 - Vague 95 (13/10/2026) : ligne 414 (saisonnalité des signatures et prévision de charge sur 12 semaines)
 - Vague 96 (13/10/2026) : ligne 290 (formulaire de demande de devis à intégrer au site de l'artisan)
+- Vague 97 (13/10/2026) : ligne 293 (avis clients recueillis après chantier et publiés sur la vitrine)

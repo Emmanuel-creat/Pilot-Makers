@@ -22,6 +22,7 @@ import { audit, requirePermission, requireWritable } from "./context";
 import { appUrl, sendMail } from "./mail";
 import type { PublicLabel } from "@/lib/labels";
 import { orgPublicLabels } from "./labels";
+import { publicReviews } from "./reviews";
 import { parisDate } from "./quotes";
 
 export const SHOWCASE_MAX_PHOTOS = 60;
@@ -183,6 +184,7 @@ export interface PublicShowcase {
   hours: Hours;
   photos: { id: string; caption: string; city: string }[];
   labels: PublicLabel[];
+  reviews: Awaited<ReturnType<typeof publicReviews>>;
 }
 
 export async function publicShowcase(db: Queryable, slug: string): Promise<PublicShowcase | null> {
@@ -217,6 +219,7 @@ export async function publicShowcase(db: Queryable, slug: string): Promise<Publi
     hours: cleanHours(r.hours),
     photos: photos.map((p) => ({ id: p.id, caption: p.caption, city: p.show_city ? p.city : "" })),
     labels: await orgPublicLabels(db, String(r.org_id), parisDate(new Date())),
+    reviews: await publicReviews(db, String(r.org_id)),
   };
 }
 

@@ -74,6 +74,7 @@ import { addLabel, deleteLabel, setLabelShown } from "@/lib/services/labels";
 import { saveTravelRates } from "@/lib/services/travel";
 import { deleteJobMessage, postJobMessage } from "@/lib/services/job-chat";
 import { setMonthlyReport } from "@/lib/services/monthly-report";
+import { hideReview, replyReview, requestReview } from "@/lib/services/reviews";
 import {
   cancelQuote,
   createAmendment,
@@ -2043,6 +2044,29 @@ export async function monthlyReportAction(_: ActionState, fd: FormData): Promise
     await withCtx((ctx) => setMonthlyReport(ctx, enabled));
     revalidatePath("/app/rapports");
     return { ok: true, message: enabled ? "Rapport mensuel activé." : "Rapport mensuel désactivé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function requestReviewAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    const r = await withCtx((ctx) => requestReview(ctx, jobId, { send: fd.get("send") === "on" }));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: r.emailed ? `Invitation envoyée au client. Lien : ${r.url}` : `Lien à transmettre au client : ${r.url}` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function reviewModerationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    const op = s(fd, "op");
+    await withCtx((ctx) => (op === "reply" ? replyReview(ctx, id, s(fd, "reply")) : hideReview(ctx, id, op === "show" ? "" : s(fd, "reason"))));
+    revalidatePath("/app/avis");
+    return { ok: true, message: op === "reply" ? "Réponse enregistrée." : op === "show" ? "Avis rétabli." : "Avis masqué." };
   } catch (e) {
     return toState(e);
   }

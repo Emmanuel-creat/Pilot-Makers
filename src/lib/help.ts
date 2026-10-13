@@ -1395,6 +1395,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=vitrine", label: "Ouvrir la vitrine" },
   },
   {
+    slug: "avis-clients",
+    category: "clients",
+    title: "Recueillir les avis de vos clients",
+    summary: "Après le chantier, un lien pour noter et commenter, publié sur la vitrine.",
+    steps: [
+      "Sur la fiche d'un chantier terminé, cliquez sur « Demander un avis au client » : il reçoit un lien par e-mail, ou vous le lui transmettez.",
+      "Le client donne une note de 1 à 5 et un commentaire, et choisit si son avis peut être publié.",
+      "Les avis acceptés apparaissent sur votre vitrine avec la note moyenne. Vous pouvez y répondre publiquement depuis « Avis clients ».",
+    ],
+    notes: [
+      "Un avis est publié tel quel : vous ne pouvez le masquer que s'il est injurieux, hors sujet ou s'il cite un tiers, et la vitrine explique au public comment les avis sont recueillis.",
+    ],
+    link: { href: "/app/avis", label: "Voir les avis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
