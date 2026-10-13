@@ -412,6 +412,46 @@ test("devis : métré des murs avec ouvertures déduites reporté sur la ligne",
   await expect(page.getByRole("button", { name: "Métré : 33,31 m²" })).toBeVisible();
 });
 
+test("devis : cotes du métré dictées à la voix", async ({ page }) => {
+  // Reconnaissance vocale simulée : elle « entend » deux phrases dès le démarrage de la dictée.
+  await page.addInitScript(() => {
+    class FakeRecognition {
+      lang = "";
+      continuous = false;
+      interimResults = false;
+      onresult: ((e: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      onerror: ((e: unknown) => void) | null = null;
+      start() {
+        const phrases = ["Chambre 4 mètres 10 par trois mètres hauteur 2 mètres 50", "porte 83 centimètres par 2 mètres 4"];
+        setTimeout(() => {
+          const results = phrases.map((t) => Object.assign([{ transcript: t }], { isFinal: true }));
+          this.onresult?.({ resultIndex: 0, results });
+          this.onend?.();
+        }, 50);
+      }
+      stop() {
+        this.onend?.();
+      }
+    }
+    (window as unknown as { SpeechRecognition: unknown }).SpeechRecognition = FakeRecognition;
+  });
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Peinture dictée");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Peinture des murs");
+  await page.getByRole("button", { name: "Métré", exact: true }).last().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Dicter les cotes" }).click();
+  await expect(dialog.getByText("Ajouté : porte, 0,83 x 2,04")).toBeVisible();
+  await expect(dialog.getByLabel("Longueur 1")).toHaveValue("4,10");
+  // Murs : 2 x (4,10 + 3) x 2,50 = 35,50 m², porte de 0,83 x 2,04 = 1,69 m² déduite.
+  await expect(dialog.getByTestId("metre-total")).toHaveText("Total : 33,81 m²");
+});
+
 test("notes de frais : ticket photographié puis validation et remboursement", async ({ page }) => {
   await login(page);
   await page.goto("/app/frais");

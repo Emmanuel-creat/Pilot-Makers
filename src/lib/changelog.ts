@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "cotes-dictees",
+    date: "2026-10-13",
+    title: "Cotes du métré dictées à la voix",
+    text: "Mètre en main, dictez « cuisine 4 mètres 10 par 3 mètres 20 » : la rangée du métré se remplit seule.",
+    href: "/aide/dicter-les-cotes",
+  },
+  {
     id: "devis-sans-reseau",
     date: "2026-10-13",
     title: "Devis modifiables sans réseau",

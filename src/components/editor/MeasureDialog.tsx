@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Dictation } from "@/components/Dictation";
 import { Icon } from "@/components/Icon";
+import { parseSpokenMeasure } from "@/lib/spoken-measure";
 import { Modal } from "@/components/Modal";
 import { computeMeasure, emptyMeasure, MAX_MEASURE_ROWS, MEASURE_KINDS, type Measure, type MeasureItem, type MeasureKind } from "@/lib/calc/measure";
 
@@ -32,6 +34,20 @@ export function MeasureDialog({
   const del = (key: "items" | "deductions", i: number) => setM((x) => ({ ...x, [key]: x[key].filter((_, j) => j !== i) }));
   const full = m.items.length + m.deductions.length >= MAX_MEASURE_ROWS;
   const dedDims = m.kind === "plinthes" ? ["Largeur"] : ["Largeur", "Hauteur"];
+  const [heard, setHeard] = useState<{ ok: boolean; text: string } | null>(null);
+  const isBlank = (it: MeasureItem) => !it.label.trim() && !it.a.trim() && !(it.b ?? "").trim() && !(it.c ?? "").trim();
+  /** Cote dictée : ajoutée en rangée (ou en ouverture à déduire), à la place d'une rangée vide. */
+  const dictated = (text: string) => {
+    const r = parseSpokenMeasure(text, spec.dims.length);
+    if (!r || full) return setHeard({ ok: false, text: `Cote non comprise : « ${text} »` });
+    const key = r.deduction && spec.deduct ? "deductions" : "items";
+    setM((x) => {
+      const rows = x[key];
+      const last = rows[rows.length - 1];
+      return { ...x, [key]: last && isBlank(last) ? [...rows.slice(0, -1), r.item] : [...rows, r.item] };
+    });
+    setHeard({ ok: true, text: `Ajouté : ${[r.item.label, [r.item.a, r.item.b, r.item.c].filter(Boolean).join(" x ")].filter(Boolean).join(", ")}` });
+  };
 
   return (
     <Modal open={open} onClose={onClose} title="Métré" wide>
@@ -67,9 +83,17 @@ export function MeasureDialog({
           onChange={(i, p) => set("items", i, p)}
           onRemove={m.items.length > 1 ? (i) => del("items", i) : undefined}
         />
-        <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => add("items")} disabled={full}>
-          <Icon name="plus" size={14} /> Ajouter une rangée
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => add("items")} disabled={full}>
+            <Icon name="plus" size={14} /> Ajouter une rangée
+          </button>
+          <Dictation raw label="Dicter les cotes" onText={dictated} />
+        </div>
+        {heard ? (
+          <p role="status" className={`text-xs ${heard.ok ? "text-muted" : "text-danger"}`}>
+            {heard.text}
+          </p>
+        ) : null}
 
         {spec.deduct ? (
           <>

@@ -904,6 +904,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "dicter-les-cotes",
+    category: "devis",
+    title: "Dicter les cotes du métré",
+    summary: "Mètre en main, dictez les cotes au lieu de les taper : chaque phrase devient une rangée du métré.",
+    steps: [
+      "Sur la ligne du devis, ouvrez « Métré » puis appuyez sur « Dicter les cotes ».",
+      "Dites par exemple « cuisine 4 mètres 10 par 3 mètres 20 hauteur 2 mètres 50 », puis « porte 83 centimètres par 2 mètres 4 ».",
+      "Chaque phrase ajoute une rangée ; une porte ou une fenêtre est rangée dans les ouvertures à déduire. Arrêtez la dictée et reportez le total.",
+    ],
+    notes: [
+      "« trois mètres cinq » vaut 3,05 m, « trois virgule cinq » vaut 3,5 m. « Deux fois fenêtre 1,20 par 1,35 » compte deux fenêtres.",
+      "Les photos du chantier se prennent directement depuis le devis, section Photos et croquis, avec l'appareil photo du téléphone.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

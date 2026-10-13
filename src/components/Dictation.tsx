@@ -34,8 +34,9 @@ export function spokenPunctuation(text: string): string {
 /**
  * Bouton de dictée : la description se dicte au lieu de se taper, sur le chantier ou au volant à l'arrêt.
  * Utilise la reconnaissance vocale du navigateur ; masqué quand le navigateur ne la propose pas.
+ * `raw` : texte transmis tel quel, sans ponctuation dictée (pour les cotes, où « virgule » sépare les décimales).
  */
-export function Dictation({ onText, label = "Dicter" }: { onText: (text: string) => void; label?: string }) {
+export function Dictation({ onText, label = "Dicter", raw = false }: { onText: (text: string) => void; label?: string; raw?: boolean }) {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [error, setError] = useState("");
@@ -59,7 +60,7 @@ export function Dictation({ onText, label = "Dicter" }: { onText: (text: string)
     r.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const res = e.results[i];
-        if (res.isFinal && res[0].transcript.trim()) onText(spokenPunctuation(res[0].transcript));
+        if (res.isFinal && res[0].transcript.trim()) onText(raw ? res[0].transcript.trim() : spokenPunctuation(res[0].transcript));
       }
     };
     r.onerror = (e) => setError(e.error === "not-allowed" ? "Autorisez le micro pour dicter." : "Dictée interrompue.");
