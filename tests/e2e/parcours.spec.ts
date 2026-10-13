@@ -115,6 +115,10 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   const cp = await client.newPage();
   await cp.goto(new URL(link).pathname);
   await expect(cp.getByText(number).first()).toBeVisible();
+  // Copie traduite proposée au client étranger.
+  const translated = await cp.request.get(new URL(link).pathname.replace("/d/", "/api/public/quotes/") + "/pdf?langue=en");
+  expect(translated.status()).toBe(200);
+  expect(translated.headers()["content-disposition"]).toContain("-en.pdf");
   // Avant d'accepter, la cliente demande une modification sur une ligne précise.
   await cp.getByRole("radio", { name: "Demande de modification sur une ligne" }).check();
   await cp.getByLabel("Ligne concernée").selectOption({ label: "Ragréage du sol" });

@@ -2,6 +2,8 @@ import { getDb, num } from "@/lib/db";
 import { hitRate } from "@/lib/rate-limit";
 import { errorResponse, requestMeta } from "@/lib/server/session";
 import { acceptedCopy, resolveShareToken } from "@/lib/services/quotes";
+import { renderQuotePdf } from "@/lib/pdf/quote-pdf";
+import { isLang } from "@/lib/pdf/i18n";
 
 /** PDF accessible avec le lien temporaire et révocable transmis au client. */
 export async function GET(req: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -18,6 +20,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
         headers: {
           "content-type": "application/pdf",
           "content-disposition": `attachment; filename="Devis-${c.number}-accepte.pdf"`,
+          "cache-control": "private, no-store",
+          "x-robots-tag": "noindex",
+        },
+      });
+    }
+    const lang = new URL(req.url).searchParams.get("langue");
+    if (isLang(lang) && lang !== "fr") {
+      return new Response(Buffer.from(await renderQuotePdf(r.version.snapshot, undefined, undefined, { lang })), {
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": `inline; filename="Devis-${r.version.number}-${lang}.pdf"`,
           "cache-control": "private, no-store",
           "x-robots-tag": "noindex",
         },

@@ -9,6 +9,7 @@ import { reducedVatAttestation } from "@/lib/services/consumer";
 import { publicOptionSource } from "@/lib/services/options";
 import { ClientResponse } from "./ClientResponse";
 import { ClientMessages } from "@/components/ClientMessages";
+import { LANGS } from "@/lib/pdf/i18n";
 import { publicThread, requestableLines } from "@/lib/services/client-space";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +50,22 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
           <h1 className="text-xl font-semibold">Devis {s.number}</h1>
           <p className="text-sm text-muted">Proposé par {s.org.trade_name}</p>
         </div>
-        <a className="btn-secondary" href={`/api/public/quotes/${token}/pdf`} target="_blank" rel="noreferrer">
-          Télécharger le PDF
-        </a>
+        <div className="flex flex-col items-start gap-1 sm:items-end">
+          <a className="btn-secondary" href={`/api/public/quotes/${token}/pdf`} target="_blank" rel="noreferrer">
+            Télécharger le PDF
+          </a>
+          <p className="text-xs text-muted">
+            Translation:{" "}
+            {(Object.entries(LANGS) as [string, string][]).map(([code, name], i) => (
+              <span key={code}>
+                {i ? " · " : ""}
+                <a className="link" href={`/api/public/quotes/${token}/pdf?langue=${code}`} target="_blank" rel="noreferrer" lang={code} hrefLang={code}>
+                  {name}
+                </a>
+              </span>
+            ))}
+          </p>
+        </div>
       </div>
       {r.revoked ? <Notice tone="warning">Ce lien a été désactivé par l'entreprise.</Notice> : null}
       {!r.isCurrent ? (

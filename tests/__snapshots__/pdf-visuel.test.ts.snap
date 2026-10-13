@@ -1,5 +1,33 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`rendu des PDF de devis > copie traduite stable : de 1`] = `
+{
+  "pages": 3,
+  "sha256": "e0919898670d9a682b1ed029904d8347ebb480730dc11fa05fbc636c6288a8d0",
+}
+`;
+
+exports[`rendu des PDF de devis > copie traduite stable : en 1`] = `
+{
+  "pages": 3,
+  "sha256": "1e7b7dae3ec4dc719ed6d3ddcb025f3cea204772b53a38a78810fb4017a97e73",
+}
+`;
+
+exports[`rendu des PDF de devis > copie traduite stable : es 1`] = `
+{
+  "pages": 3,
+  "sha256": "a17f2897e52dd5f8e5093426c2800214780837b4063ec89d3fa26ae23133c65e",
+}
+`;
+
+exports[`rendu des PDF de devis > copie traduite stable : pt 1`] = `
+{
+  "pages": 3,
+  "sha256": "73f0dd4f1beb3e07e78513a0bf69161f4a549630e9aa56f745853f1b3f900442",
+}
+`;
+
 exports[`rendu des PDF de devis > rend une facture avec ses blocs propres 1`] = `
 {
   "pages": 1,

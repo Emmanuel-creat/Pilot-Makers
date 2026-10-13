@@ -22,6 +22,7 @@ import { ClientThread } from "./ClientThread";
 import { listQuoteMessages } from "@/lib/services/client-space";
 import { CreateJob } from "./CreateJob";
 import { SubQuotes } from "@/components/SubQuotes";
+import { LANGS } from "@/lib/pdf/i18n";
 import { can } from "@/lib/services/context";
 import { listSubQuotes } from "@/lib/services/subcontractor-quotes";
 import { listSubcontractors } from "@/lib/services/subcontractors";
@@ -452,6 +453,17 @@ export default async function QuotePage({
                       {fmtDate(v.issuedAt, true)}
                       {v.issuedBy ? ` par ${v.issuedBy}` : ""}
                       {draft.acceptedVersion === v.version ? " - acceptée" : ""}
+                    </div>
+                    <div className="text-xs text-muted">
+                      Copie traduite :{" "}
+                      {(Object.entries(LANGS) as [string, string][]).map(([code, name], i) => (
+                        <span key={code}>
+                          {i ? " · " : ""}
+                          <a className="link" href={`/api/quotes/${id}/pdf?version=${v.version}&langue=${code}`} target="_blank" rel="noreferrer" hrefLang={code}>
+                            {name}
+                          </a>
+                        </span>
+                      ))}
                     </div>
                     <div className="truncate font-mono text-[11px] text-muted" title={`Empreinte SHA-256 du PDF : ${v.pdfSha256}`}>
                       {v.pdfSha256.slice(0, 24)}...

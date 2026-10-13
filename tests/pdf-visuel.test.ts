@@ -26,6 +26,7 @@ const variants: [string, (s: QuoteSnapshot) => QuoteSnapshot][] = [
   ["récapitulatif par lot en tête", (s) => ({ ...s, layout: "synthese" })],
   ["un lot par page", (s) => ({ ...s, layout: "lots" })],
 ];
+const langs = ["en", "es", "pt", "de"] as const;
 
 describe("rendu des PDF de devis", () => {
   for (const [name, make] of variants) {
@@ -35,6 +36,19 @@ describe("rendu des PDF de devis", () => {
       expect({ pages: doc.getPageCount(), sha256: sha256(pdf) }).toMatchSnapshot();
     });
   }
+
+  for (const lang of langs) {
+    it(`copie traduite stable : ${lang}`, async () => {
+      const pdf = await renderQuotePdf(base, undefined, undefined, { lang });
+      expect({ pages: (await PDFDocument.load(pdf)).getPageCount(), sha256: sha256(pdf) }).toMatchSnapshot();
+    });
+  }
+
+  it("la copie traduite ne touche ni l'exemplaire accepté ni les factures", async () => {
+    const accepted = { name: "Claire Dubois", at: "12/10/2026 10:00", via: "en ligne", documentSha256: "a".repeat(64) };
+    expect(sha256(await renderQuotePdf(base, undefined, accepted, { lang: "en" }))).toBe(sha256(await renderQuotePdf(base, undefined, accepted)));
+    expect(sha256(await renderQuotePdf(base, undefined, undefined, { lang: "fr" }))).toBe(sha256(await renderQuotePdf(base)));
+  });
 
   it("ajoute exactement une page pour le formulaire de rétractation", async () => {
     const withForm = await PDFDocument.load(await renderQuotePdf(base));

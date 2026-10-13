@@ -585,6 +585,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis/nouveau", label: "Créer un devis" },
   },
   {
+    slug: "devis-traduit",
+    category: "devis",
+    title: "Remettre un devis traduit à un client étranger",
+    summary: "Copie du devis en anglais, espagnol, portugais ou allemand, en plus de la version française qui fait foi.",
+    steps: [
+      "Sur un devis émis, sous chaque version, choisissez la langue de la copie traduite : English, Español, Português ou Deutsch.",
+      "Votre client trouve aussi ces copies sur la page de son devis, sous le bouton de téléchargement.",
+      "Titres, colonnes, totaux, TVA et zone d'acceptation sont traduits. Vos désignations et vos conditions restent telles que vous les avez écrites.",
+    ],
+    notes: [
+      "La copie indique en tête que seule la version française émise fait foi. Les mentions légales y restent en français, avec leur titre traduit.",
+      "Le client accepte toujours le devis français, en ligne ou sur papier.",
+    ],
+    link: { href: "/app/devis", label: "Ouvrir les devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

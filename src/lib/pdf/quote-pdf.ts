@@ -5,6 +5,7 @@
  * enregistrées. Le coût interne et la marge n'y figurent jamais.
  */
 
+import { type Key, type Lang, translator, unitLabel } from "./i18n";
 import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb, type RGB } from "pdf-lib";
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
 import { reducedVatAttestation, WITHDRAWAL_TEXT, withdrawalForm } from "@/lib/services/consumer";
@@ -188,7 +189,17 @@ export interface PdfAcceptance {
   options?: string;
 }
 
-export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, accepted?: PdfAcceptance): Promise<Uint8Array> {
+export async function renderQuotePdf(
+  s: QuoteSnapshot,
+  opts?: PdfDocOptions,
+  accepted?: PdfAcceptance,
+  options: { lang?: Lang } = {},
+): Promise<Uint8Array> {
+  // Copie traduite : devis seulement, jamais l'exemplaire accepté ni les factures.
+  const L: Lang = opts || accepted ? "fr" : (options.lang ?? "fr");
+  const t = translator(L);
+  const colon = L === "fr" ? " : " : ": ";
+  const lbl = (k: Key) => t(k) + colon;
   const doc = await PDFDocument.create();
   const label = opts?.label ?? `Devis ${s.number}`;
   doc.setTitle(label);
@@ -230,20 +241,20 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     }
     const c = s.template === "moderne" ? rgb(1, 1, 1) : BLACK;
     const ty = w.y + 6;
-    w.text("Désignation", cols.label + 4, ty, 8, f.bold, c);
-    w.textRight("Qté", cols.qty + 18, ty, 8, f.bold, c);
-    w.text("Unité", cols.qty + 26, ty, 8, f.bold, c);
-    w.textRight("PU HT", cols.pu, ty, 8, f.bold, c);
-    w.textRight("Rem.", cols.disc, ty, 8, f.bold, c);
-    w.textRight("TVA", cols.vat, ty, 8, f.bold, c);
-    w.textRight("Total HT", cols.total - 4, ty, 8, f.bold, c);
+    w.text(t("colLabel"), cols.label + 4, ty, 8, f.bold, c);
+    w.textRight(t("colQty"), cols.qty + 18, ty, 8, f.bold, c);
+    w.text(t("colUnit"), cols.qty + 26, ty, 8, f.bold, c);
+    w.textRight(t("colPrice"), cols.pu, ty, 8, f.bold, c);
+    w.textRight(t("colDisc"), cols.disc, ty, 8, f.bold, c);
+    w.textRight(t("colVat"), cols.vat, ty, 8, f.bold, c);
+    w.textRight(t("colTotal"), cols.total - 4, ty, 8, f.bold, c);
     w.y -= 4;
   };
 
   let inTable = false;
   const w = new Writer(doc, f, (wr) => {
     if (wr.pages.length > 1) {
-      wr.text(`${label} (suite)`, M.left, wr.y - 10, 9, f.bold, GREY);
+      wr.text(`${label} ${t("continued")}`, M.left, wr.y - 10, 9, f.bold, GREY);
       wr.y -= 22;
       if (inTable) tableHeader(wr);
     }
@@ -270,11 +281,11 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     o.address_line1,
     o.address_line2,
     [o.postal_code, o.city].filter(Boolean).join(" "),
-    o.phone ? `Tél. ${o.phone}` : "",
+    o.phone ? `${t("phone")} ${o.phone}` : "",
     o.email,
     o.website,
     o.siret ? `SIRET ${o.siret}` : o.siren ? `SIREN ${o.siren}` : "",
-    o.vat_number ? `TVA intracommunautaire ${o.vat_number}` : "",
+    o.vat_number ? `${t("vatId")} ${o.vat_number}` : "",
   ].filter(Boolean);
   for (const l of orgLines) {
     leftY -= 11;
@@ -285,15 +296,15 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   let rightY = w.y;
   const rx = A4.w - M.right;
   const amendment = s.quote.amendment;
-  w.textRight(opts?.title ?? (amendment ? `AVENANT N° ${amendment.index}` : "DEVIS"), rx, rightY - 20, 22, f.bold, accent);
+  w.textRight(opts?.title ?? (amendment ? `${t("amendment")} ${amendment.index}` : t("quote")), rx, rightY - 20, 22, f.bold, accent);
   rightY -= 36;
   const meta = (
     opts?.meta ?? [
-      `N° ${s.number}${s.version > 1 ? ` (version ${s.version})` : ""}`,
-      amendment ? `Au devis n° ${amendment.parentNumber}` : "",
-      `Date : ${fmtDate(s.issueDate)}`,
-      `Valable jusqu'au : ${fmtDate(s.validUntil)}`,
-      s.author ? `Établi par : ${s.author}` : "",
+      `${t("number")} ${s.number}${s.version > 1 ? ` (${t("version")} ${s.version})` : ""}`,
+      amendment ? `${t("toQuote")} ${amendment.parentNumber}` : "",
+      `${lbl("date")}${fmtDate(s.issueDate)}`,
+      `${lbl("validUntil")}${fmtDate(s.validUntil)}`,
+      s.author ? `${lbl("author")}${s.author}` : "",
     ]
   ).filter(Boolean);
   meta.forEach((l, i) => {
@@ -317,7 +328,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   ].filter(Boolean);
   const boxH = 30 + custLines.length * 11;
   w.page.drawRectangle({ x: boxX, y: rightY - boxH, width: boxW, height: boxH, borderColor: LIGHT, borderWidth: 1 });
-  w.text("CLIENT", boxX + 10, rightY - 13, 7.5, f.bold, GREY);
+  w.text(t("customer"), boxX + 10, rightY - 13, 7.5, f.bold, GREY);
   w.text(cust.name, boxX + 10, rightY - 26, 10, f.bold);
   let cy = rightY - 26;
   for (const l of custLines) {
@@ -328,18 +339,23 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
 
   w.y = Math.min(leftY, rightY) - 18;
 
+  if (L !== "fr") {
+    w.ensure(30);
+    w.paragraph(t("courtesy").replace("{n}", s.number), M.left, CONTENT_W, 8, f.italic, GREY);
+    w.y -= 8;
+  }
   // Chantier et objet
   const site = s.quote.site;
   const siteText = [site.line1, site.line2, [site.postalCode, site.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   w.ensure(40);
-  w.text("Objet :", M.left, w.y - 10, 10, f.bold);
-  w.text(s.quote.title, M.left + 42, w.y - 10, 10, f.bold, accent);
+  w.text(t("subject"), M.left, w.y - 10, 10, f.bold);
+  w.text(s.quote.title, M.left + (L === "fr" ? 42 : f.bold.widthOfTextAtSize(t("subject"), 10) + 6), w.y - 10, 10, f.bold, accent);
   w.y -= 14;
-  w.text(`${opts?.siteLabel ?? "Lieu d'exécution"} : ${siteText}`, M.left, w.y - 10, 9, f.regular, GREY);
+  w.text(`${opts?.siteLabel ? opts.siteLabel + " : " : lbl("site")}${siteText}`, M.left, w.y - 10, 9, f.regular, GREY);
   w.y -= 14;
   const extra = [
-    s.quote.estimatedStart ? `Démarrage estimé : ${s.quote.estimatedStart}` : "",
-    s.quote.estimatedDuration ? `Durée estimée des travaux : ${s.quote.estimatedDuration}` : "",
+    s.quote.estimatedStart ? `${lbl("start")}${s.quote.estimatedStart}` : "",
+    s.quote.estimatedDuration ? `${lbl("duration")}${s.quote.estimatedDuration}` : "",
   ].filter(Boolean);
   if (extra.length) {
     w.text(extra.join("   |   "), M.left, w.y - 10, 9, f.regular, GREY);
@@ -358,7 +374,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   const layout = !opts && s.sections.length > 1 ? (s.layout ?? "detaille") : "detaille";
   const recap = s.sections
     .filter((sec) => sec.lines.some((l) => l.kind === "item"))
-    .map((sec, i) => ({ title: sec.title || `Lot ${i + 1}`, cents: calcSections.get(sec.id)?.subtotalCents ?? 0 }));
+    .map((sec, i) => ({ title: sec.title || `${t("lot")} ${i + 1}`, cents: calcSections.get(sec.id)?.subtotalCents ?? 0 }));
   const drawRecap = (title: string) => {
     w.ensure(30 + recap.length * 14 + 20);
     w.y -= 6;
@@ -368,18 +384,18 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
       w.ensure(14);
       w.y -= 14;
       w.text(`${i + 1}. ${r.title}`, M.left + 4, w.y, 9);
-      w.textRight(`${formatEuros(r.cents)} HT`, cols.total - 4, w.y, 9);
+      w.textRight(`${formatEuros(r.cents)} ${t("excl")}`, cols.total - 4, w.y, 9);
       w.page.drawLine({ start: { x: M.left, y: w.y - 4 }, end: { x: A4.w - M.right, y: w.y - 4 }, thickness: 0.4, color: LIGHT });
     });
     w.y -= 16;
-    w.text(s.calc.globalDiscountCents > 0 ? "Total des lots HT, avant remise globale" : "Total des lots HT", M.left + 4, w.y, 9, f.bold);
+    w.text(t("lotsTotal") + (s.calc.globalDiscountCents > 0 ? t("beforeGlobal") : ""), M.left + 4, w.y, 9, f.bold);
     w.textRight(formatEuros(s.calc.subtotalCents), cols.total - 4, w.y, 9, f.bold);
     w.y -= 14;
   };
   if (layout === "synthese") {
-    drawRecap("Récapitulatif par lot");
+    drawRecap(t("recapLots"));
     w.ensure(60);
-    w.text("Détail des prestations", M.left, w.y - 10, 10, f.bold, accent);
+    w.text(t("detail"), M.left, w.y - 10, 10, f.bold, accent);
     w.y -= 18;
   }
   inTable = true;
@@ -391,7 +407,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     if (showSections) {
       w.ensure(40);
       w.y -= 16;
-      w.text(section.title || "Section", cols.label + 4, w.y + 4, 9.5, f.bold, accent);
+      w.text(section.title || t("section"), cols.label + 4, w.y + 4, 9.5, f.bold, accent);
       if (section.description.trim()) {
         w.paragraph(section.description, cols.label + 4, CONTENT_W - 8, 8, f.italic, GREY);
       }
@@ -401,13 +417,13 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
       const r = lineResults.get(line.id);
       const labelW = cols.qty - cols.label - 30;
       const optional = line.kind === "item" && line.optional === true;
-      const labelLines = wrapText((optional ? "Option : " : "") + (line.label || ""), f.bold, 8.5, labelW);
+      const labelLines = wrapText((optional ? t("option") : "") + (line.label || ""), f.bold, 8.5, labelW);
       const descLines = line.description.trim() ? wrapText(line.description, f.regular, 7.5, labelW) : [];
       const noteLines = [
         ...(line.kind === "item" && line.estimated
-          ? wrapText("Quantité estimée, à confirmer sur place" + (line.estimateNote ? " : " + line.estimateNote : ""), f.italic, 7, labelW)
+          ? wrapText(t("estimated") + (line.estimateNote ? colon + line.estimateNote : ""), f.italic, 7, labelW)
           : []),
-        ...(optional ? wrapText("Proposée en option : non comprise dans le total, à cocher à l'acceptation", f.italic, 7, labelW) : []),
+        ...(optional ? wrapText(t("optionalNote"), f.italic, 7, labelW) : []),
       ];
       const h = labelLines.length * 10.5 + descLines.length * 9 + noteLines.length * 8.5 + 6;
       w.ensure(Math.min(h, 120));
@@ -427,7 +443,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
       ly -= 10.5;
       // Les montants sont alignés sur la première ligne du libellé, avant tout saut de page.
       if (r && line.kind === "item") drawAmounts(ly, r, line.unit);
-      if (line.kind === "pending") w.textRight("À compléter", cols.total - 4, ly, 8.5, f.italic, GREY);
+      if (line.kind === "pending") w.textRight(t("toComplete"), cols.total - 4, ly, 8.5, f.italic, GREY);
       w.text(labelLines[0] ?? "", cols.label + 4, ly, 8.5, f.bold);
       const rest: [string, number, PDFFont, number, RGB][] = [
         ...labelLines.slice(1).map((l) => [l, 8.5, f.bold, 10.5, BLACK] as [string, number, PDFFont, number, RGB]),
@@ -448,20 +464,20 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     if (showSections && cs && section.lines.some((l) => l.kind === "item")) {
       w.ensure(16);
       w.y -= 13;
-      w.textRight(`Sous-total ${section.title || "section"} : ${formatEuros(cs.subtotalCents)} HT`, cols.total - 4, w.y, 8.5, f.bold, GREY);
+      w.textRight(`${t("subtotal")} ${section.title || t("section").toLowerCase()}${colon}${formatEuros(cs.subtotalCents)} ${t("excl")}`, cols.total - 4, w.y, 8.5, f.bold, GREY);
       w.y -= 4;
     }
   }
   inTable = false;
   if (layout === "lots") {
     w.newPage();
-    drawRecap("Récapitulatif des lots");
+    drawRecap(t("recapAll"));
   }
 
   function drawAmounts(y: number, r: QuoteSnapshot["calc"]["sections"][number]["lines"][number], unit: string) {
     const draw = (t: string, xr: number, font = f.regular) => w.textRight(t, xr, y, 8.5, font);
     draw(formatQuantity(r.quantityMilli), cols.qty + 18);
-    w.text(unit, cols.qty + 26, y, 8.5);
+    w.text(unitLabel(unit, L), cols.qty + 26, y, 8.5);
     draw(formatUnitPrice(r.unitPrice4, false), cols.pu);
     draw(r.discountBp ? formatPercent(r.discountBp, false) + "%" : "", cols.disc);
     draw(s.org.vat_regime === "franchise" || s.quote.reverseCharge ? "-" : formatPercent(r.vatBp, false) + "%", cols.vat);
@@ -472,17 +488,17 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   const c = s.calc;
   const totalRows: [string, string, boolean][] = [];
   if (c.globalDiscountCents > 0) {
-    totalRows.push(["Total HT avant remise", formatEuros(c.subtotalCents), false]);
-    totalRows.push([`Remise globale (${formatPercent(c.globalDiscountBp)})`, "-" + formatEuros(c.globalDiscountCents), false]);
+    totalRows.push([t("totalBeforeDiscount"), formatEuros(c.subtotalCents), false]);
+    totalRows.push([`${t("globalDiscount")} (${formatPercent(c.globalDiscountBp)})`, "-" + formatEuros(c.globalDiscountCents), false]);
   }
-  totalRows.push(["Total HT", formatEuros(c.totalHtCents), true]);
+  totalRows.push([t("totalHt"), formatEuros(c.totalHtCents), true]);
   if (s.org.vat_regime === "franchise") {
-    totalRows.push(["TVA", "Non applicable", false]);
+    totalRows.push([t("colVat"), t("vatNa"), false]);
   } else if (s.quote.reverseCharge) {
-    totalRows.push(["TVA", "Autoliquidation", false]);
+    totalRows.push([t("colVat"), t("reverse"), false]);
   } else {
     for (const g of c.vatGroups) {
-      totalRows.push([`TVA ${formatPercent(g.vatBp)} sur ${formatEuros(g.baseCents)}`, formatEuros(g.vatCents), false]);
+      totalRows.push([`${t("colVat")} ${formatPercent(g.vatBp)} ${t("on")} ${formatEuros(g.baseCents)}`, formatEuros(g.vatCents), false]);
     }
   }
   const blockH = totalRows.length * 14 + 30;
@@ -497,14 +513,16 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   w.y -= 8;
   w.page.drawRectangle({ x: tx - 6, y: w.y - 18, width: cols.total - tx + 6, height: 22, color: s.template === "sobre" ? LIGHT : accent });
   const ttcColor = s.template === "sobre" ? BLACK : rgb(1, 1, 1);
-  w.text("Total TTC", tx, w.y - 11, 11, f.bold, ttcColor);
+  w.text(t("totalTtc"), tx, w.y - 11, 11, f.bold, ttcColor);
   w.textRight(formatEuros(c.totalTtcCents), cols.total - 4, w.y - 11, 11, f.bold, ttcColor);
   w.y -= 26;
   if (c.options) {
     w.ensure(20);
     w.y -= 12;
     w.textRight(
-      `${c.options.count > 1 ? `${c.options.count} options proposées` : "1 option proposée"}, non comprise(s) : ${formatEuros(c.options.htCents)} HT, ${formatEuros(c.options.ttcCents)} TTC`,
+      L === "fr"
+        ? `${c.options.count > 1 ? `${c.options.count} options proposées` : "1 option proposée"}, non comprise(s) : ${formatEuros(c.options.htCents)} HT, ${formatEuros(c.options.ttcCents)} TTC`
+        : `${c.options.count} ${t("optionsOffered")}${colon}${formatEuros(c.options.htCents)} ${t("excl")}, ${formatEuros(c.options.ttcCents)} ${t("incl")}`,
       cols.total - 4,
       w.y,
       8.5,
@@ -535,12 +553,12 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   if (opts) {
     for (const [title, body] of opts.sections) section(title, body);
   } else {
-    section("Conditions de paiement", s.quote.paymentTerms);
-    section("Conditions particulières", s.quote.specialConditions);
-    section("Mentions", s.mentions.join("\n"));
-    if (s.consumer?.reducedVatBp.length) section("Attestation du client pour le taux réduit de TVA", reducedVatAttestation(s.consumer.reducedVatBp));
-    if (s.consumer?.withdrawal) section("Droit de rétractation", WITHDRAWAL_TEXT);
-    section("Conditions générales", s.org.general_conditions, 7.5);
+    section(t("payment"), s.quote.paymentTerms);
+    section(t("special"), s.quote.specialConditions);
+    section(t("mentions"), s.mentions.join("\n"));
+    if (s.consumer?.reducedVatBp.length) section(t("reducedVat"), reducedVatAttestation(s.consumer.reducedVatBp));
+    if (s.consumer?.withdrawal) section(t("withdrawal"), (L === "fr" ? "" : t("withdrawalSummary") + "\n\n") + WITHDRAWAL_TEXT);
+    section(t("terms"), s.org.general_conditions, 7.5);
   }
 
   // Zone d'acceptation : jamais coupée
@@ -550,7 +568,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
   if (!opts && s.consumer?.withdrawal) {
     w.newPage();
     w.y -= 18;
-    w.text("Formulaire de rétractation", M.left, w.y, 13, f.bold, accent);
+    w.text(t("withdrawalForm"), M.left, w.y, 13, f.bold, accent);
     w.y -= 6;
     w.paragraph(withdrawalForm(s.org, s.number), M.left, CONTENT_W, 9.5);
   }
@@ -559,7 +577,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
     w.y -= 16;
     const zoneH = accepted?.options ? 106 : 86;
     w.page.drawRectangle({ x: M.left, y: w.y - zoneH, width: CONTENT_W, height: zoneH, borderColor: GREY, borderWidth: 0.8 });
-    w.text("Bon pour accord du client", M.left + 10, w.y - 14, 9.5, f.bold);
+    w.text(t("acceptance"), M.left + 10, w.y - 14, 9.5, f.bold);
     if (accepted) {
       const half = CONTENT_W / 2 - 20;
       let ay = w.y - 28;
@@ -576,9 +594,9 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
         }
       }
     } else {
-      w.text("Date, nom et signature précédés de la mention « Bon pour accord » :", M.left + 10, w.y - 27, 8, f.regular, GREY);
+      w.text(t("acceptanceHint"), M.left + 10, w.y - 27, 8, f.regular, GREY);
     }
-    w.text(`Pour ${s.org.trade_name}`, M.left + CONTENT_W / 2 + 10, w.y - 14, 9.5, f.bold);
+    w.text(`${t("forOrg")} ${s.org.trade_name}`, M.left + CONTENT_W / 2 + 10, w.y - 14, 9.5, f.bold);
     if (signature) {
       const scale = Math.min(150 / signature.width, 50 / signature.height, 1);
       w.page.drawImage(signature, {
@@ -601,7 +619,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
       p.drawText(l, { x: M.left, y: fy, size: 7, font: f.regular, color: GREY });
       fy -= 9;
     }
-    const pageTxt = `${opts ? label : `Devis ${s.number} v${s.version}${accepted ? " accepté" : ""}`} - page ${i + 1}/${total}`;
+    const pageTxt = `${opts ? label : `${t("quoteWord")} ${s.number} v${s.version}${accepted ? " accepté" : ""}`} - ${t("page")} ${i + 1}/${total}`;
     p.drawText(sanitize(pageTxt, f.regular), {
       x: A4.w - M.right - f.regular.widthOfTextAtSize(pageTxt, 7),
       y: 34,
@@ -610,7 +628,7 @@ export async function renderQuotePdf(s: QuoteSnapshot, opts?: PdfDocOptions, acc
       color: GREY,
     });
     if (s.preview) {
-      p.drawText("APERÇU - DOCUMENT NON ÉMIS", {
+      p.drawText(sanitize(t("preview"), f.bold), {
         x: 120,
         y: 300,
         size: 34,

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-traduit",
+    date: "2026-10-13",
+    title: "Devis traduits",
+    text: "Copie de courtoisie en anglais, espagnol, portugais ou allemand pour vos clients étrangers, la version française faisant foi.",
+    href: "/aide/devis-traduit",
+  },
+  {
     id: "etat-du-service",
     date: "2026-10-13",
     title: "Page d'état du service",
