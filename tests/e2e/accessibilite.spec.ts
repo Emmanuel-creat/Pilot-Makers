@@ -741,6 +741,18 @@ test("parc : outil, contrôle périodique et contrôle fait", async ({ page }) =
   await expect(list).toContainText("dernier le");
 });
 
+test("rapports : tableau de bord micro-entreprise", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Micro-entreprise" }).click();
+  await page.waitForURL(/\/app\/rapports\/micro$/);
+  await expect(page.getByRole("progressbar", { name: "Prestations de services" }).first()).toBeVisible();
+  await expect(page.getByRole("table", { name: "Encaissements à déclarer par mois et par trimestre" })).toContainText("Trimestre 4");
+  await audit(page, "micro-entreprise");
+  await page.getByRole("link", { name: "Tout déclarer en prestations" }).click();
+  await expect(page.getByRole("columnheader", { name: "Ventes" })).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

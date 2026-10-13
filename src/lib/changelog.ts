@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "micro-entreprise",
+    date: "2026-10-13",
+    title: "Tableau de bord micro-entreprise",
+    text: "Plafonds, seuils de franchise de TVA et cotisations à déclarer, calculés sur vos encaissements de l'année.",
+    href: "/aide/tableau-de-bord-micro-entreprise",
+  },
+  {
     id: "parc-entretiens",
     date: "2026-10-13",
     title: "Véhicules et outillage",

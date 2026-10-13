@@ -91,6 +91,9 @@ export default async function ReportsPage() {
                 <Link href="/app/rapports/tva" className="btn-secondary print:hidden">
                   <Icon name="note" size={16} /> TVA à déclarer
                 </Link>
+                <Link href="/app/rapports/micro" className="btn-secondary print:hidden">
+                  <Icon name="chart" size={16} /> Micro-entreprise
+                </Link>
               </>
             ) : null}
             <a href="/api/reports/csv" className="btn-secondary print:hidden">

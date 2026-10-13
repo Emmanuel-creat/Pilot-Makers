@@ -1228,6 +1228,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/parc", label: "Véhicules et outillage" },
   },
   {
+    slug: "tableau-de-bord-micro-entreprise",
+    category: "factures",
+    title: "Le tableau de bord du micro-entrepreneur",
+    summary: "Encaissements de l'année, plafonds du régime micro, seuils de franchise de TVA et cotisations à déclarer, mois par mois.",
+    steps: [
+      "Ouvrez Rapports, puis « Micro-entreprise ».",
+      "Les jauges montrent où vous en êtes des plafonds : orange à 80 %, rouge au-delà.",
+      "Le tableau donne, pour chaque mois et chaque trimestre, le montant à déclarer à l'URSSAF et les cotisations estimées.",
+      "Si vous facturez vos fournitures à part, choisissez « Fournitures déclarées en vente » : elles sont déclarées en vente de marchandises, à un taux plus bas.",
+    ],
+    notes: [
+      "Seuls les paiements enregistrés comptent, à leur date d'encaissement : enregistrez chaque règlement reçu.",
+      "Les plafonds, seuils et taux changent avec la loi : vérifiez-les sur urssaf.fr et impots.gouv.fr avant de décider.",
+      "La contribution à la formation professionnelle et le versement libératoire de l'impôt ne sont pas inclus.",
+    ],
+    link: { href: "/app/rapports/micro", label: "Micro-entreprise" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
