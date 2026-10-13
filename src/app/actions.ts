@@ -82,7 +82,7 @@ import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableT
 import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction, switchOrg } from "@/lib/services/team";
 import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } from "@/lib/services/subcontractor-quotes";
 import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes";
-import { createIncident, updateIncident } from "@/lib/services/status";
+import { createIncident, retryDeadJob, updateIncident } from "@/lib/services/status";
 import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/services/showcase";
 import { dismissCostAlert } from "@/lib/services/supplier-prices";
 import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/services/roadmap";
@@ -1553,6 +1553,16 @@ export async function updateIncidentAction(_: ActionState, fd: FormData): Promis
     await withCtx((ctx) => updateIncident(ctx, s(fd, "id"), { note: s(fd, "note"), resolve }));
     revalidatePath("/admin/statut");
     return { ok: true, message: resolve ? "Incident clos." : "Information ajoutée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function retryJobAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => retryDeadJob(ctx, s(fd, "id")));
+    revalidatePath("/admin/statut");
+    return { ok: true, message: "Tâche relancée." };
   } catch (e) {
     return toState(e);
   }

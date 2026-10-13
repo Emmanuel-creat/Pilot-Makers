@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "envois-reessayes",
+    date: "2026-10-13",
+    title: "E-mails renvoyés automatiquement",
+    text: "Un e-mail bloqué par une panne passagère du service d'envoi repart tout seul quelques minutes plus tard.",
+    href: "/aide/envois-reessayes",
+  },
+  {
     id: "dictee-description",
     date: "2026-10-13",
     title: "Dictée vocale de la description",

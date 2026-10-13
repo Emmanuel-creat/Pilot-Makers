@@ -6,7 +6,7 @@
 import { z } from "zod";
 import type { Database } from "@/lib/db";
 import { num, one } from "@/lib/db";
-import { badRequest, notFound } from "@/lib/http";
+import { badRequest, isUuid, notFound } from "@/lib/http";
 import { requirePlatformAdmin } from "./admin";
 import type { Ctx } from "./context";
 import { audit } from "./context";
@@ -128,4 +128,42 @@ export async function updateIncident(ctx: Ctx, id: string, raw: { note?: string;
 export async function listIncidents(ctx: Ctx) {
   requirePlatformAdmin(ctx);
   return ctx.db.query<Incident>("SELECT id, title, body, severity, started_at, resolved_at FROM status_incidents ORDER BY started_at DESC LIMIT 100");
+}
+
+/* File de tâches en arrière-plan : tâches abandonnées, visibles et relançables par l'administration. */
+
+export interface DeadJob {
+  id: string;
+  kind: string;
+  attempts: number;
+  lastError: string | null;
+  finishedAt: string;
+}
+
+export async function listDeadJobs(ctx: Ctx, limit = 50): Promise<DeadJob[]> {
+  requirePlatformAdmin(ctx);
+  const rows = await ctx.db.query<Record<string, unknown>>(
+    "SELECT id, kind, attempts, last_error, finished_at FROM background_jobs WHERE status='dead' ORDER BY finished_at DESC LIMIT $1",
+    [limit],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    kind: String(r.kind),
+    attempts: num(r.attempts),
+    lastError: r.last_error ? String(r.last_error) : null,
+    finishedAt: r.finished_at instanceof Date ? r.finished_at.toISOString() : String(r.finished_at),
+  }));
+}
+
+/** Relance une tâche abandonnée : elle repart pour une nouvelle série d'essais. */
+export async function retryDeadJob(ctx: Ctx, id: string) {
+  requirePlatformAdmin(ctx);
+  if (!isUuid(id)) throw notFound("Tâche introuvable");
+  const r = await one<{ kind: string }>(
+    ctx.db,
+    "UPDATE background_jobs SET status='pending', attempts=0, run_at=now(), finished_at=NULL WHERE id=$1 AND status='dead' RETURNING kind",
+    [id],
+  );
+  if (!r) throw notFound("Tâche introuvable ou déjà relancée");
+  await audit(ctx.db, { userId: ctx.userId, action: "admin.job_retry", target: id, data: { kind: r.kind }, ip: ctx.ip });
 }

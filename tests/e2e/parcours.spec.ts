@@ -119,6 +119,12 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   const translated = await cp.request.get(new URL(link).pathname.replace("/d/", "/api/public/quotes/") + "/pdf?langue=en");
   expect(translated.status()).toBe(200);
   expect(translated.headers()["content-disposition"]).toContain("-en.pdf");
+  // Le PDF émis est figé : un navigateur qui l'a déjà reçoit une réponse 304 sans le fichier.
+  const pdfUrl = new URL(link).pathname.replace("/d/", "/api/public/quotes/") + "/pdf";
+  const first = await cp.request.get(pdfUrl);
+  const etag = first.headers()["etag"];
+  expect(etag).toMatch(/^"[0-9a-f]{64}"$/);
+  expect((await cp.request.get(pdfUrl, { headers: { "if-none-match": etag } })).status()).toBe(304);
   // Avant d'accepter, la cliente demande une modification sur une ligne précise.
   await cp.getByRole("radio", { name: "Demande de modification sur une ligne" }).check();
   await cp.getByLabel("Ligne concernée").selectOption({ label: "Ragréage du sol" });

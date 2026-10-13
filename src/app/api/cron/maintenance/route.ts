@@ -7,6 +7,7 @@ import { purgeDeletedAccounts } from "@/lib/services/accounts";
 import { runBillingMaintenance } from "@/lib/services/billing";
 import { expireQuotes } from "@/lib/services/quotes";
 import { purgeWebhookDeliveries } from "@/lib/services/webhooks";
+import { purgeJobs } from "@/lib/services/task-queue";
 import { sendAlert } from "@/lib/monitoring";
 import { verifySealed } from "@/lib/services/sealed-journal";
 
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
       accounts: await purgeDeletedAccounts(db),
       rateLimits: await purgeRateLimits(db),
       webhooks: await purgeWebhookDeliveries(db),
+      jobs: await purgeJobs(db),
       // Instance de démonstration publique uniquement : le compte de démonstration repart de zéro chaque nuit.
       demo: process.env.DEMO_RESET === "1" ? await resetDemo(db) : null,
     });

@@ -805,6 +805,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "envois-reessayes",
+    category: "devis",
+    title: "E-mails renvoyés automatiquement",
+    summary: "Quand le service d'envoi est momentanément indisponible, l'e-mail n'est pas perdu : il repart tout seul un peu plus tard.",
+    steps: [
+      "Un envoi refusé pour une raison passagère apparaît dans E-mails envoyés avec la mention « Nouvel essai prévu ».",
+      "De nouveaux essais ont lieu après 1, 2, 4, 8 minutes, puis à intervalles plus longs, jusqu'à six fois.",
+      "Dès que l'e-mail part, il passe à « Envoyé » et un devis envoyé de cette façon passe à l'état envoyé.",
+    ],
+    notes: [
+      "Une adresse refusée ou inexistante n'est pas réessayée : corrigez-la dans la fiche client puis renvoyez.",
+      "Le PDF d'un devis émis ne change jamais : votre client le retrouve instantanément s'il l'a déjà ouvert.",
+    ],
+    link: { href: "/app/boite-envoi", label: "Voir les e-mails envoyés" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

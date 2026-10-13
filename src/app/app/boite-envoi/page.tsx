@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Empty, Notice, PageHeader, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
+import { providerFromEnv } from "@/lib/services/mail-providers";
 
 export const metadata = { title: "E-mails envoyés" };
 
@@ -9,15 +10,17 @@ const KINDS: Record<string, string> = { quote: "Envoi de devis", reminder: "Rela
 export default async function OutboxPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const rows = await ctx.db.query<{ id: string; quote_id: string | null; kind: string; to_address: string; subject: string; body: string; status: string; error: string | null; created_at: Date }>(
-    "SELECT id, quote_id, kind, to_address, subject, body, status, error, created_at FROM emails WHERE org_id=$1 ORDER BY created_at DESC LIMIT 200",
+  const rows = await ctx.db.query<{ id: string; quote_id: string | null; kind: string; to_address: string; subject: string; body: string; status: string; error: string | null; created_at: Date; retry: boolean }>(
+    `SELECT e.id, e.quote_id, e.kind, e.to_address, e.subject, e.body, e.status, e.error, e.created_at,
+       EXISTS (SELECT 1 FROM background_jobs j WHERE j.dedupe_key = 'mail:' || e.id::text AND j.status IN ('pending', 'running')) AS retry
+     FROM emails e WHERE e.org_id=$1 ORDER BY e.created_at DESC LIMIT 200`,
     [ctx.orgId],
   );
   const open = rows.find((r) => r.id === sp.id) ?? null;
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="E-mails envoyés" subtitle="Historique des messages envoyés au nom de votre entreprise." />
-      {process.env.MAIL_PROVIDER !== "smtp" ? (
+      {!providerFromEnv() ? (
         <div className="mb-4">
           <Notice tone="info">
             Mode démonstration : les e-mails sont conservés ici au lieu d'être réellement envoyés. Le branchement d'un service d'envoi nécessite un
@@ -35,7 +38,9 @@ export default async function OutboxPage({ searchParams }: { searchParams: Promi
                 <Link href={`/app/boite-envoi?id=${r.id}`} className={`block px-4 py-3 text-sm hover:bg-surface-2 ${open?.id === r.id ? "bg-surface-2" : ""}`}>
                   <div className="flex justify-between gap-2">
                     <span className="truncate font-medium">{r.subject}</span>
-                    <span className={`shrink-0 text-xs ${r.status === "sent" ? "text-success" : "text-danger"}`}>{r.status === "sent" ? "Envoyé" : "Échec"}</span>
+                    <span className={`shrink-0 text-xs ${r.status === "sent" ? "text-success" : r.retry ? "text-muted" : "text-danger"}`}>
+                      {r.status === "sent" ? "Envoyé" : r.retry ? "Nouvel essai prévu" : "Échec"}
+                    </span>
                   </div>
                   <div className="truncate text-xs text-muted">
                     {KINDS[r.kind] ?? r.kind} à {r.to_address}, le {fmtDate(r.created_at, true)}

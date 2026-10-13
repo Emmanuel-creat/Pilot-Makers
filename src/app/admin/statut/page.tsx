@@ -1,16 +1,18 @@
-import { createIncidentAction, updateIncidentAction } from "@/app/actions";
+import { createIncidentAction, retryJobAction, updateIncidentAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
 import { PageHeader, Section, fmtDate } from "@/components/ui";
 import { getDb } from "@/lib/db";
 import { requireAdminPage } from "@/lib/server/session";
-import { LEVELS, listIncidents, serviceStatus } from "@/lib/services/status";
+import { LEVELS, listDeadJobs, listIncidents, serviceStatus } from "@/lib/services/status";
+import { JOB_STATUSES, jobStats } from "@/lib/services/task-queue";
+import { pdfCache } from "@/lib/cache";
 
 export const metadata = { title: "Statut" };
 
 export default async function AdminStatusPage() {
   const ctx = await requireAdminPage();
-  const [status, incidents] = await Promise.all([serviceStatus(getDb), listIncidents(ctx)]);
+  const [status, incidents, queue, dead] = await Promise.all([serviceStatus(getDb), listIncidents(ctx), jobStats(ctx.db), listDeadJobs(ctx)]);
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader
@@ -81,6 +83,33 @@ export default async function AdminStatusPage() {
           </li>
         ))}
       </ul>
+      <Section title="File de tâches">
+        <p className="text-sm text-muted">
+          {(Object.keys(JOB_STATUSES) as (keyof typeof JOB_STATUSES)[]).map((k) => `${JOB_STATUSES[k]} : ${queue.counts[k]}`).join(" · ")}
+          {queue.oldestPending ? ` · plus ancienne en attente : ${fmtDate(queue.oldestPending.toISOString(), true)}` : ""}
+        </p>
+        <p className="mt-1 text-xs text-muted">
+          Cache des PDF de cette instance : {pdfCache.size.entries} fichier(s), {(pdfCache.size.bytes / 1_000_000).toFixed(1)} Mo, {pdfCache.hits} réutilisation(s).
+        </p>
+        {dead.length ? (
+          <ul className="mt-3 space-y-2 text-sm">
+            {dead.map((j) => (
+              <li key={j.id} className="flex flex-wrap items-center justify-between gap-2 rounded border border-line p-2">
+                <span>
+                  <span className="font-medium">{j.kind}</span>, {j.attempts} essai(s), {fmtDate(j.finishedAt, true)}
+                  {j.lastError ? <span className="block text-xs text-danger">{j.lastError}</span> : null}
+                </span>
+                <ActionForm action={retryJobAction}>
+                  <input type="hidden" name="id" value={j.id} />
+                  <Submit className="btn-secondary">Relancer</Submit>
+                </ActionForm>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-muted">Aucune tâche abandonnée.</p>
+        )}
+      </Section>
     </div>
   );
 }

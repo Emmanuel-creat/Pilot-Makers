@@ -11,6 +11,7 @@
 import type { Queryable } from "@/lib/db";
 import { one } from "@/lib/db";
 import { recordUsage } from "./context";
+import { PermanentJobError, enqueueJob, type JobHandler } from "./task-queue";
 import { providerFromEnv, type OutgoingMail } from "./mail-providers";
 
 export interface MailMessage {
@@ -29,7 +30,8 @@ export interface MailMessage {
 
 export interface MailProvider {
   name: string;
-  deliver(msg: OutgoingMail): Promise<{ status: "sent" | "failed" | "bounced"; providerMessageId?: string; error?: string }>;
+  /** `retryable` : échec passager (prestataire indisponible, limite de débit), l'e-mail sera renvoyé plus tard. */
+  deliver(msg: OutgoingMail): Promise<{ status: "sent" | "failed" | "bounced"; providerMessageId?: string; error?: string; retryable?: boolean }>;
 }
 
 /** Boîte d'envoi locale. Les adresses du domaine "invalide.test" simulent un rejet. */
@@ -91,40 +93,104 @@ export async function sendMail(q: Queryable, msg: MailMessage): Promise<SentMail
       msg.invoiceId ?? null,
     ],
   ))!;
-  let result: Awaited<ReturnType<MailProvider["deliver"]>>;
+  const result = await deliverEmail(q, row.id, provider);
+  if (result.status === "failed" && result.retryable) {
+    await enqueueJob(q, MAIL_RETRY_JOB, { emailId: row.id }, { orgId: msg.orgId ?? null, runAt: new Date(Date.now() + 60_000), dedupeKey: `mail:${row.id}` });
+  }
+  if (msg.orgId) await recordUsage(q, msg.orgId, null, "email", 1, 300);
+  return { id: row.id, status: result.status, error: result.error ?? null, duplicate: false };
+}
+
+type DeliveryResult = Awaited<ReturnType<MailProvider["deliver"]>>;
+
+/** Confie au prestataire un e-mail déjà enregistré et note le résultat. */
+async function deliverEmail(q: Queryable, id: string, provider = getMailProvider()): Promise<DeliveryResult> {
+  const msg = await one<Record<string, string | null>>(
+    q,
+    "SELECT org_id, quote_id, kind, to_address, subject, body, attachment_version_id, attachment_invoice_id, invoice_id FROM emails WHERE id=$1",
+    [id],
+  );
+  if (!msg) return { status: "failed", error: "E-mail introuvable" };
+  let result: DeliveryResult;
   try {
     const extra: Pick<OutgoingMail, "replyTo" | "attachment"> = {};
-    if (msg.orgId) {
-      const org = await one<{ email: string }>(q, "SELECT email FROM organizations WHERE id=$1", [msg.orgId]);
+    if (msg.org_id) {
+      const org = await one<{ email: string }>(q, "SELECT email FROM organizations WHERE id=$1", [msg.org_id]);
       extra.replyTo = org?.email || null;
     }
-    if (msg.attachmentVersionId && provider !== outboxProvider) {
+    if (msg.attachment_version_id && provider !== outboxProvider) {
       const v = await one<{ number: string; version: number; pdf: Uint8Array }>(
         q,
         "SELECT number, version, pdf FROM quote_versions WHERE id=$1",
-        [msg.attachmentVersionId],
+        [msg.attachment_version_id],
       );
       if (v) extra.attachment = { filename: `Devis-${v.number}-v${v.version}.pdf`, contentBase64: Buffer.from(v.pdf).toString("base64") };
     }
-    if (msg.attachmentInvoiceId && provider !== outboxProvider) {
-      const inv = await one<{ number: string; kind: string; pdf: Uint8Array }>(q, "SELECT number, kind, pdf FROM invoices WHERE id=$1", [msg.attachmentInvoiceId]);
+    if (msg.attachment_invoice_id && provider !== outboxProvider) {
+      const inv = await one<{ number: string; kind: string; pdf: Uint8Array }>(q, "SELECT number, kind, pdf FROM invoices WHERE id=$1", [msg.attachment_invoice_id]);
       if (inv) {
         const name = inv.kind === "credit_note" ? "Avoir" : "Facture";
         extra.attachment = { filename: `${name}-${inv.number}.pdf`, contentBase64: Buffer.from(inv.pdf).toString("base64") };
       }
     }
-    result = await provider.deliver({ ...msg, ...extra, id: row.id });
+    result = await provider.deliver({
+      id,
+      orgId: msg.org_id,
+      quoteId: msg.quote_id,
+      kind: String(msg.kind),
+      to: String(msg.to_address),
+      subject: String(msg.subject),
+      body: String(msg.body),
+      attachmentVersionId: msg.attachment_version_id,
+      attachmentInvoiceId: msg.attachment_invoice_id,
+      invoiceId: msg.invoice_id,
+      ...extra,
+    });
   } catch (e) {
-    result = { status: "failed", error: (e as Error).message };
+    result = { status: "failed", error: (e as Error).message, retryable: true };
   }
   await q.query(
     `UPDATE emails SET status=$2, provider_message_id=$3, error=$4, attempts=attempts+1,
        sent_at = CASE WHEN $2 = 'sent' THEN now() ELSE sent_at END WHERE id=$1`,
-    [row.id, result.status, result.providerMessageId ?? null, result.error ?? null],
+    [id, result.status, result.providerMessageId ?? null, result.error ?? null],
   );
-  if (msg.orgId) await recordUsage(q, msg.orgId, null, "email", 1, 300);
-  return { id: row.id, status: result.status, error: result.error ?? null, duplicate: false };
+  return result;
 }
+
+export const MAIL_RETRY_JOB = "mail.retry";
+
+/**
+ * Nouvel essai d'un e-mail refusé pour une raison passagère. Un devis envoyé avec succès à ce nouvel essai
+ * passe à l'état « envoyé », comme s'il était parti du premier coup.
+ */
+export const retryMailJob: JobHandler = async (db, job) => {
+  const id = String(job.payload.emailId ?? "");
+  const current = await one<{ status: string }>(db, "SELECT status FROM emails WHERE id=$1", [id]);
+  if (!current) throw new PermanentJobError("E-mail introuvable");
+  if (current.status !== "failed") return;
+  const result = await deliverEmail(db, id);
+  if (result.status === "sent") {
+    const e = await one<{ org_id: string | null; quote_id: string | null; kind: string; to_address: string }>(
+      db,
+      "SELECT org_id, quote_id, kind, to_address FROM emails WHERE id=$1",
+      [id],
+    );
+    if (e?.kind === "quote" && e.quote_id && e.org_id) {
+      await db.query(
+        "UPDATE quotes SET status = CASE WHEN status='ready' THEN 'sent' ELSE status END, sent_at=coalesce(sent_at, now()), updated_at=now() WHERE id=$1 AND org_id=$2",
+        [e.quote_id, e.org_id],
+      );
+      await db.query("INSERT INTO document_events (org_id, quote_id, type, actor_type, data) VALUES ($1,$2,'sent','system',$3)", [
+        e.org_id,
+        e.quote_id,
+        JSON.stringify({ to: e.to_address, email_id: id, status: "sent", retry: true }),
+      ]);
+    }
+    return;
+  }
+  if (result.status === "failed" && result.retryable) throw new Error(result.error ?? "Prestataire indisponible");
+  throw new PermanentJobError(result.error ?? "Envoi refusé");
+};
 
 export function appUrl(path = ""): string {
   return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "") + path;

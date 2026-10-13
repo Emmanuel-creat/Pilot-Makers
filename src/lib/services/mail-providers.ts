@@ -41,7 +41,7 @@ async function post(url: string, headers: Record<string, string>, body: unknown)
 /** Une erreur 4xx du prestataire est définitive (adresse refusée) ; une 5xx peut être retentée. */
 function failure(status: number, json: Record<string, unknown>): Result {
   const message = String(json.message ?? json.Message ?? json.error ?? `Erreur ${status} du prestataire`);
-  return { status: "failed", error: message.slice(0, 300) };
+  return { status: "failed", error: message.slice(0, 300), retryable: status >= 500 || status === 429 };
 }
 
 export function brevoProvider(apiKey: string, from: string): MailProvider {
