@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "trajets-du-jour",
+    date: "2026-10-13",
+    title: "Trajets du jour",
+    text: "Chaque tournée dans l'ordre conseillé, avec kilomètres et temps de route estimés, et l'itinéraire prêt à lancer sur le téléphone.",
+    href: "/app/planning/trajets",
+  },
+  {
     id: "devis-sous-traitants",
     date: "2026-10-13",
     title: "Prix des sous-traitants dans vos devis",

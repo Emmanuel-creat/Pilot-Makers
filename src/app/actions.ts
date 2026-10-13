@@ -81,6 +81,7 @@ import {
 import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableTwoFactor, regenerateRecoveryCodes } from "@/lib/services/two-factor";
 import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction, switchOrg } from "@/lib/services/team";
 import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } from "@/lib/services/subcontractor-quotes";
+import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1481,6 +1482,45 @@ export async function decideSubQuoteAction(_: ActionState, fd: FormData): Promis
     await withCtx((ctx) => decideSubQuote(ctx, s(fd, "id"), decision));
     revalidatePath(s(fd, "back") || "/app/sous-traitants");
     return { ok: true, message: decision === "annule" ? "Demande annulée." : "Prix écarté." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Itinéraires */
+
+export async function locateJobAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    const p = await withCtx((ctx) => locateJob(ctx, jobId));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: `Chantier localisé : ${p.label || "adresse trouvée"}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function jobPositionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => setJobPosition(ctx, jobId, s(fd, "latitude"), s(fd, "longitude")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Position du chantier enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function locateMissingAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => locateMissing(ctx, s(fd, "date")));
+    revalidatePath("/app/planning/trajets");
+    return {
+      ok: true,
+      message: r.missing
+        ? `${r.found} chantier(s) localisé(s), ${r.missing} adresse(s) introuvable(s) : enregistrez leur position depuis le chantier.`
+        : `${r.found} chantier(s) localisé(s).`,
+    };
   } catch (e) {
     return toState(e);
   }

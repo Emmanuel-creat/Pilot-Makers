@@ -533,6 +533,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/sous-traitants", label: "Ouvrir les sous-traitants" },
   },
   {
+    slug: "trajets-du-jour",
+    category: "devis",
+    title: "Préparer les trajets de la journée",
+    summary: "Ordre conseillé des chantiers, kilomètres et temps de route de chacun, et l'itinéraire dans votre application de navigation.",
+    steps: [
+      "Sur la fiche du chantier, touchez « Localiser l'adresse », ou « Je suis sur le chantier » pour enregistrer la position exacte avec le téléphone.",
+      "Dans le planning, ouvrez « Trajets » : chaque personne affectée ce jour-là a sa tournée, au départ et au retour du dépôt.",
+      "L'ordre proposé va toujours au chantier le plus proche. Les distances et durées sont des estimations, détours routiers compris.",
+      "Touchez « Ouvrir l'itinéraire » pour lancer la navigation avec toutes les étapes.",
+    ],
+    notes: [
+      "« Localiser les adresses manquantes » traite d'un coup les chantiers du jour. Une adresse introuvable se règle en relevant la position sur place.",
+      "Si l'adresse du chantier change, sa position tirée de l'ancienne adresse est effacée ; une position relevée sur place est conservée.",
+      "Un compagnon ne voit que sa propre tournée.",
+    ],
+    link: { href: "/app/planning/trajets", label: "Ouvrir les trajets du jour" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

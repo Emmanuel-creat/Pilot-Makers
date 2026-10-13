@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { Notice, PageHeader, Section, fmtDate } from "@/components/ui";
+import { JobLocation } from "./JobLocation";
 import { HttpError } from "@/lib/http";
 import { requirePageCtx } from "@/lib/server/session";
 import { getJob, JOB_STATUSES } from "@/lib/services/jobs";
@@ -137,6 +138,10 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         </Section>
         <Section title="Fiche chantier">
           <JobInfoForm job={job} canEdit={canEdit} />
+          <div className="mt-4 border-t border-line pt-4">
+            <h3 className="mb-2 text-sm font-semibold">Emplacement</h3>
+            <JobLocation jobId={job.id} located={job.latitude !== null} source={job.geo_source} label={job.geo_label} canEdit={canEdit} />
+          </div>
         </Section>
       </div>
 

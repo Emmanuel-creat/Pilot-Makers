@@ -351,6 +351,22 @@ test("devis : prix demandé à un sous-traitant, réponse en ligne puis intégra
     .toBe(true);
 });
 
+test("itinéraires : position relevée sur le chantier puis trajets du jour", async ({ page }) => {
+  await login(page);
+  await page.context().grantPermissions(["geolocation"]);
+  await page.context().setGeolocation({ latitude: 45.7719, longitude: 4.8902 });
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Je suis sur le chantier" }).click();
+  await expect(page.getByText("Position du chantier enregistrée.")).toBeVisible();
+  await expect(page.getByText("Position relevée sur place.")).toBeVisible();
+  await page.goto("/app/planning");
+  await page.getByRole("link", { name: "Trajets" }).click();
+  await expect(page.getByRole("heading", { name: "Trajets du jour" })).toBeVisible();
+  await audit(page, "trajets du jour");
+});
+
 test("notes de frais : ticket photographié puis validation et remboursement", async ({ page }) => {
   await login(page);
   await page.goto("/app/frais");

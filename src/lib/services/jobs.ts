@@ -40,6 +40,10 @@ export interface Job {
   created_at: Date;
   quote_number?: string | null;
   customer_name?: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  geo_source: "" | "adresse" | "gps";
+  geo_label: string;
 }
 
 export interface JobTask {
@@ -68,6 +72,10 @@ function mapJob(r: Record<string, unknown>): Job {
     contacts: (r.contacts as JobContact[]) ?? [],
     start_date: day(r.start_date),
     end_date: day(r.end_date),
+    latitude: r.latitude == null ? null : Number(r.latitude),
+    longitude: r.longitude == null ? null : Number(r.longitude),
+    geo_source: (r.geo_source ?? "") as Job["geo_source"],
+    geo_label: String(r.geo_label ?? ""),
   };
 }
 
@@ -215,7 +223,12 @@ export async function updateJob(ctx: Ctx, id: string, raw: unknown) {
   const contacts = d.contacts.filter((c) => c.name || c.phone);
   const r = await ctx.db.query<{ id: string }>(
     `UPDATE jobs SET title=$3, status=$4, site_line1=$5, site_line2=$6, site_postal_code=$7, site_city=$8, access_notes=$9, access_codes=$10,
-       contacts=$11, start_date=$12, end_date=$13, updated_at=now() WHERE id=$1 AND org_id=$2 RETURNING id`,
+       contacts=$11, start_date=$12, end_date=$13, updated_at=now(),
+       -- Une position tirée de l'ancienne adresse ne vaut plus si l'adresse change.
+       latitude=CASE WHEN geo_source='adresse' AND (site_line1, site_postal_code, site_city) IS DISTINCT FROM ($5, $7, $8) THEN NULL ELSE latitude END,
+       longitude=CASE WHEN geo_source='adresse' AND (site_line1, site_postal_code, site_city) IS DISTINCT FROM ($5, $7, $8) THEN NULL ELSE longitude END,
+       geo_source=CASE WHEN geo_source='adresse' AND (site_line1, site_postal_code, site_city) IS DISTINCT FROM ($5, $7, $8) THEN '' ELSE geo_source END
+     WHERE id=$1 AND org_id=$2 RETURNING id`,
     [
       id,
       ctx.orgId,

@@ -43,6 +43,9 @@ export default async function PlanningPage({ searchParams }: { searchParams: Pro
             <Link className="btn-secondary px-2" href={link(next)} aria-label={month ? "Mois suivant" : "Semaine suivante"}>
               <Icon name="right" size={16} />
             </Link>
+            <Link className="btn-secondary" href={`/app/planning/trajets?jour=${anchor >= from && anchor <= to ? anchor : from}`}>
+              <Icon name="truck" size={16} /> Trajets
+            </Link>
             <Link className={month ? "btn-secondary" : "btn-primary"} href={link(from, "semaine")} aria-current={month ? undefined : "page"}>
               Semaine
             </Link>
