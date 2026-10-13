@@ -8,6 +8,7 @@ import { deleteIndexValue, saveIndexValue } from "@/lib/services/revision";
 import { setOrgFeature } from "@/lib/services/features";
 import { addVehicle, assign, deleteAssignment, deleteVehicle, moveAssignment } from "@/lib/services/planning";
 import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/job-site";
+import { releaseRetention } from "@/lib/services/warranties";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
@@ -744,6 +745,18 @@ export async function liftReserveAction(_: ActionState, fd: FormData): Promise<A
     const jobId = await withCtx((ctx) => liftReserve(ctx, s(fd, "reserveId"), s(fd, "note")));
     revalidatePath(`/app/chantiers/${jobId}`);
     return { ok: true, message: "Réserve levée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function releaseRetentionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => releaseRetention(ctx, jobId, s(fd, "note")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    revalidatePath("/app/chantiers/garanties");
+    return { ok: true, message: "Retenue de garantie libérée." };
   } catch (e) {
     return toState(e);
   }

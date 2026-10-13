@@ -644,6 +644,15 @@ test("devis : modification faite ailleurs reprise sans recharger", async ({ page
   await other.close();
 });
 
+test("chantiers : page des garanties", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.getByRole("link", { name: "Garanties" }).click();
+  await page.waitForURL(/\/app\/chantiers\/garanties$/);
+  await expect(page.getByRole("heading", { name: "Garanties", level: 1 })).toBeVisible();
+  await audit(page, "garanties");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

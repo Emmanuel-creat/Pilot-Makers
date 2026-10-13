@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "garanties",
+    date: "2026-10-13",
+    title: "Garanties et retenue de garantie",
+    text: "Parfait achèvement, biennale et décennale suivis pour chaque chantier réceptionné, avec un rappel quand la retenue est à réclamer.",
+    href: "/aide/garanties-et-retenue-de-garantie",
+  },
+  {
     id: "edition-a-plusieurs",
     date: "2026-10-13",
     title: "Un devis, plusieurs mains",

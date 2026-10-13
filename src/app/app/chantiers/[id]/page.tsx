@@ -24,6 +24,8 @@ import { StatusBadge } from "../../sous-traitants/StatusBadge";
 import { can } from "@/lib/services/context";
 import { publishedJournalIds } from "@/lib/services/showcase";
 import { PublishPhoto } from "./PublishPhoto";
+import { getWarranty } from "@/lib/services/warranties";
+import { WarrantySummary } from "../garanties/WarrantySummary";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -38,7 +40,13 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     throw e;
   });
   const { job, sections, progressBp } = data;
-  const [journal, rec, hours, published] = await Promise.all([listJournal(ctx, id), getReception(ctx, id), jobHours(ctx, id), publishedJournalIds(ctx, id)]);
+  const [journal, rec, hours, published, warranty] = await Promise.all([
+    listJournal(ctx, id),
+    getReception(ctx, id),
+    jobHours(ctx, id),
+    publishedJournalIds(ctx, id),
+    getWarranty(ctx, id),
+  ]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const costsAllowed = can(ctx, "costs");
   const showCosts = costsAllowed && !!ctx.entitlements.plan.features.margin;
@@ -234,6 +242,17 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                     </p>
                   )}
                 </>
+              ) : null}
+              {warranty ? (
+                <div className="border-t border-line pt-4">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-medium">Garanties</h3>
+                    <Link className="link text-xs" href="/app/chantiers/garanties">
+                      Tous les chantiers
+                    </Link>
+                  </div>
+                  <WarrantySummary w={warranty} canEdit={canEdit} />
+                </div>
               ) : null}
             </div>
           ) : canEdit ? (

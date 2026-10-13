@@ -1091,6 +1091,25 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Mes devis" },
   },
   {
+    slug: "garanties-et-retenue-de-garantie",
+    category: "factures",
+    title: "Suivre les garanties et la retenue de garantie",
+    summary:
+      "Après la réception des travaux, Pilot-Makers suit les trois garanties de chaque chantier et la retenue de garantie à récupérer auprès du client.",
+    steps: [
+      "Signez le procès-verbal de réception depuis la fiche du chantier : la date de réception fait courir les garanties.",
+      "Ouvrez Chantiers, puis « Garanties » : chaque chantier réceptionné affiche la fin du parfait achèvement (un an), du bon fonctionnement (deux ans) et de la décennale (dix ans).",
+      "Un an après la réception, la retenue de garantie déduite de la facture de solde passe à « À réclamer ». Demandez-la au client.",
+      "Une fois le versement reçu, ou une caution bancaire fournie, cliquez sur « Marquer comme libérée ».",
+    ],
+    notes: [
+      "Une notification vous prévient un mois avant la fin du parfait achèvement, puis le jour où la retenue peut être réclamée.",
+      "Tant que des réserves ne sont pas levées, le client peut s'opposer à la libération de la retenue : levez-les d'abord depuis la fiche du chantier.",
+      "Un refus de réception ne fait courir aucune garantie, et un avoir total annule la retenue de la facture concernée.",
+    ],
+    link: { href: "/app/chantiers/garanties", label: "Garanties" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
