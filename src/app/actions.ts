@@ -75,6 +75,7 @@ import { saveTravelRates } from "@/lib/services/travel";
 import { deleteJobMessage, postJobMessage } from "@/lib/services/job-chat";
 import { setMonthlyReport } from "@/lib/services/monthly-report";
 import { hideReview, replyReview, requestReview } from "@/lib/services/reviews";
+import { cancelVisit, saveVisitSettings } from "@/lib/services/visits";
 import {
   cancelQuote,
   createAmendment,
@@ -2067,6 +2068,28 @@ export async function reviewModerationAction(_: ActionState, fd: FormData): Prom
     await withCtx((ctx) => (op === "reply" ? replyReview(ctx, id, s(fd, "reply")) : hideReview(ctx, id, op === "show" ? "" : s(fd, "reason"))));
     revalidatePath("/app/avis");
     return { ok: true, message: op === "reply" ? "Réponse enregistrée." : op === "show" ? "Avis rétabli." : "Avis masqué." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function visitSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const raw: Record<string, string> = {};
+    for (const [k, v] of fd.entries()) if (typeof v === "string") raw[k] = v;
+    const r = await withCtx((ctx) => saveVisitSettings(ctx, raw));
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: r.enabled ? "Prise de rendez-vous ouverte sur votre vitrine." : "Réglages enregistrés, prise de rendez-vous fermée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function cancelVisitAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => cancelVisit(ctx, s(fd, "id")));
+    revalidatePath("/app/demandes");
+    return { ok: true, message: "Visite annulée : pensez à prévenir le client." };
   } catch (e) {
     return toState(e);
   }

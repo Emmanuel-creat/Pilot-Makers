@@ -26,6 +26,8 @@ export interface CalendarEvent {
   location?: string;
   url?: string;
   category?: string;
+  /** Rendez-vous à l'heure près (début et fin en UTC) : remplace les jours entiers */
+  at?: { start: Date; end: Date };
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,15 +89,16 @@ export function buildCalendar(name: string, events: CalendarEvent[], now = new D
       "BEGIN:VEVENT",
       `UID:${e.uid}@pilot-makers`,
       `DTSTAMP:${stamp(now)}`,
-      `DTSTART;VALUE=DATE:${compact(e.start)}`,
-      `DTEND;VALUE=DATE:${compact(nextDay(e.end))}`,
+      ...(e.at
+        ? [`DTSTART:${stamp(e.at.start)}`, `DTEND:${stamp(e.at.end)}`]
+        : [`DTSTART;VALUE=DATE:${compact(e.start)}`, `DTEND;VALUE=DATE:${compact(nextDay(e.end))}`]),
       `SUMMARY:${icsEscape(e.summary)}`,
     );
     if (e.description) lines.push(`DESCRIPTION:${icsEscape(e.description)}`);
     if (e.location) lines.push(`LOCATION:${icsEscape(e.location)}`);
     if (e.url) lines.push(`URL:${e.url}`);
     if (e.category) lines.push(`CATEGORIES:${icsEscape(e.category)}`);
-    lines.push("TRANSP:TRANSPARENT", "END:VEVENT");
+    lines.push(e.at ? "TRANSP:OPAQUE" : "TRANSP:TRANSPARENT", "END:VEVENT");
   }
   lines.push("END:VCALENDAR");
   return lines.map(foldLine).join("\r\n") + "\r\n";
@@ -107,8 +110,7 @@ export function buildCalendar(name: string, events: CalendarEvent[], now = new D
 
 const iso = (v: unknown) => (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10));
 const shift = (d: Date, days: number) => new Date(d.getTime() + days * 86400000).toISOString().slice(0, 10);
-const euros = (cents: number) =>
-  (cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\s/g, " ") + " EUR";
+const euros = (cents: number) => (cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\s/g, " ") + " EUR";
 const address = (r: Record<string, unknown>) =>
   [r.site_line1, r.site_line2, [r.site_postal_code, r.site_city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 
@@ -137,9 +139,7 @@ export async function calendarEvents(ctx: Ctx, scope: FeedScope, origin = "", no
       start: iso(a.start_date),
       end: iso(a.end_date),
       summary: company && who ? `${a.title} (${who})` : `Chantier : ${a.title}`,
-      description: [a.customer_name ? `Client : ${a.customer_name}` : "", a.access_notes ? `Accès : ${a.access_notes}` : ""]
-        .filter(Boolean)
-        .join("\n"),
+      description: [a.customer_name ? `Client : ${a.customer_name}` : "", a.access_notes ? `Accès : ${a.access_notes}` : ""].filter(Boolean).join("\n"),
       location: address(a),
       url: link(`/app/chantiers/${a.job_id}`),
       category: "Chantier",
@@ -219,6 +219,26 @@ export async function calendarEvents(ctx: Ctx, scope: FeedScope, origin = "", no
       url: link(`/app/chantiers/${o.job_id}/commandes/${o.id}`),
       category: "Livraison",
     });
+
+  const visits = await ctx.db.query<Record<string, unknown>>(
+    `SELECT id, starts_at, ends_at, name, phone, address, city, description FROM visit_bookings
+     WHERE org_id=$1 AND status='confirmee' AND starts_at::date BETWEEN $2 AND $3`,
+    [ctx.orgId, from, to],
+  );
+  for (const v of visits) {
+    const start = new Date(v.starts_at as string);
+    events.push({
+      uid: `visite-${v.id}`,
+      start: iso(start),
+      end: iso(start),
+      at: { start, end: new Date(v.ends_at as string) },
+      summary: `Visite : ${v.name}`,
+      description: [`Téléphone : ${v.phone}`, String(v.description ?? "")].filter(Boolean).join("\n"),
+      location: [v.address, v.city].filter(Boolean).join(", "),
+      url: link("/app/demandes"),
+      category: "Visite",
+    });
+  }
   return events;
 }
 
@@ -271,9 +291,7 @@ export async function feedCalendar(db: Database, token: string, meta: RequestMet
   // Personne partie de l'entreprise ou compte fermé : le lien ne donne plus rien.
   if (!ctx || ctx.orgId !== feed.org_id) throw notFound("Agenda introuvable");
   await db.query("UPDATE calendar_feeds SET last_used_at=now() WHERE id=$1", [feed.id]);
-  const org = await one<{ trade_name: string; legal_name: string }>(db, "SELECT trade_name, legal_name FROM organizations WHERE id=$1", [
-    feed.org_id,
-  ]);
+  const org = await one<{ trade_name: string; legal_name: string }>(db, "SELECT trade_name, legal_name FROM organizations WHERE id=$1", [feed.org_id]);
   const name = `${org?.trade_name || org?.legal_name || "Pilot-Makers"}${feed.scope === "entreprise" && ctx.role !== "member" ? "" : " (mes chantiers)"}`;
   return buildCalendar(name, await calendarEvents(ctx, feed.scope, origin, now), now);
 }

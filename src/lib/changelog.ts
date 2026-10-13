@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "visites-en-ligne",
+    date: "2026-10-13",
+    title: "Rendez-vous de visite en ligne",
+    text: "Vos clients réservent eux-mêmes une visite sur votre vitrine, parmi vos créneaux libres ; la visite s'ajoute à vos demandes et à votre agenda synchronisé.",
+    href: "/aide/visites-en-ligne",
+  },
+  {
     id: "avis-clients",
     date: "2026-10-13",
     title: "Avis clients",

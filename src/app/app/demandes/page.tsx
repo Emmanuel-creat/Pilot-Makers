@@ -3,7 +3,11 @@ import { Icon } from "@/components/Icon";
 import { Empty, PageHeader, Section, StatusBadge, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { LEAD_SOURCES, LEAD_STATUSES, listLeads, OPEN_LEAD_STATUSES, type Lead } from "@/lib/services/leads";
-import { convertLeadAction, updateLeadAction } from "@/app/actions";
+import { cancelVisitAction, convertLeadAction, updateLeadAction } from "@/app/actions";
+import { ActionForm } from "@/components/forms/ActionForm";
+import { Submit } from "@/components/forms/Submit";
+import { upcomingVisits } from "@/lib/services/visits";
+import { slotLabel } from "@/lib/visits";
 import { LeadForm } from "./LeadForm";
 
 export const metadata = { title: "Demandes" };
@@ -15,7 +19,7 @@ function parisToday() {
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ tout?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const all = await listLeads(ctx);
+  const [all, visits] = await Promise.all([listLeads(ctx), upcomingVisits(ctx)]);
   const open = all.filter((l) => OPEN_LEAD_STATUSES.includes(l.status));
   const closed = all.filter((l) => !OPEN_LEAD_STATUSES.includes(l.status));
   const today = parisToday();
@@ -29,10 +33,39 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
+          {visits.length ? (
+            <Section title="Visites à venir" description="Réservées en ligne depuis votre vitrine. Elles figurent aussi dans votre agenda synchronisé.">
+              <ul className="divide-y divide-line" data-testid="visites">
+                {visits.map((v) => (
+                  <li key={v.id} className="flex flex-wrap items-start justify-between gap-2 py-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-1.5 font-medium">
+                        <Icon name="calendar" size={16} className="text-muted" /> {slotLabel(v.start)}
+                      </p>
+                      <p>
+                        {v.name}, {v.phone}
+                        {v.email ? `, ${v.email}` : ""}
+                      </p>
+                      <p className="text-muted">
+                        {v.address}
+                        {v.city ? `, ${v.city}` : ""}
+                      </p>
+                      <p className="mt-1 line-clamp-2 text-muted">{v.description}</p>
+                    </div>
+                    {writable ? (
+                      <ActionForm action={cancelVisitAction} className="flex flex-col items-end gap-1">
+                        <input type="hidden" name="id" value={v.id} />
+                        <Submit className="btn-secondary">Annuler la visite</Submit>
+                      </ActionForm>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ) : null}
           {all.length === 0 ? (
             <Empty icon="inbox" title="Aucune demande pour l'instant">
-              Notez ici chaque appel ou message d'un client potentiel : vous saurez qui rappeler, quand, et combien de demandes deviennent des
-              chantiers.
+              Notez ici chaque appel ou message d'un client potentiel : vous saurez qui rappeler, quand, et combien de demandes deviennent des chantiers.
             </Empty>
           ) : (
             <Section title="À suivre" description="Classées par date de prochaine action.">
@@ -128,13 +161,7 @@ function LeadRow({ l, today, writable }: { l: Lead; today: string; writable: boo
               aria-label="Prochaine action"
               maxLength={300}
             />
-            <input
-              name="next_action_on"
-              type="date"
-              defaultValue={l.next_action_on ?? ""}
-              className="field"
-              aria-label="Date de la prochaine action"
-            />
+            <input name="next_action_on" type="date" defaultValue={l.next_action_on ?? ""} className="field" aria-label="Date de la prochaine action" />
             <button className="btn-secondary">Enregistrer</button>
           </form>
         </details>

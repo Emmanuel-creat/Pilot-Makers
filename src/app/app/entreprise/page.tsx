@@ -20,6 +20,8 @@ import { can } from "@/lib/services/context";
 import { getListing, getShowcase, listShowcasePhotos } from "@/lib/services/showcase";
 import { Listing } from "./Listing";
 import { Showcase } from "./Showcase";
+import { VisitSettingsForm } from "./VisitSettingsForm";
+import { getVisitSettings } from "@/lib/services/visits";
 import { RgeList } from "./RgeList";
 import { LabelsList } from "./LabelsList";
 import { listLabels } from "@/lib/services/labels";
@@ -67,6 +69,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.onglet) ? sp.onglet! : "identite";
   const ctx = await requirePageCtx();
+  const showcase = tab === "vitrine" ? await getShowcase(ctx) : null;
   const rge = tab === "assurance" ? await listRge(ctx) : [];
   const org = redactForRole(await getOrganization(ctx), ctx);
   const canEdit = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
@@ -153,7 +156,8 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "vitrine" ? (
         <>
-          <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} orgName={org.trade_name || org.legal_name} />
+          <Showcase settings={showcase!} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} orgName={org.trade_name || org.legal_name} />
+          <VisitSettingsForm settings={await getVisitSettings(ctx)} slug={showcase!.slug} published={showcase!.enabled} canEdit={canEdit} />
           <Listing listing={await getListing(ctx)} canEdit={canEdit} />
         </>
       ) : tab === "historique" ? (

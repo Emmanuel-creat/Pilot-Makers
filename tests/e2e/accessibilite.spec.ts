@@ -880,6 +880,46 @@ test("avis client : invitation, dépôt puis gestion", async ({ page, browser })
   await audit(page, "avis clients");
 });
 
+test("vitrine : rendez-vous de visite réservé en ligne", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=vitrine");
+  await page.getByLabel("Publier la page vitrine").check();
+  await page.getByLabel("Adresse de la page").fill("demo-vitrine");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Vitrine publiée.")).toBeVisible();
+  await page.getByLabel("Proposer la prise de rendez-vous sur ma vitrine").check();
+  for (const day of ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]) await page.getByLabel(`Visites le ${day}`).fill("8h-20h");
+  await page.getByLabel("Délai de prévenance").selectOption("12");
+  await page.getByRole("button", { name: "Enregistrer les visites" }).click();
+  await expect(page.getByText("Prise de rendez-vous ouverte sur votre vitrine.")).toBeVisible();
+  await audit(page, "réglages des visites");
+
+  const visitor = await browser.newContext({ locale: "fr-FR" });
+  const vp = await visitor.newPage();
+  await vp.goto("/pro/demo-vitrine");
+  await vp.getByRole("link", { name: "Prendre rendez-vous pour une visite" }).click();
+  await expect(vp.getByRole("heading", { name: "Prendre rendez-vous pour une visite", level: 1 })).toBeVisible();
+  await audit(vp, "réservation de visite");
+  await vp.locator("label:has(input[name=slot])").first().click();
+  await vp.getByLabel("Nom et prénom").fill("Hugo Lambert");
+  await vp.getByLabel("Téléphone").fill("06 98 76 54 32");
+  await vp.getByLabel("Adresse des travaux").fill("8 rue Mercière");
+  await vp.getByLabel("Ville").fill("Lyon");
+  await vp.getByLabel("Vos travaux").fill("Carrelage de la cuisine, environ 15 m².");
+  await vp.getByRole("checkbox", { name: /organiser la visite/ }).check();
+  await vp.getByRole("button", { name: "Réserver la visite" }).click();
+  await expect(vp.getByRole("status")).toContainText("Visite réservée le");
+  await visitor.close();
+
+  await page.goto("/app/demandes");
+  const visits = page.getByTestId("visites");
+  await expect(visits.getByText("Hugo Lambert, 06 98 76 54 32")).toBeVisible();
+  await audit(page, "visites à venir");
+  // Annulée, la visite quitte la liste et le créneau redevient libre.
+  await visits.locator("li", { hasText: "Hugo Lambert" }).getByRole("button", { name: "Annuler la visite" }).click();
+  await expect(page.getByText("Hugo Lambert, 06 98 76 54 32")).toBeHidden();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

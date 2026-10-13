@@ -48,9 +48,16 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
               </p>
             ) : null}
           </div>
-          <a href="#demande" className="btn-primary shrink-0">
-            <Icon name="send" size={16} /> Demander un devis
-          </a>
+          <div className="flex shrink-0 flex-col gap-2">
+            <a href="#demande" className="btn-primary">
+              <Icon name="send" size={16} /> Demander un devis
+            </a>
+            {p.visits ? (
+              <Link href={`/pro/${p.slug}/visite`} className="btn-secondary">
+                <Icon name="calendar" size={16} /> Prendre rendez-vous pour une visite
+              </Link>
+            ) : null}
+          </div>
         </header>
 
         {p.intro ? (

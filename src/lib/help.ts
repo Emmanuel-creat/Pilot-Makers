@@ -1410,6 +1410,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/avis", label: "Voir les avis" },
   },
   {
+    slug: "visites-en-ligne",
+    category: "clients",
+    title: "Laisser vos clients réserver une visite",
+    summary: "Vos créneaux de visite proposés sur la vitrine, ajoutés à votre agenda.",
+    steps: [
+      "Dans Entreprise, onglet « Vitrine », renseignez vos plages de visite jour par jour, par exemple 17h-19h, la durée d'une visite et le délai de prévenance.",
+      "Cochez « Proposer la prise de rendez-vous sur ma vitrine » : un bouton « Prendre rendez-vous pour une visite » apparaît sur votre page.",
+      "Le client choisit un créneau libre et laisse ses coordonnées : la demande arrive au statut « Visite prévue », et vous êtes prévenu par e-mail et sur votre téléphone.",
+    ],
+    notes: [
+      "Les visites réservées figurent dans « Visites à venir » sur la page Demandes et dans votre agenda synchronisé. Les jours de congé du dirigeant ne sont pas proposés.",
+      "Pour annuler une visite, utilisez « Annuler la visite » puis prévenez le client : le créneau redevient libre.",
+    ],
+    link: { href: "/app/entreprise?onglet=vitrine", label: "Régler les visites" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
