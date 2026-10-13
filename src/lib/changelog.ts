@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "arrondis-commerciaux",
+    date: "2026-10-13",
+    title: "Arrondis commerciaux",
+    text: "Des prix ronds proposés en un clic, puis un total rond par une petite remise sur l'ensemble.",
+    href: "/aide/arrondis-commerciaux",
+  },
+  {
     id: "garanties",
     date: "2026-10-13",
     title: "Garanties et retenue de garantie",

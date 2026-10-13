@@ -1110,6 +1110,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers/garanties", label: "Garanties" },
   },
   {
+    slug: "arrondis-commerciaux",
+    category: "devis",
+    title: "Arrondir les prix et le total d'un devis",
+    summary: "Les prix calculés tombent souvent sur des centimes peu parlants. L'éditeur propose des prix ronds, puis un total rond.",
+    steps: [
+      "Chiffrez le devis normalement. Sous les totaux, l'encadré « Arrondis commerciaux » apparaît quand un prix unitaire peut être arrondi.",
+      "Cliquez sur « Arrondir les prix » : 43,87 € devient 44,00 €, 1 237 € devient 1 235 €.",
+      "Une fois les prix ronds, l'encadré propose un total rond, obtenu par une petite remise sur l'ensemble. Cliquez sur « Arrondir le total » pour l'appliquer.",
+    ],
+    notes: [
+      "Le pas d'arrondi grandit avec le prix : 10 centimes sous 10 €, 50 centimes sous 100 €, 1 € sous 1 000 €, 5 € au-delà.",
+      "Le total est toujours arrondi vers le bas, et jamais au-delà de 3 % de remise.",
+      "Rien n'est appliqué sans votre clic, et « Annuler » revient en arrière.",
+    ],
+    link: { href: "/app/devis", label: "Mes devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

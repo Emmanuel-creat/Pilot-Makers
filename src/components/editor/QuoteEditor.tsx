@@ -9,10 +9,11 @@ import { appendDictated, Dictation } from "@/components/Dictation";
 import { StatusBadge } from "@/components/ui";
 import { draftToCalcInput } from "@/lib/calc/draft";
 import { variantGroups } from "@/lib/calc/variants";
+import { applyPriceRoundings, priceRoundings, totalRounding } from "@/lib/calc/rounding";
 import { mergeDrafts } from "@/lib/draft-merge";
 import { computeQuote } from "@/lib/calc/engine";
 import { groupRuns } from "@/lib/calc/groups";
-import { bpToInput, formatEuros, formatPercent, price4ToInput } from "@/lib/calc/format";
+import { bpToInput, formatEuros, formatPercent, formatUnitPrice, price4ToInput } from "@/lib/calc/format";
 import type { CatalogItem } from "@/lib/services/catalog";
 import { checkCompliance, type ComplianceInput } from "@/lib/services/compliance";
 import { CONTRACT_PLACES, consumerTerms, type ContractPlace } from "@/lib/services/consumer";
@@ -26,7 +27,16 @@ import { CatalogPicker } from "./CatalogPicker";
 import { CustomerForm } from "./CustomerForm";
 import { LineRow, UNITS } from "./LineRow";
 import { BT_INDEXES, DEFAULT_FIXED_PERCENT } from "@/lib/services/revision-labels";
-import { AID_PROGRAMS, RGE_DOMAINS, aidIssues, normalizeAid, type AidProgram, type EnergyAid, type RgeDomain, type RgeQualification } from "@/lib/services/aid-rules";
+import {
+  AID_PROGRAMS,
+  RGE_DOMAINS,
+  aidIssues,
+  normalizeAid,
+  type AidProgram,
+  type EnergyAid,
+  type RgeDomain,
+  type RgeQualification,
+} from "@/lib/services/aid-rules";
 import { travelCostCents, travelLine, type Pricing, type TravelSettings } from "@/lib/services/pricing";
 
 export interface EditorCustomer {
@@ -182,7 +192,13 @@ export function QuoteEditor({
     const nets = new Map(calc.sections.flatMap((x) => x.lines.map((l) => [l.id, l.netCents] as const)));
     return new Map(
       variantGroups(d.sections).flatMap((g) =>
-        g.sections.map((sec, i) => [sec.id, { group: g.name, included: i === 0, netCents: sec.lines.reduce((n, l) => n + (l.kind === "item" ? (nets.get(l.id) ?? 0) : 0), 0) }] as const),
+        g.sections.map(
+          (sec, i) =>
+            [
+              sec.id,
+              { group: g.name, included: i === 0, netCents: sec.lines.reduce((n, l) => n + (l.kind === "item" ? (nets.get(l.id) ?? 0) : 0), 0) },
+            ] as const,
+        ),
       ),
     );
   }, [calc, d.sections]);
@@ -229,10 +245,7 @@ export function QuoteEditor({
     ],
     [org, customer, d, calc, rge],
   );
-  const consumer = useMemo(
-    () => consumerTerms(d.contractPlace, customer?.type, calc, org.vat_regime),
-    [d.contractPlace, customer, calc, org.vat_regime],
-  );
+  const consumer = useMemo(() => consumerTerms(d.contractPlace, customer?.type, calc, org.vat_regime), [d.contractPlace, customer, calc, org.vat_regime]);
   // Remise guidée : effet de la remise globale sur la marge, connu avant d'émettre (lignes avec coût renseigné).
   const discountImpact = useMemo(() => {
     if (!showMargin || !calc.globalDiscountCents || calc.margin.linesWithoutCost > 0) return null;
@@ -249,42 +262,45 @@ export function QuoteEditor({
   const lineResults = useMemo(() => new Map(calc.sections.flatMap((s) => s.lines.map((l) => [l.id, l] as const))), [calc]);
 
   /* Édition à plusieurs : reprise des modifications enregistrées par une autre personne */
-  const absorbRemote = useCallback(async (by = ""): Promise<boolean> => {
-    let remote: QuoteDraft;
-    try {
-      remote = (await apiFetch<{ quote: QuoteDraft }>(`/api/quotes/${initial.id}`)).quote;
-    } catch {
-      return false;
-    }
-    if (remote.draftRevision <= revision.current && remote.draftRevision === base.current.draftRevision) return true;
-    const local = latest.current;
-    const unsaved = savedSeq.current < changeSeq.current || !same(payload(local), payload(base.current));
-    if (!unsaved) {
+  const absorbRemote = useCallback(
+    async (by = ""): Promise<boolean> => {
+      let remote: QuoteDraft;
+      try {
+        remote = (await apiFetch<{ quote: QuoteDraft }>(`/api/quotes/${initial.id}`)).quote;
+      } catch {
+        return false;
+      }
+      if (remote.draftRevision <= revision.current && remote.draftRevision === base.current.draftRevision) return true;
+      const local = latest.current;
+      const unsaved = savedSeq.current < changeSeq.current || !same(payload(local), payload(base.current));
+      if (!unsaved) {
+        base.current = remote;
+        revision.current = remote.draftRevision;
+        latest.current = remote;
+        setD(remote);
+        if (by) setToast(`Devis mis à jour par ${by}`);
+        return true;
+      }
+      const m = mergeDrafts(base.current, local, remote, MERGE_FIELDS);
+      if (!m.merged) {
+        setMergeConflicts(m.conflicts);
+        return false;
+      }
+      const merged = { ...m.merged, draftRevision: remote.draftRevision };
       base.current = remote;
       revision.current = remote.draftRevision;
-      latest.current = remote;
-      setD(remote);
-      if (by) setToast(`Devis mis à jour par ${by}`);
+      latest.current = merged;
+      setD(merged);
+      setMergeConflicts([]);
+      changeSeq.current++;
+      setSave("dirty");
+      setToast(by ? `Modifications de ${by} reprises avec les vôtres` : "Modifications de l'équipe reprises avec les vôtres");
       return true;
-    }
-    const m = mergeDrafts(base.current, local, remote, MERGE_FIELDS);
-    if (!m.merged) {
-      setMergeConflicts(m.conflicts);
-      return false;
-    }
-    const merged = { ...m.merged, draftRevision: remote.draftRevision };
-    base.current = remote;
-    revision.current = remote.draftRevision;
-    latest.current = merged;
-    setD(merged);
-    setMergeConflicts([]);
-    changeSeq.current++;
-    setSave("dirty");
-    setToast(by ? `Modifications de ${by} reprises avec les vôtres` : "Modifications de l'équipe reprises avec les vôtres");
-    return true;
-    // Les références sont stables ; seul l'identifiant du devis compte.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initial.id]);
+      // Les références sont stables ; seul l'identifiant du devis compte.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [initial.id],
+  );
 
   /* Présence : qui a ce devis ouvert, et sur quelle section */
   useEffect(() => {
@@ -533,8 +549,7 @@ export function QuoteEditor({
       });
       return { ...o, sections };
     });
-  const removeVariant = (sid: string) =>
-    setSection(sid, ({ choice: _c, ...x }) => ({ ...x, lines: x.lines.map(({ optional: _o, ...l }) => l) }));
+  const removeVariant = (sid: string) => setSection(sid, ({ choice: _c, ...x }) => ({ ...x, lines: x.lines.map(({ optional: _o, ...l }) => l) }));
 
   const moveLine = (sid: string, lid: string, dir: -1 | 1) =>
     update((o) => {
@@ -724,12 +739,7 @@ export function QuoteEditor({
             >
               <Icon name="keyboard" />
             </button>
-            <button
-              type="button"
-              className="btn-ghost hidden min-h-9 md:inline-flex"
-              onClick={saveAsTemplate}
-              title="Enregistrer comme modèle de devis"
-            >
+            <button type="button" className="btn-ghost hidden min-h-9 md:inline-flex" onClick={saveAsTemplate} title="Enregistrer comme modèle de devis">
               <Icon name="copy" size={16} /> Modèle
             </button>
             <button type="button" className="btn-secondary hidden sm:inline-flex" onClick={preview}>
@@ -782,7 +792,11 @@ export function QuoteEditor({
         </div>
       ) : null}
       {others.length ? (
-        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-sm" data-testid="presence" aria-live="polite">
+        <div
+          className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-sm"
+          data-testid="presence"
+          aria-live="polite"
+        >
           <Icon name="users" size={16} className="text-accent" />
           <span>
             {others.map((o) => o.name).join(", ")} {others.length > 1 ? "modifient" : "modifie"} aussi ce devis. Les modifications de chacun sont reprises
@@ -794,7 +808,10 @@ export function QuoteEditor({
         <div className="mb-4 rounded-md border border-danger/40 bg-danger-soft p-4 text-sm" role="alert">
           <p className="font-medium">Ce devis a été modifié ailleurs (autre personne, autre onglet ou autre appareil).</p>
           {mergeConflicts.length ? (
-            <p className="mt-1">Les mêmes éléments ont été changés des deux côtés : {mergeConflicts.slice(0, 4).join(", ")}{mergeConflicts.length > 4 ? "…" : ""}.</p>
+            <p className="mt-1">
+              Les mêmes éléments ont été changés des deux côtés : {mergeConflicts.slice(0, 4).join(", ")}
+              {mergeConflicts.length > 4 ? "…" : ""}.
+            </p>
           ) : null}
           <p className="mt-1">Vos modifications sont toujours affichées ici. Choisissez la version à garder.</p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -1023,12 +1040,7 @@ export function QuoteEditor({
                     >
                       <Icon name="compare" size={16} />
                     </button>
-                    <button
-                      type="button"
-                      className="btn-ghost min-h-8 px-1.5 text-muted"
-                      onClick={() => removeSection(s)}
-                      aria-label="Supprimer la section"
-                    >
+                    <button type="button" className="btn-ghost min-h-8 px-1.5 text-muted" onClick={() => removeSection(s)} aria-label="Supprimer la section">
                       <Icon name="trash" size={16} />
                     </button>
                   </div>
@@ -1086,9 +1098,7 @@ export function QuoteEditor({
                       />
                     ))}
                     {s.lines.length === 0 ? (
-                      <p className="rounded-md border border-dashed border-line px-3 py-4 text-center text-sm text-muted">
-                        Aucune ligne dans cette section.
-                      </p>
+                      <p className="rounded-md border border-dashed border-line px-3 py-4 text-center text-sm text-muted">Aucune ligne dans cette section.</p>
                     ) : null}
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1109,11 +1119,7 @@ export function QuoteEditor({
                     >
                       <Icon name="clock" size={16} /> À compléter
                     </button>
-                    <button
-                      type="button"
-                      className="btn-ghost min-h-9 text-sm"
-                      onClick={() => addLines(s.id, [blankLine({ kind: "note", quantity: "" })])}
-                    >
+                    <button type="button" className="btn-ghost min-h-9 text-sm" onClick={() => addLines(s.id, [blankLine({ kind: "note", quantity: "" })])}>
                       <Icon name="note" size={16} /> Note
                     </button>
                     {pricing.travel.fixedCents || pricing.travel.perKmCents ? (
@@ -1285,12 +1291,7 @@ export function QuoteEditor({
                 <label className="label" htmlFor="q-place">
                   Lieu de signature du contrat
                 </label>
-                <select
-                  id="q-place"
-                  className="field"
-                  value={d.contractPlace}
-                  onChange={(e) => set("contractPlace", e.target.value as ContractPlace)}
-                >
+                <select id="q-place" className="field" value={d.contractPlace} onChange={(e) => set("contractPlace", e.target.value as ContractPlace)}>
                   {(Object.entries(CONTRACT_PLACES) as [ContractPlace, string][]).map(([v, l]) => (
                     <option key={v} value={v}>
                       {l}
@@ -1336,69 +1337,69 @@ export function QuoteEditor({
               </div>
             ) : null}
             {revisionEnabled ? (
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="label" htmlFor="q-revision">
-                  Prix
-                </label>
-                <select
-                  id="q-revision"
-                  className="field"
-                  value={d.priceRevision?.index ?? ""}
-                  onChange={(e) =>
-                    set(
-                      "priceRevision",
-                      e.target.value
-                        ? {
-                            index: e.target.value,
-                            baseMonth: d.priceRevision?.baseMonth || new Date().toISOString().slice(0, 7),
-                            fixedPercent: d.priceRevision?.fixedPercent || DEFAULT_FIXED_PERCENT,
-                          }
-                        : null,
-                    )
-                  }
-                >
-                  <option value="">Fermes</option>
-                  {Object.entries(BT_INDEXES).map(([code, label]) => (
-                    <option key={code} value={code}>
-                      Révisables, {code} {label}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <label className="label" htmlFor="q-revision">
+                    Prix
+                  </label>
+                  <select
+                    id="q-revision"
+                    className="field"
+                    value={d.priceRevision?.index ?? ""}
+                    onChange={(e) =>
+                      set(
+                        "priceRevision",
+                        e.target.value
+                          ? {
+                              index: e.target.value,
+                              baseMonth: d.priceRevision?.baseMonth || new Date().toISOString().slice(0, 7),
+                              fixedPercent: d.priceRevision?.fixedPercent || DEFAULT_FIXED_PERCENT,
+                            }
+                          : null,
+                      )
+                    }
+                  >
+                    <option value="">Fermes</option>
+                    {Object.entries(BT_INDEXES).map(([code, label]) => (
+                      <option key={code} value={code}>
+                        Révisables, {code} {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {d.priceRevision ? (
+                  <>
+                    <div>
+                      <label className="label" htmlFor="q-revision-month">
+                        Mois de référence (I0)
+                      </label>
+                      <input
+                        id="q-revision-month"
+                        type="month"
+                        className="field"
+                        value={d.priceRevision.baseMonth}
+                        onChange={(e) => set("priceRevision", { ...d.priceRevision!, baseMonth: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="label" htmlFor="q-revision-fixed">
+                        Part fixe (%)
+                      </label>
+                      <input
+                        id="q-revision-fixed"
+                        inputMode="decimal"
+                        className="field"
+                        value={d.priceRevision.fixedPercent}
+                        onChange={(e) => set("priceRevision", { ...d.priceRevision!, fixedPercent: e.target.value })}
+                      />
+                    </div>
+                    <p className="text-xs text-muted sm:col-span-3">
+                      Chantier long ou prix des matériaux instables : les factures de situation et de solde appliquent P = P0 x (fixe + (1 - fixe) x In / I0).
+                      La formule est imprimée sur le devis.
+                    </p>
+                  </>
+                ) : null}
               </div>
-              {d.priceRevision ? (
-                <>
-                  <div>
-                    <label className="label" htmlFor="q-revision-month">
-                      Mois de référence (I0)
-                    </label>
-                    <input
-                      id="q-revision-month"
-                      type="month"
-                      className="field"
-                      value={d.priceRevision.baseMonth}
-                      onChange={(e) => set("priceRevision", { ...d.priceRevision!, baseMonth: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label" htmlFor="q-revision-fixed">
-                      Part fixe (%)
-                    </label>
-                    <input
-                      id="q-revision-fixed"
-                      inputMode="decimal"
-                      className="field"
-                      value={d.priceRevision.fixedPercent}
-                      onChange={(e) => set("priceRevision", { ...d.priceRevision!, fixedPercent: e.target.value })}
-                    />
-                  </div>
-                  <p className="text-xs text-muted sm:col-span-3">
-                    Chantier long ou prix des matériaux instables : les factures de situation et de solde appliquent P = P0 x (fixe + (1 - fixe) x In / I0). La
-                    formule est imprimée sur le devis.
-                  </p>
-                </>
-              ) : null}
-            </div>
             ) : null}
             <EnergyAidFields value={d.energyAid ?? null} onChange={(v) => set("energyAid", v)} />
             <div>
@@ -1411,13 +1412,7 @@ export function QuoteEditor({
               <label className="label" htmlFor="q-special">
                 Conditions particulières
               </label>
-              <textarea
-                id="q-special"
-                rows={2}
-                className="field"
-                value={d.specialConditions}
-                onChange={(e) => set("specialConditions", e.target.value)}
-              />
+              <textarea id="q-special" rows={2} className="field" value={d.specialConditions} onChange={(e) => set("specialConditions", e.target.value)} />
             </div>
             <div>
               <label className="label" htmlFor="q-internal">
@@ -1432,6 +1427,12 @@ export function QuoteEditor({
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <section className="card p-4">
             <Totals calc={calc} vatExempt={vatExempt} reverseCharge={!franchise && d.reverseCharge} variantSections={new Set(variantInfo.keys())} />
+            <RoundingHints
+              d={d}
+              vatExempt={vatExempt}
+              onPrices={(r) => update((o) => ({ ...o, sections: applyPriceRoundings(o.sections, r) }))}
+              onTotal={(bp) => set("globalDiscount", bpToInput(bp))}
+            />
             {showMargin ? (
               <div className="mt-3 rounded-md bg-surface-2 p-3 text-sm">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
@@ -1443,9 +1444,7 @@ export function QuoteEditor({
                 </div>
                 <div className="flex justify-between font-medium">
                   <span>Marge prévisionnelle</span>
-                  <span
-                    className={`tabular ${calc.margin.linesWithoutCost ? "text-muted" : calc.margin.marginCents < 0 ? "text-danger" : "text-success"}`}
-                  >
+                  <span className={`tabular ${calc.margin.linesWithoutCost ? "text-muted" : calc.margin.marginCents < 0 ? "text-danger" : "text-success"}`}>
                     {calc.margin.linesWithoutCost ? "Incomplète" : formatEuros(calc.margin.marginCents)}
                     {!calc.margin.linesWithoutCost && calc.margin.marginRateBp !== null ? ` (${formatPercent(calc.margin.marginRateBp)})` : ""}
                   </span>
@@ -1457,9 +1456,7 @@ export function QuoteEditor({
                   </div>
                 ) : null}
                 {calc.margin.linesWithoutCost ? (
-                  <p className="mt-1 text-xs text-warning">
-                    Renseignez le coût interne de {calc.margin.linesWithoutCost} ligne(s) pour calculer la marge.
-                  </p>
+                  <p className="mt-1 text-xs text-warning">Renseignez le coût interne de {calc.margin.linesWithoutCost} ligne(s) pour calculer la marge.</p>
                 ) : null}
               </div>
             ) : null}
@@ -1537,10 +1534,7 @@ export function QuoteEditor({
       </div>
 
       {toast ? (
-        <div
-          className="fixed bottom-36 left-1/2 z-50 -translate-x-1/2 rounded-md bg-ink px-4 py-2 text-sm text-bg shadow-lg lg:bottom-6"
-          role="status"
-        >
+        <div className="fixed bottom-36 left-1/2 z-50 -translate-x-1/2 rounded-md bg-ink px-4 py-2 text-sm text-bg shadow-lg lg:bottom-6" role="status">
           {toast}
         </div>
       ) : null}
@@ -1678,7 +1672,54 @@ export function Totals({
           {options.count > 1 ? `${options.count} options` : "1 option"} non comprise(s) : {formatEuros(options.htCents)} HT, au choix du client.
         </p>
       ) : null}
-      {variantSections?.size ? <p className="text-xs text-muted">Total calculé avec la première variante de chaque choix ; le client choisit la sienne.</p> : null}
+      {variantSections?.size ? (
+        <p className="text-xs text-muted">Total calculé avec la première variante de chaque choix ; le client choisit la sienne.</p>
+      ) : null}
+    </div>
+  );
+}
+
+/** Arrondis commerciaux proposés : prix unitaires ronds et total TTC rond par la remise globale. */
+function RoundingHints({
+  d,
+  vatExempt,
+  onPrices,
+  onTotal,
+}: {
+  d: QuoteDraft;
+  vatExempt: boolean;
+  onPrices: (r: ReturnType<typeof priceRoundings>) => void;
+  onTotal: (bp: number) => void;
+}) {
+  const prices = useMemo(() => priceRoundings(d.sections), [d.sections]);
+  const total = useMemo(() => (prices.length ? null : totalRounding(d, vatExempt)), [d, vatExempt, prices.length]);
+  if (!prices.length && !total) return null;
+  return (
+    <div className="mt-3 space-y-2 rounded-md bg-surface-2 p-3 text-sm" data-testid="arrondis">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted">
+        <Icon name="wand" size={12} /> Arrondis commerciaux
+      </div>
+      {prices.length ? (
+        <>
+          <p>
+            {prices.length > 1 ? `${prices.length} prix unitaires peuvent être arrondis` : "1 prix unitaire peut être arrondi"}, par exemple{" "}
+            {prices[0].label ? `« ${prices[0].label} » : ` : ""}
+            {formatUnitPrice(prices[0].fromPrice4)} devient {formatUnitPrice(prices[0].toPrice4)}.
+          </p>
+          <button type="button" className="btn-secondary w-full" onClick={() => onPrices(prices)}>
+            Arrondir les prix
+          </button>
+        </>
+      ) : total ? (
+        <>
+          <p>
+            Pour un montant rond de {formatEuros(total.resultCents)}{vatExempt ? "" : " TTC"}, une remise de {formatPercent(total.discountBp)} sur l&apos;ensemble suffit.
+          </p>
+          <button type="button" className="btn-secondary w-full" onClick={() => onTotal(total.discountBp)}>
+            Arrondir le total
+          </button>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -1823,8 +1864,8 @@ function IssueDialog({
       ) : (
         <div className="space-y-4 text-sm">
           <p>
-            Le devis pour <strong>{customer}</strong>, d'un montant de <strong className="tabular">{formatEuros(ttc)} TTC</strong>, va recevoir un
-            numéro définitif et un PDF figé. Il ne pourra plus être modifié : toute correction créera une nouvelle version.
+            Le devis pour <strong>{customer}</strong>, d'un montant de <strong className="tabular">{formatEuros(ttc)} TTC</strong>, va recevoir un numéro
+            définitif et un PDF figé. Il ne pourra plus être modifié : toute correction créera une nouvelle version.
           </p>
           {estimated ? (
             <p className="rounded-md bg-warning-soft p-3">
@@ -1944,8 +1985,8 @@ function EnergyAidFields({ value, onChange }: { value: EnergyAid | null; onChang
             </div>
           </div>
           <p className="text-xs text-muted">
-            L&apos;émission vérifie qu&apos;une qualification RGE valide couvre chaque domaine (Entreprise, onglet Assurance). Le devis indique les
-            dispositifs, la qualification, la visite et le reste à charge estimé.
+            L&apos;émission vérifie qu&apos;une qualification RGE valide couvre chaque domaine (Entreprise, onglet Assurance). Le devis indique les dispositifs,
+            la qualification, la visite et le reste à charge estimé.
           </p>
         </div>
       ) : null}

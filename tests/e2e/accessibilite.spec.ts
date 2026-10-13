@@ -653,6 +653,27 @@ test("chantiers : page des garanties", async ({ page }) => {
   await audit(page, "garanties");
 });
 
+test("devis : arrondis commerciaux des prix et du total", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Sol arrondi");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Ragréage");
+  await page.getByLabel("Quantité", { exact: true }).last().fill("20");
+  await page.getByLabel("Prix unitaire HT", { exact: true }).last().fill("43,87");
+  const hints = page.getByTestId("arrondis");
+  await expect(hints).toContainText("43,87 € devient 44,00 €");
+  await audit(page, "arrondis commerciaux");
+  await page.getByRole("button", { name: "Arrondir les prix" }).click();
+  await expect(page.getByLabel("Prix unitaire HT", { exact: true }).last()).toHaveValue("44,00");
+  await expect(hints).toContainText("Pour un montant rond");
+  await page.getByRole("button", { name: "Arrondir le total" }).click();
+  await expect(hints).toHaveCount(0);
+  await expect(page.getByLabel("Remise globale (%)")).not.toHaveValue("");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

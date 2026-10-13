@@ -11,7 +11,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:calcul": "vitest run tests/calc.test.ts tests/calc-couverture.test.ts tests/metres.test.ts tests/lots-niveaux.test.ts tests/options.test.ts tests/coefficients-chutes.test.ts tests/variantes.test.ts --coverage --coverage.include=src/lib/calc/** --coverage.reporter=text-summary --coverage.thresholds.100",
+    "test:calcul": "vitest run tests/calc.test.ts tests/calc-couverture.test.ts tests/metres.test.ts tests/lots-niveaux.test.ts tests/options.test.ts tests/coefficients-chutes.test.ts tests/variantes.test.ts tests/arrondis.test.ts --coverage --coverage.include=src/lib/calc/** --coverage.reporter=text-summary --coverage.thresholds.100",
     "test:watch": "vitest",
     "check:texte": "node scripts/check-texte.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
