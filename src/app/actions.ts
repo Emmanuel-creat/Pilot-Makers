@@ -67,6 +67,7 @@ import type { Ctx } from "@/lib/services/context";
 import { setCustomerArchived } from "@/lib/services/customers";
 import { savePricing, updateOrganization } from "@/lib/services/organization";
 import { saveGoals } from "@/lib/services/reports";
+import { saveBudget } from "@/lib/services/budget";
 import {
   cancelQuote,
   createAmendment,
@@ -984,6 +985,17 @@ export async function saveGoalsAction(_: ActionState, fd: FormData): Promise<Act
     await withCtx((ctx) => saveGoals(ctx, { signed: s(fd, "signed"), sent: s(fd, "sent") }));
     revalidatePath("/app/rapports");
     return { ok: true, message: "Objectifs enregistrés." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveBudgetAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const year = Number(s(fd, "year"));
+    await withCtx((ctx) => saveBudget(ctx, year, { facture: s(fd, "facture"), encaisse: s(fd, "encaisse"), achats: s(fd, "achats"), frais: s(fd, "frais") }));
+    revalidatePath("/app/rapports/budget");
+    return { ok: true, message: "Budget enregistré." };
   } catch (e) {
     return toState(e);
   }

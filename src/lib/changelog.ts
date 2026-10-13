@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "budget-annuel",
+    date: "2026-10-13",
+    title: "Budget annuel",
+    text: "Fixez vos objectifs de l'année et comparez-les chaque mois au réalisé, avec une projection sur douze mois.",
+    href: "/aide/budget-annuel",
+  },
+  {
     id: "micro-entreprise",
     date: "2026-10-13",
     title: "Tableau de bord micro-entreprise",

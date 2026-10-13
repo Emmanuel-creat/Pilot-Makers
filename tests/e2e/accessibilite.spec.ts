@@ -753,6 +753,18 @@ test("rapports : tableau de bord micro-entreprise", async ({ page }) => {
   await expect(page.getByRole("columnheader", { name: "Ventes" })).toBeVisible();
 });
 
+test("rapports : budget annuel comparé au réalisé", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Budget", exact: true }).click();
+  await page.waitForURL(/\/app\/rapports\/budget$/);
+  await page.getByLabel("Chiffre d'affaires facturé (HT), sur l'année (€)").fill("120 000");
+  await page.getByRole("button", { name: /^Enregistrer le budget/ }).click();
+  await expect(page.getByText("Budget enregistré.")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Budget et réalisé par poste" })).toContainText("120 000,00 €");
+  await audit(page, "budget annuel");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

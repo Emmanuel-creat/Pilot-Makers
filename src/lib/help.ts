@@ -1246,6 +1246,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/rapports/micro", label: "Micro-entreprise" },
   },
   {
+    slug: "budget-annuel",
+    category: "factures",
+    title: "Fixer un budget annuel et le suivre",
+    summary: "Indiquez vos objectifs de l'année ; Pilot-Makers les compare chaque mois à vos factures, encaissements, achats et frais.",
+    steps: [
+      "Ouvrez Rapports, puis « Budget ».",
+      "En bas de page, saisissez le montant annuel de chaque poste suivi, puis enregistrez.",
+      "Le tableau compare le budget à date (en douzièmes) au réalisé, et projette l'année au rythme des mois écoulés.",
+    ],
+    notes: [
+      "Un écart est favorable quand un produit dépasse le budget ou qu'une charge reste en dessous ; à 5 % près, il est jugé conforme.",
+      "Le réalisé vient des factures émises, des paiements enregistrés, des achats saisis sur les chantiers et des notes de frais non refusées.",
+      "Changez d'année avec les boutons en haut de page pour préparer le budget suivant.",
+    ],
+    link: { href: "/app/rapports/budget", label: "Budget" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

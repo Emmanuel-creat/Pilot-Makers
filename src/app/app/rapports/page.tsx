@@ -94,6 +94,9 @@ export default async function ReportsPage() {
                 <Link href="/app/rapports/micro" className="btn-secondary print:hidden">
                   <Icon name="chart" size={16} /> Micro-entreprise
                 </Link>
+                <Link href="/app/rapports/budget" className="btn-secondary print:hidden">
+                  <Icon name="calendar" size={16} /> Budget
+                </Link>
               </>
             ) : null}
             <a href="/api/reports/csv" className="btn-secondary print:hidden">
