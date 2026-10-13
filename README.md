@@ -56,7 +56,10 @@ Comptes de démonstration (mot de passe `Demo2026Pilot`) :
 npm run verify      # textes, secrets, types, tests
 npm run build && npm run test:e2e   # parcours complet dans un navigateur (Playwright)
 npm run build       # build de production
+npm run charge      # test de charge : base remplie en masse, temps des requêtes les plus fréquentes
 ```
+
+Le budget de performance (`perf-budget.json`) fixe le poids des scripts de chaque page principale et un affichage complet en moins d'une seconde ; il est contrôlé par les tests de bout en bout. Le test de charge se règle par `CHARGE_ORGS`, `CHARGE_QUOTES` et `CHARGE_P95_MS` ; avec 2 000 entreprises et 205 000 devis sur la base embarquée, les requêtes mesurées restent sous 80 ms au 95e centile.
 
 Les tests couvrent les calculs (arrondis, remises, TVA multiples, franchise, limites), l'isolation entre entreprises, les versions et l'intégrité des devis, les comptes, l'abonnement et l'assistant.
 

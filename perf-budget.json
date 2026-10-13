@@ -1,0 +1,12 @@
+{
+  "loadMs": 1000,
+  "pages": {
+    "/app": { "scriptKb": 520 },
+    "/app/devis": { "scriptKb": 520 },
+    "/app/devis/nouveau": { "scriptKb": 520 },
+    "/app/clients": { "scriptKb": 520 },
+    "/app/factures": { "scriptKb": 520 },
+    "/app/planning": { "scriptKb": 530 },
+    "/app/compte": { "scriptKb": 530 }
+  }
+}

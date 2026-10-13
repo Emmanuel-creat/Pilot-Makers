@@ -19,6 +19,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "verify": "npm run check:texte && npm run check:secrets && npm run typecheck && npm run test && npm run test:calcul",
     "test:e2e": "playwright test",
+    "charge": "tsx scripts/charge.ts",
     "pdf:apercus": "DATABASE_URL=memory:// tsx scripts/pdf-apercus.ts"
   },
   "dependencies": {
