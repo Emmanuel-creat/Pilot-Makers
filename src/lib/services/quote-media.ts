@@ -6,6 +6,7 @@
  * Les images sont figées dans la version émise : la modifier ensuite demande une nouvelle version.
  */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { z } from "zod";
 import { ImageFormatError, stripImageMetadata } from "@/lib/image-metadata";
 import { num, one } from "@/lib/db";
@@ -60,6 +61,7 @@ export async function addQuoteMedia(ctx: Ctx, quoteId: string, input: { kind: un
   if (bytes.length > MEDIA_MAX_BYTES) throw badRequest("Image trop lourde (1,5 Mo au plus)");
   const mime = sniffImage(bytes);
   if (!mime) throw badRequest("Format d'image non pris en charge : JPEG ou PNG");
+  await requireCleanFile(bytes, (r) => audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "file.rejected", target: quoteId, data: r, ip: ctx.ip }));
   let clean: Uint8Array;
   try {
     clean = stripImageMetadata(bytes, mime);

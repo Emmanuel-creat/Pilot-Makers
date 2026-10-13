@@ -1,5 +1,6 @@
 /** Profil de l'entreprise (module B). */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { z } from "zod";
 import { one } from "@/lib/db";
 import { badRequest, notFound } from "@/lib/http";
@@ -201,6 +202,10 @@ export async function updateOrganization(ctx: Ctx, raw: unknown) {
   }
   if (input.logo_data === "") input.logo_data = null;
   if (input.signature_data === "") input.signature_data = null;
+  for (const k of IMAGES) {
+    const v = (input as Record<string, unknown>)[k];
+    if (typeof v === "string" && v) await requireCleanFile(new Uint8Array(Buffer.from(v.slice(v.indexOf(",") + 1), "base64")));
+  }
 
   return ctx.db.transaction(async (tx) => {
     const current = revealBank((await one<Record<string, unknown>>(tx, "SELECT * FROM organizations WHERE id=$1 FOR UPDATE", [ctx.orgId]))!);

@@ -4,6 +4,7 @@
  * devient une ligne « sous-traitance » du devis client, avec son coût et la marge choisie.
  */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { centsToInput } from "@/lib/calc/format";
@@ -188,6 +189,7 @@ function parseAnswer(raw: unknown, file: Uint8Array | null) {
 }
 
 async function storeAnswer(q: Queryable, id: string, a: ReturnType<typeof parseAnswer>, file: Uint8Array | null, fileName: string, now: Date) {
+  if (file) await requireCleanFile(file);
   await q.query(
     `UPDATE subcontractor_quotes SET status='recu', amount_ht_cents=$2, delay=$3, answer_note=$4, answered_by=$5, answered_at=$6,
        file=coalesce($7, file), file_name=CASE WHEN $7::bytea IS NULL THEN file_name ELSE $8 END,

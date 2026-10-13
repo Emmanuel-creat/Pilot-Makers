@@ -7,6 +7,7 @@
  * les six mois jusqu'à la fin des travaux.
  */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { z } from "zod";
 import type { Database } from "@/lib/db";
 import { num, one } from "@/lib/db";
@@ -263,6 +264,7 @@ export async function addDocument(
     if (file.length > DOC_MAX_BYTES) throw badRequest("Fichier trop lourd (5 Mo au plus)");
     type = documentType(file) ?? "";
     if (!type) throw badRequest("Format non reconnu : PDF, JPEG ou PNG");
+    await requireCleanFile(file, (r) => audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "file.rejected", target: subId, data: r, ip: ctx.ip }));
   }
   let validUntil = (input.validUntil ?? "").trim();
   if (validUntil && !/^\d{4}-\d{2}-\d{2}$/.test(validUntil)) throw badRequest("Date de fin de validité invalide");

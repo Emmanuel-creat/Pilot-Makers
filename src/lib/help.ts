@@ -838,6 +838,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/compte", label: "Ouvrir Mon compte" },
   },
   {
+    slug: "fichier-refuse",
+    category: "compte",
+    title: "Un fichier est refusé par l'analyse de sécurité",
+    summary: "Chaque photo, PDF ou justificatif déposé est analysé avant d'être enregistré ; un fichier suspect est refusé.",
+    steps: [
+      "Le message indique la raison : PDF contenant du JavaScript, fichier joint dans un PDF, image qui cache du code...",
+      "Enregistrez de nouveau le document depuis sa source (site du fabricant, logiciel qui l'a produit) ou prenez-le en photo.",
+      "Si le refus vous semble injustifié, écrivez à l'assistance en indiquant le nom du fichier.",
+    ],
+    notes: [
+      "Les factures électroniques Factur-X, qui contiennent un fichier XML, sont acceptées.",
+      "Les dépôts refusés sont notés dans le journal de sécurité de votre compte.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

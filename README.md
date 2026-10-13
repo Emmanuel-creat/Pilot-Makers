@@ -30,6 +30,7 @@ Ces services fonctionnent sans compte externe, derrière des interfaces remplaç
 | Paiement | simulateur avec webhooks signés (carte 4242 4242 4242 4242 acceptée, 4000 0000 0000 0002 refusée) | compte marchand Stripe |
 | Assistant de préparation | moteur local à règles, sans envoi de données à un tiers | facultatif : service externe d'analyse de texte |
 | Signature électronique | non incluse (acceptation tracée en ligne) | prestataire de signature, prévu en version 1.5 |
+| Analyse antivirus des fichiers déposés | contrôles intégrés (fichier de test EICAR, PDF avec JavaScript, lancement de programme ou fichier joint, image qui cache du code) | serveur ClamAV : `CLAMD_HOST`, `CLAMD_PORT` (3310 par défaut), `CLAMD_REQUIRED=1` pour refuser les dépôts quand il ne répond pas |
 
 ## Démarrer en local
 

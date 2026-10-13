@@ -3,6 +3,7 @@
  * procès-verbal de réception signé sur l'écran, puis suivi et levée des réserves.
  */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { z } from "zod";
 import { num, one } from "@/lib/db";
 import { badRequest, conflict, notFound } from "@/lib/http";
@@ -55,6 +56,7 @@ export async function addJournalEntry(
     if (photo.length > PHOTO_MAX_BYTES) throw badRequest("Photo trop lourde (2,5 Mo au plus)");
     type = imageType(photo);
     if (!type) throw badRequest("Format de photo non reconnu (JPEG, PNG ou WebP)");
+    await requireCleanFile(photo, (r) => audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "file.rejected", target: jobId, data: r, ip: ctx.ip }));
     const count = await one<{ n: unknown }>(ctx.db, "SELECT count(*) AS n FROM job_journal WHERE job_id=$1 AND photo IS NOT NULL", [jobId]);
     if (num(count?.n) >= PHOTOS_PER_JOB) throw conflict(`${PHOTOS_PER_JOB} photos au plus par chantier`);
   }

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "analyse-fichiers",
+    date: "2026-10-13",
+    title: "Fichiers déposés analysés",
+    text: "Photos, fiches techniques et justificatifs sont analysés avant d'être enregistrés : un fichier piégé est refusé.",
+    href: "/aide/fichier-refuse",
+  },
+  {
     id: "cles-d-acces",
     date: "2026-10-13",
     title: "Connexion par clé d'accès",

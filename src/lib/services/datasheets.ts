@@ -6,6 +6,7 @@
  * Un document n'est jamais modifié : le retirer le masque du catalogue mais les devis émis le gardent.
  */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { z } from "zod";
 import { one } from "@/lib/db";
@@ -55,6 +56,7 @@ export async function addCatalogDocument(ctx: Ctx, itemId: string, raw: unknown,
   if (!bytes.length) throw badRequest("Fichier vide");
   if (bytes.length > DOC_MAX_BYTES) throw badRequest("Document trop lourd (5 Mo au plus)");
   if (Buffer.from(bytes.subarray(0, 5)).toString("latin1") !== "%PDF-") throw badRequest("Seuls les documents PDF sont acceptés");
+  await requireCleanFile(bytes, (r) => audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "file.rejected", target: itemId, data: r, ip: ctx.ip }));
   try {
     await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
   } catch {

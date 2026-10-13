@@ -204,7 +204,7 @@ export async function recentErrors(ctx: Ctx) {
 export async function auditTrail(ctx: Ctx) {
   requirePlatformAdmin(ctx);
   return ctx.db.query<{ id: unknown; action: string; org_id: string | null; user_id: string | null; target: string; ip: string; created_at: Date }>(
-    "SELECT id, action, org_id, user_id, target, ip, created_at FROM audit_logs WHERE action LIKE 'admin.%' OR action LIKE 'billing.%' OR action LIKE 'account.%' ORDER BY created_at DESC LIMIT 200",
+    "SELECT id, action, org_id, user_id, target, ip, created_at FROM audit_logs WHERE action LIKE 'admin.%' OR action LIKE 'billing.%' OR action LIKE 'account.%' OR action LIKE 'file.%' ORDER BY created_at DESC LIMIT 200",
   );
 }
 

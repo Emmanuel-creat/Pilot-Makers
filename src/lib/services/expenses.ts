@@ -4,6 +4,7 @@
  * validée et rattachée à un chantier s'ajoute à ses achats (montant HT).
  */
 
+import { requireCleanFile } from "@/lib/file-scan";
 import { z } from "zod";
 import { num, one } from "@/lib/db";
 import { badRequest, conflict, isUuid, notFound } from "@/lib/http";
@@ -95,6 +96,7 @@ export async function addExpense(ctx: Ctx, raw: unknown, photo: Uint8Array | nul
     if (photo.length > RECEIPT_MAX_BYTES) throw badRequest("Photo trop lourde (4 Mo au plus)");
     type = imageType(photo) ?? (photo[0] === 0x25 && photo[1] === 0x50 && photo[2] === 0x44 && photo[3] === 0x46 ? "application/pdf" : null);
     if (!type) throw badRequest("Format non reconnu : photo JPEG, PNG, WebP ou PDF");
+    await requireCleanFile(photo, (r) => audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "file.rejected", data: r, ip: ctx.ip }));
   } else photo = null;
   const r = await one<{ id: string }>(
     ctx.db,
