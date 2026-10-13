@@ -171,6 +171,11 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await page.reload();
   await expect(page.getByText("Payée", { exact: true }).first()).toBeVisible();
 
+  const invoiceUrl = page.url();
+  await page.goto(invoiceUrl + "/recouvrement");
+  await expect(page.getByText("il n'y a rien à recouvrer")).toBeVisible();
+  await page.goto(invoiceUrl);
+
   const invoicePdf = await page.request.get(page.url().replace("/app/factures/", "/api/invoices/") + "/pdf");
   expect(invoicePdf.status()).toBe(200);
 
@@ -183,7 +188,10 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
 test("espace client : lien personnel, documents et message", async ({ page, browser }) => {
   await login(page);
   await page.goto("/app/clients");
-  await page.getByRole("link", { name: /Dubois/ }).first().click();
+  await page
+    .getByRole("link", { name: /Dubois/ })
+    .first()
+    .click();
   await page.waitForURL(/\/app\/clients\/[0-9a-f-]{36}$/);
   await page.getByRole("button", { name: /Lien seul|Créer un lien/ }).click();
   const link = (await page.getByTestId("lien-espace").textContent())!.trim();

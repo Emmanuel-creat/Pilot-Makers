@@ -365,7 +365,9 @@ test("devis : prix demandé à un sous-traitant, réponse en ligne puis intégra
   await expect
     .poll(() =>
       page.evaluate(() =>
-        Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea")).some((e) => e.value === "Remplacement du tableau électrique"),
+        Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea")).some(
+          (e) => e.value === "Remplacement du tableau électrique",
+        ),
       ),
     )
     .toBe(true);
@@ -776,6 +778,18 @@ test("rapports : rentabilité par client et type de chantier", async ({ page }) 
   await expect(page.getByRole("link", { name: "Depuis le début" })).toHaveAttribute("aria-current", "page");
 });
 
+test("rapports : origine des clients et coût d'acquisition", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Origine des clients" }).click();
+  await page.waitForURL(/\/app\/rapports\/origine$/);
+  await page.getByLabel("Plateforme de mise en relation (€)").fill("240");
+  await page.getByRole("button", { name: /^Enregistrer les dépenses/ }).click();
+  await expect(page.getByText("Dépenses enregistrées.")).toBeVisible();
+  await expect(page.getByRole("table", { name: /par source/ })).toContainText("240,00 €");
+  await audit(page, "origine des clients");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
@@ -1061,11 +1075,16 @@ test("devis : croquis annoté joint et imprimé dans le PDF", async ({ page }) =
 test("catalogue : fiche technique jointe à un article", async ({ page }) => {
   await login(page);
   await page.goto("/app/catalogue");
-  await page.getByRole("link", { name: /Pose de carrelage au sol/ }).first().click();
+  await page
+    .getByRole("link", { name: /Pose de carrelage au sol/ })
+    .first()
+    .click();
   await page.waitForURL(/\/app\/catalogue\/[0-9a-f-]{36}$/);
   const doc = await PDFDocument.create();
   doc.addPage().drawText("Fiche technique colle C2", { x: 50, y: 700 });
-  await page.getByLabel("Document PDF (5 Mo au plus)").setInputFiles({ name: "fiche-colle.pdf", mimeType: "application/pdf", buffer: Buffer.from(await doc.save()) });
+  await page
+    .getByLabel("Document PDF (5 Mo au plus)")
+    .setInputFiles({ name: "fiche-colle.pdf", mimeType: "application/pdf", buffer: Buffer.from(await doc.save()) });
   await page.getByLabel("Type", { exact: true }).selectOption("fiche_technique");
   await audit(page, "fiches techniques");
   await page.getByRole("button", { name: "Joindre" }).click();

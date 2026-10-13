@@ -8,15 +8,7 @@ import { Notice, fmtDate } from "@/components/ui";
 import { formatEuros, formatPercent, centsToInput } from "@/lib/calc/format";
 import { HttpError } from "@/lib/http";
 import { requirePageCtx } from "@/lib/server/session";
-import {
-  defaultInvoiceMessage,
-  getInvoice,
-  INVOICE_KINDS,
-  invoiceEmails,
-  listInvoices,
-  listPayments,
-  PAYMENT_METHODS,
-} from "@/lib/services/invoices";
+import { defaultInvoiceMessage, getInvoice, INVOICE_KINDS, invoiceEmails, listInvoices, listPayments, PAYMENT_METHODS } from "@/lib/services/invoices";
 import { getOrganization } from "@/lib/services/organization";
 import { parisDate, frDate } from "@/lib/services/quotes";
 import { cancelPaymentAction, clearScheduleAction } from "@/app/actions";
@@ -100,10 +92,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       {inv.status === "canceled" ? <Notice tone="info">Cette facture est entièrement annulée par avoir.</Notice> : null}
       {inv.status === "overdue" ? (
         <Notice tone="danger" title="Échéance dépassée">
-          {lateInstallment
-            ? `Échéance ${lateInstallment.index + 1} du ${fmtDate(lateInstallment.dueDate)} non réglée.`
-            : `Échue le ${fmtDate(inv.due_date)}.`}{" "}
-          {inv.reminder_count ? `${inv.reminder_count} relance(s) envoyée(s).` : "Aucune relance envoyée."}
+          {lateInstallment ? `Échéance ${lateInstallment.index + 1} du ${fmtDate(lateInstallment.dueDate)} non réglée.` : `Échue le ${fmtDate(inv.due_date)}.`}{" "}
+          {inv.reminder_count ? `${inv.reminder_count} relance(s) envoyée(s).` : "Aucune relance envoyée."}{" "}
+          <Link href={`/app/factures/${id}/recouvrement`} className="link font-medium">
+            Recouvrer cette facture
+          </Link>
         </Notice>
       ) : null}
 
@@ -187,12 +180,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 <p className="text-xs text-muted">Aucun paiement enregistré.</p>
               )}
               {writable && inv.balance_cents > 0 ? (
-                <PaymentForm
-                  invoiceId={id}
-                  balance={centsToInput(inv.balance_cents)}
-                  today={parisDate(new Date())}
-                  methods={Object.entries(PAYMENT_METHODS)}
-                />
+                <PaymentForm invoiceId={id} balance={centsToInput(inv.balance_cents)} today={parisDate(new Date())} methods={Object.entries(PAYMENT_METHODS)} />
               ) : null}
             </section>
           ) : null}

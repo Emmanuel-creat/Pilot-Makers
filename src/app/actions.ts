@@ -68,6 +68,8 @@ import { setCustomerArchived } from "@/lib/services/customers";
 import { savePricing, updateOrganization } from "@/lib/services/organization";
 import { saveGoals } from "@/lib/services/reports";
 import { saveBudget } from "@/lib/services/budget";
+import { setFormalNotice } from "@/lib/services/recovery";
+import { saveAcquisitionCosts, SOURCES, type Source } from "@/lib/services/acquisition";
 import {
   cancelQuote,
   createAmendment,
@@ -1957,6 +1959,31 @@ export async function accountingPlanAction(_: ActionState, fd: FormData): Promis
     revalidatePath("/app/entreprise");
     revalidatePath("/app/comptabilite");
     return { ok: true, message: "Plan comptable enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function formalNoticeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "invoiceId");
+    const clear = s(fd, "op") === "clear";
+    await withCtx((ctx) => setFormalNotice(ctx, id, clear ? null : { date: s(fd, "date"), ref: s(fd, "ref") }));
+    revalidatePath(`/app/factures/${id}`);
+    revalidatePath(`/app/factures/${id}/recouvrement`);
+    return { ok: true, message: clear ? "Envoi effacé." : "Envoi de la mise en demeure enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveAcquisitionCostsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const year = Number(s(fd, "year"));
+    const input = Object.fromEntries(SOURCES.map((k) => [k, s(fd, k)])) as Partial<Record<Source, string>>;
+    await withCtx((ctx) => saveAcquisitionCosts(ctx, year, input));
+    revalidatePath("/app/rapports/origine");
+    return { ok: true, message: "Dépenses enregistrées." };
   } catch (e) {
     return toState(e);
   }

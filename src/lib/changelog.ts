@@ -17,6 +17,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "origine-clients",
+    date: "2026-10-13",
+    title: "Origine des clients",
+    text: "Demandes, transformation et chiffre d'affaires par source, avec le coût d'acquisition d'un client et le rendement de vos dépenses de prospection.",
+    href: "/aide/origine-des-clients",
+  },
+  {
+    id: "recouvrement",
+    date: "2026-10-13",
+    title: "Recouvrement des impayés",
+    text: "Pour une facture en retard : décompte des sommes dues, lettre de mise en demeure prête à envoyer et dossier d'injonction de payer préparé.",
+    href: "/aide/recouvrer-une-facture-impayee",
+  },
+  {
     id: "rentabilite",
     date: "2026-10-13",
     title: "Rentabilité réelle",

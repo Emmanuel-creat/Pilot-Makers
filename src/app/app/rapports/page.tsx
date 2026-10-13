@@ -90,6 +90,9 @@ export default async function ReportsPage() {
                 <Link href="/app/rapports/budget" className="btn-secondary print:hidden">
                   <Icon name="calendar" size={16} /> Budget
                 </Link>
+                <Link href="/app/rapports/origine" className="btn-secondary print:hidden">
+                  <Icon name="users" size={16} /> Origine des clients
+                </Link>
               </>
             ) : null}
             {can(ctx, "costs") ? (

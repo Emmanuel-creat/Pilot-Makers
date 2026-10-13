@@ -706,7 +706,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "aides-renovation-rge",
     category: "devis",
     title: "Devis pour MaPrimeRénov', CEE et éco-prêt à taux zéro",
-    summary: "Enregistrez vos qualifications RGE, cochez les aides visées dans le devis : l'émission vérifie la qualification et le devis porte les mentions utiles au dossier.",
+    summary:
+      "Enregistrez vos qualifications RGE, cochez les aides visées dans le devis : l'émission vérifie la qualification et le devis porte les mentions utiles au dossier.",
     steps: [
       "Dans Entreprise, onglet Assurance, ajoutez chaque qualification RGE : organisme, numéro, domaines couverts et date de fin de validité.",
       "Dans le devis, cochez les aides que le client demandera puis les domaines des travaux.",
@@ -725,7 +726,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "tva-et-tresorerie",
     category: "factures",
     title: "Préparer la TVA et suivre sa trésorerie",
-    summary: "La TVA due sur vos encaissements est calculée chaque mois, et la trésorerie des 3 prochains mois est estimée à partir de vos factures et devis signés.",
+    summary:
+      "La TVA due sur vos encaissements est calculée chaque mois, et la trésorerie des 3 prochains mois est estimée à partir de vos factures et devis signés.",
     steps: [
       "Ouvrez Rapports puis « TVA à déclarer ». Choisissez le mois, ou cochez « Déclaration trimestrielle ».",
       "Reportez les bases et la TVA par taux sur votre déclaration, après avoir ajouté la TVA de vos factures d'achat.",
@@ -955,7 +957,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "exporter-vers-le-logiciel-comptable",
     category: "factures",
     title: "Exporter vers Pennylane, Sage, Cegid, EBP ou QuickBooks",
-    summary: "Un seul fichier reprend ventes, règlements et notes de frais, avec les comptes de votre cabinet : il s'importe dans tous les logiciels comptables.",
+    summary:
+      "Un seul fichier reprend ventes, règlements et notes de frais, avec les comptes de votre cabinet : il s'importe dans tous les logiciels comptables.",
     steps: [
       "Dans Comptabilité, vérifiez le plan comptable : comptes de vente, de TVA, de frais et du personnel, repris de votre cabinet.",
       "Choisissez la période et le format : FEC (le fichier officiel, accepté par tous les logiciels) ou tableur (CSV, point-virgule) pour un import paramétrable.",
@@ -1078,7 +1081,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "modifier-un-devis-a-plusieurs",
     category: "devis",
     title: "Modifier un devis à plusieurs",
-    summary: "Vous et un collègue pouvez travailler sur le même devis en même temps : chacun voit qui est là, et les modifications de l'autre s'ajoutent aux siennes.",
+    summary:
+      "Vous et un collègue pouvez travailler sur le même devis en même temps : chacun voit qui est là, et les modifications de l'autre s'ajoutent aux siennes.",
     steps: [
       "Ouvrez le devis : si un collègue l'a aussi ouvert, un bandeau indique son nom, et la section sur laquelle il travaille est signalée.",
       "Travaillez normalement : chaque modification est enregistrée en quelques secondes.",
@@ -1094,8 +1098,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "garanties-et-retenue-de-garantie",
     category: "factures",
     title: "Suivre les garanties et la retenue de garantie",
-    summary:
-      "Après la réception des travaux, Pilot-Makers suit les trois garanties de chaque chantier et la retenue de garantie à récupérer auprès du client.",
+    summary: "Après la réception des travaux, Pilot-Makers suit les trois garanties de chaque chantier et la retenue de garantie à récupérer auprès du client.",
     steps: [
       "Signez le procès-verbal de réception depuis la fiche du chantier : la date de réception fait courir les garanties.",
       "Ouvrez Chantiers, puis « Garanties » : chaque chantier réceptionné affiche la fin du parfait achèvement (un an), du bon fonctionnement (deux ans) et de la décennale (dix ans).",
@@ -1278,6 +1281,36 @@ export const HELP_ARTICLES: HelpArticle[] = [
       "Seuls les chantiers démarrés, terminés ou réceptionnés sont comptés.",
     ],
     link: { href: "/app/rapports/rentabilite", label: "Rentabilité" },
+  },
+  {
+    slug: "recouvrer-une-facture-impayee",
+    category: "factures",
+    title: "Recouvrer une facture impayée",
+    summary: "Relances, mise en demeure puis injonction de payer, étape par étape.",
+    steps: [
+      "Ouvrez la facture en retard et cliquez sur « Recouvrer cette facture ».",
+      "Vérifiez le décompte : principal, pénalités au taux de vos conditions et, entre professionnels, l'indemnité de 40 euros.",
+      "Si les relances n'ont rien donné, copiez la lettre de mise en demeure, signez-la et envoyez-la en recommandé avec accusé de réception, puis enregistrez la date d'envoi.",
+      "Passé le délai de 8 jours, la page indique le tribunal compétent, le formulaire et les pièces à joindre à la requête en injonction de payer.",
+    ],
+    notes: [
+      "Rien n'est envoyé ni déposé à votre place : vous gardez la main sur chaque étape.",
+      "Contre un particulier, l'action en paiement se prescrit par deux ans après l'échéance ; entre professionnels, par cinq ans.",
+    ],
+    link: { href: "/app/factures", label: "Voir les factures" },
+  },
+  {
+    slug: "origine-des-clients",
+    category: "clients",
+    title: "Savoir d'où viennent vos clients",
+    summary: "Demandes, transformation et coût d'acquisition par source.",
+    steps: [
+      "Pour chaque demande reçue, choisissez sa source : appel, site internet, recommandation, plateforme, salon.",
+      "Dans Rapports, ouvrez « Origine des clients » : demandes reçues, gagnées et chiffre d'affaires facturé par source.",
+      "Saisissez ce que vous a coûté chaque source dans l'année (abonnement, publicité, salon) pour voir le coût d'un client gagné et ce que rapporte chaque euro dépensé.",
+    ],
+    notes: ["Un client hérite de la source de sa première demande. Un client créé directement, sans demande, apparaît en « Origine non renseignée »."],
+    link: { href: "/app/rapports/origine", label: "Voir l'origine des clients" },
   },
   {
     slug: "factures-acompte-et-solde",
