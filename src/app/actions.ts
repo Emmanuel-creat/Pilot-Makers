@@ -82,6 +82,7 @@ import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableT
 import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction, switchOrg } from "@/lib/services/team";
 import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } from "@/lib/services/subcontractor-quotes";
 import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes";
+import { createIncident, updateIncident } from "@/lib/services/status";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1521,6 +1522,31 @@ export async function locateMissingAction(_: ActionState, fd: FormData): Promise
         ? `${r.found} chantier(s) localisé(s), ${r.missing} adresse(s) introuvable(s) : enregistrez leur position depuis le chantier.`
         : `${r.found} chantier(s) localisé(s).`,
     };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Statut public */
+
+export async function createIncidentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      createIncident(ctx, { title: s(fd, "title"), body: s(fd, "body"), severity: s(fd, "severity"), startsAt: s(fd, "startsAt") }),
+    );
+    revalidatePath("/admin/statut");
+    return { ok: true, message: "Incident publié sur la page de statut." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function updateIncidentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const resolve = s(fd, "resolve") === "1";
+    await withCtx((ctx) => updateIncident(ctx, s(fd, "id"), { note: s(fd, "note"), resolve }));
+    revalidatePath("/admin/statut");
+    return { ok: true, message: resolve ? "Incident clos." : "Information ajoutée." };
   } catch (e) {
     return toState(e);
   }

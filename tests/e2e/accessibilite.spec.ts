@@ -29,7 +29,7 @@ async function audit(page: Page, label: string) {
 }
 
 test("pages publiques", async ({ page }) => {
-  for (const path of ["/", "/connexion", "/inscription", "/aide", "/aide/creer-un-devis", "/cgu"]) {
+  for (const path of ["/", "/connexion", "/inscription", "/aide", "/aide/creer-un-devis", "/cgu", "/statut"]) {
     await page.goto(path);
     await audit(page, path);
   }

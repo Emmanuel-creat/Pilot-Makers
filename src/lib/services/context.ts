@@ -1,5 +1,6 @@
 import type { Database, Queryable } from "@/lib/db";
 import { forbidden } from "@/lib/http";
+import { appendSealed } from "./sealed-journal";
 
 export type Role = "owner" | "admin" | "member";
 
@@ -134,6 +135,10 @@ export async function audit(
     JSON.stringify(entry.data ?? {}),
     entry.ip ?? "",
   ]);
+  // Les actions d'administration de la plateforme vont aussi dans le journal scellé.
+  if (entry.action.startsWith("admin.")) {
+    await appendSealed(q, { actor: entry.userId ?? null, org: entry.orgId ?? null, action: entry.action, target: entry.target ?? "", data: entry.data, ip: entry.ip ?? "" });
+  }
 }
 
 export async function logError(q: Queryable, kind: string, message: string, orgId?: string | null, data?: unknown) {

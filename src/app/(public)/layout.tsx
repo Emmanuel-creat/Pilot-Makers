@@ -50,6 +50,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/securite" className="hover:text-ink">
             Sécurité
           </Link>
+          <Link href="/statut" className="hover:text-ink">
+            État du service
+          </Link>
         </div>
       </footer>
     </div>

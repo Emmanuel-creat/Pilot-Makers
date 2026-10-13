@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "etat-du-service",
+    date: "2026-10-13",
+    title: "Page d'état du service",
+    text: "Une page publique indique si tout fonctionne, et détaille les incidents et maintenances des 30 derniers jours.",
+    href: "/statut",
+  },
+  {
     id: "mise-en-page-du-devis",
     date: "2026-10-13",
     title: "Trois mises en page du devis",
