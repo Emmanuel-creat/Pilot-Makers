@@ -1,3 +1,4 @@
+import { listRge } from "@/lib/services/aids";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/Icon";
@@ -91,6 +92,7 @@ export default async function QuotePage({
         <QuoteEditor
           key={`${draft.id}-${draft.draftRevision}`}
           initial={draft}
+          rge={await listRge(ctx)}
           revisionEnabled={!!draft.priceRevision || (await hasFeature(ctx, "revision_prix"))}
           org={{
             trade_name: org.trade_name,

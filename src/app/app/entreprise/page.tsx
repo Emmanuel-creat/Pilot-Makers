@@ -19,6 +19,9 @@ import { readPricing } from "@/lib/services/pricing";
 import { can } from "@/lib/services/context";
 import { getShowcase, listShowcasePhotos } from "@/lib/services/showcase";
 import { Showcase } from "./Showcase";
+import { RgeList } from "./RgeList";
+import { listRge } from "@/lib/services/aids";
+import { parisDate } from "@/lib/services/quotes";
 
 export const metadata = { title: "Entreprise" };
 
@@ -143,6 +146,11 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
       ) : tab === "historique" ? (
         <History ctxPromise={organizationHistory(ctx)} />
+      ) : tab === "assurance" ? (
+        <>
+          <OrgForm key={tab} tab={tab} initial={values as Record<string, string | boolean | number | null>} canEdit={canEdit} />
+          <RgeList items={await listRge(ctx)} canEdit={canEdit} today={parisDate(new Date())} />
+        </>
       ) : tab === "apparence" ? (
         <>
           <p className="mb-4 text-sm text-muted">

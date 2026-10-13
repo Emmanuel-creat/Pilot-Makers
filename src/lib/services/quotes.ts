@@ -39,6 +39,7 @@ import {
   type QuoteStatus,
 } from "./quote-types";
 import { normalizeRevision, revisionMention } from "./revision";
+import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualifications, type EnergyAid, type RgeQualification } from "./aids";
 import { enqueueWebhook } from "./webhooks";
 
 const DAY = 86_400_000;
@@ -99,6 +100,7 @@ export const draftSchema = z.object({
   reverseCharge: z.boolean().default(false),
   retentionPercent: str(10).refine((v) => retentionBp(v) !== null, "Retenue de garantie : 5 % au plus"),
   priceRevision: z.object({ index: str(10), baseMonth: str(7), fixedPercent: str(10) }).nullable().optional().default(null),
+  energyAid: energyAidSchema,
   sections: z.array(sectionSchema).max(50),
 });
 
@@ -200,6 +202,7 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     reverseCharge: r.reverse_charge === true,
     retentionPercent: String(r.retention_percent ?? ""),
     priceRevision: (r.price_revision as PriceRevision | null) ?? null,
+    energyAid: (r.energy_aid as EnergyAid | null) ?? null,
     ...(r.amends_quote_id
       ? {
           amendment: {
@@ -460,7 +463,13 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
     const status: QuoteStatus = calc.ok ? "draft" : "incomplete";
     const revision = normalizeRevision(d.priceRevision);
     await writeSections(tx, id, ctx.orgId, d.sections);
-    await tx.query("UPDATE quotes SET price_revision=$3 WHERE id=$1 AND org_id=$2", [id, ctx.orgId, revision ? JSON.stringify(revision) : null]);
+    const aid = normalizeAid(d.energyAid);
+    await tx.query("UPDATE quotes SET price_revision=$3, energy_aid=$4 WHERE id=$1 AND org_id=$2", [
+      id,
+      ctx.orgId,
+      revision ? JSON.stringify(revision) : null,
+      aid ? JSON.stringify(aid) : null,
+    ]);
     await tx.query(
       `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
          validity_days=$10, payment_terms=$11, special_conditions=$12, deposit_percent=$13, estimated_duration=$14,
@@ -509,6 +518,10 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
   const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
   const customer = d.customerId ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null;
   const issues = checkCompliance(complianceInput(org, customer, d, calc));
+  const today = parisDate(new Date());
+  issues.push(
+    ...aidIssues(normalizeAid(d.energyAid), await rgeQualifications(ctx.db, ctx.orgId), today, parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents),
+  );
   return { calc, issues, canIssue: !issues.some((i) => i.blocking) };
 }
 
@@ -610,8 +623,11 @@ export function buildSnapshot(args: {
   number: string;
   version: number;
   now?: Date;
+  /** Qualifications RGE de l'entreprise, citées quand le devis vise des aides à la rénovation */
+  rge?: RgeQualification[];
 }): QuoteSnapshot {
   const { ctx, d, org, customer, calc, issues, number, version } = args;
+  const aid = normalizeAid(d.energyAid);
   const now = args.now ?? new Date();
   const issueDate = parisDate(now);
   const validUntil = parisDate(addDays(now, d.validityDays));
@@ -684,6 +700,7 @@ export function buildSnapshot(args: {
         ? { amendment: { index: d.amendment.index, parentNumber: d.amendment.parentNumber, parentAcceptedOn: d.amendment.parentAcceptedOn } }
         : {}),
       ...(d.priceRevision ? { priceRevision: d.priceRevision } : {}),
+      ...(aid ? { energyAid: aid } : {}),
     },
     // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
     sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, wastePercent: _waste, measure: _measure, ...l }) => l) })),
@@ -699,6 +716,7 @@ export function buildSnapshot(args: {
         retentionPercent: d.retentionPercent,
       }),
       ...(d.priceRevision ? [revisionMention(d.priceRevision)] : []),
+      ...aidMentions(aid, args.rge ?? [], issueDate, calc.totalTtcCents),
     ],
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
     consumer: consumerTerms(d.contractPlace, customer.type, calc, org.vat_regime),
@@ -737,6 +755,10 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     // Recalcul côté serveur : les totaux envoyés par le navigateur ne sont jamais utilisés.
     const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
     const issues = checkCompliance(complianceInput(org, customer, d, calc));
+    const rge = await rgeQualifications(tx, ctx.orgId);
+    issues.push(
+      ...aidIssues(normalizeAid(d.energyAid), rge, parisDate(new Date()), parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents),
+    );
     const blocking = issues.filter((i) => i.blocking);
     if (blocking.length || !customer) {
       throw new HttpError(422, "not_issuable", "Le devis ne peut pas être émis : " + blocking.map((b) => b.message).join(" ; "), { issues });
@@ -756,7 +778,7 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     }
 
     const now = new Date();
-    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now });
+    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now, rge });
     const validUntil = snapshot.validUntil;
     const check = verifySnapshot(snapshot);
     if (!check.ok) throw new HttpError(500, "integrity", "Contrôle de cohérence échoué : " + check.reason, check.reason);
@@ -829,6 +851,7 @@ export async function previewPdf(ctx: Ctx, id: string, override?: QuoteDraft): P
     issues: [],
     number: d.number ?? "BROUILLON",
     version: d.currentVersion + 1,
+    rge: await rgeQualifications(ctx.db, ctx.orgId),
   });
   snapshot.preview = true;
   return renderQuotePdf(snapshot);
@@ -1434,6 +1457,7 @@ export async function createAmendment(ctx: Ctx, quoteId: string) {
       reverseCharge: root.reverseCharge,
       retentionPercent: root.retentionPercent,
       priceRevision: root.priceRevision ?? null,
+      energyAid: root.energyAid ?? null,
       template: root.template,
       sections: [{ id: randomUUID(), title: "Travaux supplémentaires", description: "", lines: [] }],
     },

@@ -595,3 +595,31 @@ test("feuille de route : vote dans l'application, compte public", async ({ page 
   await page.goto("/app/bienvenue");
   await expect(page.getByRole("heading", { name: "Envoyez-le à votre client" })).toBeVisible();
 });
+
+test("aides à la rénovation : qualification RGE puis contrôle du devis", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=assurance");
+  const number = `E-${Date.now().toString(36)}`;
+  await page.getByLabel("Numéro de qualification").fill(number);
+  await page.getByLabel("Valable jusqu'au").fill("2030-12-31");
+  await page.getByRole("checkbox", { name: "Isolation des combles et toitures" }).check();
+  await audit(page, "qualifications RGE");
+  await page.getByRole("button", { name: "Ajouter la qualification" }).click();
+  await expect(page.getByTestId("liste-rge")).toContainText(number);
+
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Isolation des combles perdus");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("checkbox", { name: "MaPrimeRénov'" }).check();
+  await expect(page.getByText("Aides à la rénovation : indiquez le domaine des travaux").first()).toBeVisible();
+  await page.getByRole("checkbox", { name: "Pompes à chaleur" }).check();
+  await expect(page.getByText(/aucune qualification RGE enregistrée pour « Pompes à chaleur »/).first()).toBeVisible();
+  await page.getByRole("checkbox", { name: "Pompes à chaleur" }).uncheck();
+  await page.getByRole("checkbox", { name: "Isolation des combles et toitures" }).check();
+  await expect(page.getByText(/aucune qualification RGE/)).toHaveCount(0);
+  await expect(page.getByText("MaPrimeRénov' : indiquez la date de la visite préalable du logement").first()).toBeVisible();
+  await page.getByLabel("Visite préalable du logement").fill("2026-01-05");
+  await expect(page.getByText("MaPrimeRénov' : indiquez la date de la visite préalable du logement")).toHaveCount(0);
+  await audit(page, "devis avec aides");
+});

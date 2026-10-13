@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "aides-renovation-rge",
+    date: "2026-10-13",
+    title: "Devis éligibles aux aides à la rénovation",
+    text: "Qualifications RGE contrôlées à l'émission, mentions MaPrimeRénov', CEE et éco-prêt, visite préalable et reste à charge estimé.",
+    href: "/aide/aides-renovation-rge",
+  },
+  {
     id: "personnaliser-le-pdf",
     date: "2026-10-13",
     title: "PDF à votre image",

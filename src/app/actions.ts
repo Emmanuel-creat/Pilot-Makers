@@ -86,6 +86,7 @@ import { createIncident, updateIncident } from "@/lib/services/status";
 import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/services/showcase";
 import { dismissCostAlert } from "@/lib/services/supplier-prices";
 import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/services/roadmap";
+import { addRge, removeRge } from "@/lib/services/aids";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1624,4 +1625,23 @@ export async function roadmapStatusAction(fd: FormData) {
 export async function deleteRoadmapAction(fd: FormData) {
   await withCtx((ctx) => deleteRoadmapItem(ctx, s(fd, "id")));
   revalidatePath("/admin/feuille-de-route");
+}
+
+/* Qualifications RGE --------------------------------------------------- */
+
+export async function addRgeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      addRge(ctx, { body: s(fd, "body"), number: s(fd, "number"), domains: fd.getAll("domains").map(String), valid_until: s(fd, "valid_until") }),
+    );
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Qualification enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function removeRgeAction(fd: FormData) {
+  await withCtx((ctx) => removeRge(ctx, s(fd, "id")));
+  revalidatePath("/app/entreprise");
 }

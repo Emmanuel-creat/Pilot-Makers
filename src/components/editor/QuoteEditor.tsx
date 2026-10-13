@@ -22,6 +22,7 @@ import { CatalogPicker } from "./CatalogPicker";
 import { CustomerForm } from "./CustomerForm";
 import { LineRow, UNITS } from "./LineRow";
 import { BT_INDEXES, DEFAULT_FIXED_PERCENT } from "@/lib/services/revision-labels";
+import { AID_PROGRAMS, RGE_DOMAINS, aidIssues, normalizeAid, type AidProgram, type EnergyAid, type RgeDomain, type RgeQualification } from "@/lib/services/aid-rules";
 import { travelCostCents, travelLine, type Pricing, type TravelSettings } from "@/lib/services/pricing";
 
 export interface EditorCustomer {
@@ -99,6 +100,7 @@ function payload(d: QuoteDraft) {
     reverseCharge: d.reverseCharge,
     retentionPercent: d.retentionPercent,
     priceRevision: d.priceRevision ?? null,
+    energyAid: d.energyAid?.programs.length ? d.energyAid : null,
     sections: d.sections,
   };
 }
@@ -113,7 +115,10 @@ export function QuoteEditor({
   openAssistant,
   pricing,
   revisionEnabled = true,
+  rge = [],
 }: {
+  /** Qualifications RGE de l'entreprise, pour contrôler les devis visant des aides */
+  rge?: RgeQualification[];
   initial: QuoteDraft;
   /** Clause de révision de prix proposée (activation progressive) */
   revisionEnabled?: boolean;
@@ -159,8 +164,8 @@ export function QuoteEditor({
     return new Map(runs.filter((r) => r.group && r.items).map((r) => [r.end, r]));
   }, [calc, d.sections]);
   const issues = useMemo(
-    () =>
-      checkCompliance({
+    () => [
+      ...checkCompliance({
         org,
         customer: customer
           ? {
@@ -191,7 +196,9 @@ export function QuoteEditor({
         ),
         calc,
       }),
-    [org, customer, d, calc],
+      ...aidIssues(normalizeAid(d.energyAid), rge, isoDay(0), isoDay(d.validityDays), calc.totalTtcCents),
+    ],
+    [org, customer, d, calc, rge],
   );
   const consumer = useMemo(
     () => consumerTerms(d.contractPlace, customer?.type, calc, org.vat_regime),
@@ -1128,6 +1135,7 @@ export function QuoteEditor({
               ) : null}
             </div>
             ) : null}
+            <EnergyAidFields value={d.energyAid ?? null} onChange={(v) => set("energyAid", v)} />
             <div>
               <label className="label" htmlFor="q-payment">
                 Conditions de paiement
@@ -1604,4 +1612,71 @@ function TravelForm({ travel, onAdd, onCancel }: { travel: TravelSettings; onAdd
       </div>
     </div>
   );
+}
+
+const NO_AID: EnergyAid = { programs: [], domains: [], visitDate: "", estimatedAid: "" };
+
+/** Aides à la rénovation visées par le devis : dispositifs, domaines contrôlés contre les qualifications RGE, visite et estimation. */
+function EnergyAidFields({ value, onChange }: { value: EnergyAid | null; onChange: (v: EnergyAid | null) => void }) {
+  const a = value ?? NO_AID;
+  const toggle = <T extends string>(list: T[], k: T) => (list.includes(k) ? list.filter((x) => x !== k) : [...list, k]);
+  const update = (p: Partial<EnergyAid>) => onChange({ ...a, ...p });
+  return (
+    <fieldset className="rounded-md border border-line p-3">
+      <legend className="px-1 text-sm font-medium">Aides à la rénovation énergétique</legend>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {(Object.entries(AID_PROGRAMS) as [AidProgram, string][]).map(([k, label]) => (
+          <label key={k} className="flex min-h-6 items-center gap-2 text-sm">
+            <input type="checkbox" checked={a.programs.includes(k)} onChange={() => update({ programs: toggle(a.programs, k) })} />
+            {label}
+          </label>
+        ))}
+      </div>
+      {a.programs.length ? (
+        <div className="mt-3 grid gap-3">
+          <div>
+            <p className="label">Domaines des travaux</p>
+            <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+              {(Object.entries(RGE_DOMAINS) as [RgeDomain, string][]).map(([k, label]) => (
+                <label key={k} className="flex min-h-6 items-center gap-2 text-sm">
+                  <input type="checkbox" checked={a.domains.includes(k)} onChange={() => update({ domains: toggle(a.domains, k) })} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="label" htmlFor="q-aid-visit">
+                Visite préalable du logement
+              </label>
+              <input id="q-aid-visit" type="date" className="field" value={a.visitDate} onChange={(e) => update({ visitDate: e.target.value })} />
+            </div>
+            <div>
+              <label className="label" htmlFor="q-aid-amount">
+                Aides estimées (€ TTC)
+              </label>
+              <input
+                id="q-aid-amount"
+                inputMode="decimal"
+                className="field"
+                value={a.estimatedAid}
+                onChange={(e) => update({ estimatedAid: e.target.value })}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted">
+            L&apos;émission vérifie qu&apos;une qualification RGE valide couvre chaque domaine (Entreprise, onglet Assurance). Le devis indique les
+            dispositifs, la qualification, la visite et le reste à charge estimé.
+          </p>
+        </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
+/** Date civile à Paris dans n jours (AAAA-MM-JJ). */
+function isoDay(days: number) {
+  const fmt = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" });
+  return fmt.format(new Date(Date.now() + days * 86_400_000));
 }

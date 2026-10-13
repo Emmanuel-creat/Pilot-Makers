@@ -1,3 +1,4 @@
+import type { EnergyAid } from "./aid-rules";
 import type { Measure } from "@/lib/calc/measure";
 import type { CalcResult, LineKind, LineNature } from "@/lib/calc/engine";
 import type { ConsumerTerms, ContractPlace } from "./consumer";
@@ -103,6 +104,8 @@ export interface QuoteDraft {
   amendment?: QuoteAmendment;
   /** Prix révisables selon un index BT, absent ou nul pour des prix fermes */
   priceRevision?: PriceRevision | null;
+  /** Aides à la rénovation visées (MaPrimeRénov', CEE, éco-PTZ), absent ou nul sinon */
+  energyAid?: EnergyAid | null;
   sections: DraftSection[];
   draftRevision: number;
   currentVersion: number;
@@ -182,6 +185,7 @@ export interface QuoteSnapshot {
     retentionPercent?: string;
     amendment?: Omit<QuoteAmendment, "parentId">;
     priceRevision?: PriceRevision;
+    energyAid?: EnergyAid;
   };
   sections: DraftSection[];
   calc: CalcResult;

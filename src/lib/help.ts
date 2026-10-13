@@ -703,6 +703,25 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=apparence", label: "Ouvrir l'onglet Apparence" },
   },
   {
+    slug: "aides-renovation-rge",
+    category: "devis",
+    title: "Devis pour MaPrimeRénov', CEE et éco-prêt à taux zéro",
+    summary: "Enregistrez vos qualifications RGE, cochez les aides visées dans le devis : l'émission vérifie la qualification et le devis porte les mentions utiles au dossier.",
+    steps: [
+      "Dans Entreprise, onglet Assurance, ajoutez chaque qualification RGE : organisme, numéro, domaines couverts et date de fin de validité.",
+      "Dans le devis, cochez les aides que le client demandera puis les domaines des travaux.",
+      "Pour MaPrimeRénov', indiquez la date de la visite préalable du logement.",
+      "Ajoutez si vous le souhaitez le montant d'aides estimé : le devis affiche le reste à charge estimé.",
+      "Émettez : le devis cite votre qualification, la visite et les démarches à faire avant de signer ou de commencer.",
+    ],
+    notes: [
+      "L'émission est bloquée si aucune qualification valide ne couvre un domaine coché. Une qualification qui expire avant la fin de validité du devis est signalée.",
+      "Le montant d'aides reste une estimation : il ne change pas le total du devis.",
+      "Les règles des aides évoluent souvent : vérifiez les conditions en vigueur auprès de France Rénov' et de l'organisme qui verse la prime.",
+    ],
+    link: { href: "/app/entreprise?onglet=assurance", label: "Gérer mes qualifications RGE" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

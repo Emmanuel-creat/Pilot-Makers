@@ -86,6 +86,7 @@ export async function exportAccountData(ctx: Ctx) {
     onsiteSignatures: await q("SELECT quote_id, version, signer_name, image_sha256, collected_by, created_at FROM quote_signatures WHERE org_id=$1"),
     showcase: await q("SELECT enabled, slug, intro, area, show_phone, show_email, updated_at FROM showcases WHERE org_id=$1"),
     showcasePhotos: await q("SELECT id, journal_id, caption, show_city, consent_note, consent_by, created_at FROM showcase_photos WHERE org_id=$1"),
+    rgeQualifications: await q("SELECT id, body, number, domains, valid_until, created_at FROM rge_qualifications WHERE org_id=$1"),
     // Les secrets de signature ne sont jamais exportés.
     webhookEndpoints: await q("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1"),
   };
@@ -153,6 +154,7 @@ const CSV_TABLES: [string, string][] = [
   ["signatures-sur-place", "onsiteSignatures"],
   ["vitrine", "showcase"],
   ["vitrine-photos", "showcasePhotos"],
+  ["qualifications-rge", "rgeQualifications"],
 ];
 
 const README = `Export complet Pilot-Makers
