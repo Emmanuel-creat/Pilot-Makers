@@ -111,6 +111,10 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await page.getByRole("button", { name: "Créer un lien de consultation" }).click();
   const link = await page.getByLabel("Lien de consultation").inputValue();
   expect(link).toMatch(/\/d\//);
+  // Message prêt à envoyer par SMS ou WhatsApp depuis le téléphone de l'artisan.
+  await expect(page.getByLabel("Message prêt à envoyer")).toContainText(`voici le devis ${number}`);
+  await expect(page.getByRole("link", { name: "Envoyer par SMS" })).toHaveAttribute("href", /^sms:.*body=Bonjour/);
+  await expect(page.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", /^https:\/\/wa\.me\//);
   const client = await browser.newContext({ locale: "fr-FR" });
   const cp = await client.newPage();
   await cp.goto(new URL(link).pathname);

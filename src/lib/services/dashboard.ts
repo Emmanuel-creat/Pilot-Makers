@@ -183,6 +183,7 @@ export const EVENT_LABELS: Record<string, string> = {
   "revision.started": "Nouvelle version en préparation",
   "version.superseded": "Version remplacée",
   "link.created": "Lien de consultation créé",
+  "link.shared": "Lien transmis par SMS ou messagerie",
   "links.revoked": "Liens de consultation révoqués",
   reminder: "Relance envoyée",
 };

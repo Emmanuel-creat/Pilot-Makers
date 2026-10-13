@@ -384,9 +384,24 @@ export default async function QuotePage({
             <section className="card space-y-3 p-4">
               <h2 className="text-sm font-semibold">Lien de consultation</h2>
               <p className="text-xs text-muted">
-                {activeLinks ? `${activeLinks} lien(s) actif(s).` : "Aucun lien actif."} À transmettre par SMS ou messagerie si besoin.
+                {activeLinks ? `${activeLinks} lien(s) actif(s).` : "Aucun lien actif."} À envoyer par SMS, WhatsApp ou une autre messagerie depuis votre téléphone.
               </p>
-              <ShareLinkButton quoteId={id} />
+              <ShareLinkButton
+                quoteId={id}
+                share={
+                  current
+                    ? {
+                        orgName: current.snapshot.org.trade_name || current.snapshot.org.legal_name,
+                        number: current.number,
+                        title: current.snapshot.quote.title,
+                        totalTtcCents: current.snapshot.calc.totalTtcCents,
+                        validUntil: current.snapshot.validUntil,
+                        greetingName: current.snapshot.customer.contact || (current.snapshot.customer.type === "particulier" ? current.snapshot.customer.name : ""),
+                        phone: current.snapshot.customer.phone,
+                      }
+                    : undefined
+                }
+              />
               {activeLinks ? (
                 <form action={revokeLinksAction}>
                   <input type="hidden" name="id" value={id} />

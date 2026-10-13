@@ -1195,6 +1195,24 @@ export async function getShareLink(ctx: Ctx, quoteId: string) {
   return link;
 }
 
+export const SHARE_CHANNELS = { sms: "SMS", whatsapp: "WhatsApp", autre: "autre messagerie" } as const;
+
+/**
+ * Note que le lien a été transmis par l'artisan depuis son téléphone (SMS ou messagerie) :
+ * le devis prêt passe à « Envoyé », comme après un envoi par e-mail.
+ */
+export async function markSharedByMessage(ctx: Ctx, quoteId: string, channel: string) {
+  requireWritable(ctx);
+  if (!(channel in SHARE_CHANNELS)) throw badRequest("Canal d'envoi inconnu");
+  const r = await getQuoteRow(ctx.db, ctx, quoteId);
+  if (!PENDING_STATUSES.includes(r.status as QuoteStatus)) throw conflict("Le devis doit être émis et en attente de réponse");
+  await ctx.db.query(
+    "UPDATE quotes SET status = CASE WHEN status='ready' THEN 'sent' ELSE status END, sent_at=coalesce(sent_at, now()), updated_at=now() WHERE id=$1 AND org_id=$2",
+    [quoteId, ctx.orgId],
+  );
+  await addEvent(ctx.db, ctx, quoteId, num(r.current_version), "link.shared", { channel });
+}
+
 export async function resolveShareToken(q: Queryable, token: string) {
   const link = await one<{
     id: string;

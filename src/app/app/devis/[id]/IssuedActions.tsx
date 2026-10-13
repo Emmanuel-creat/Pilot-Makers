@@ -8,6 +8,7 @@ import { apiFetch, ApiError, uid } from "@/components/editor/api";
 import { cancelQuoteAction } from "@/app/actions";
 import { formatEuros } from "@/lib/calc/format";
 import { pickedVariantIds, VariantPicker, type VariantOffer } from "@/components/VariantPicker";
+import { isMobile, shareMessage, smsHref, whatsappHref } from "@/lib/share-message";
 import { REFUSAL_REASONS } from "@/lib/services/refusal";
 
 export function SendButton({ quoteId, primary }: { quoteId: string; primary: boolean }) {
@@ -114,10 +115,22 @@ export function SendButton({ quoteId, primary }: { quoteId: string; primary: boo
   );
 }
 
-export function ShareLinkButton({ quoteId }: { quoteId: string }) {
+export interface ShareDetails {
+  orgName: string;
+  number: string;
+  title: string;
+  totalTtcCents: number;
+  validUntil: string;
+  greetingName: string;
+  phone: string;
+}
+
+export function ShareLinkButton({ quoteId, share }: { quoteId: string; share?: ShareDetails }) {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"" | "lien" | "message">("");
+  const [phone, setPhone] = useState(share?.phone ?? "");
   const create = async () => {
     setError("");
     try {
@@ -127,22 +140,66 @@ export function ShareLinkButton({ quoteId }: { quoteId: string }) {
       setError(e instanceof ApiError ? e.message : "Erreur");
     }
   };
+  const message = url && share ? shareMessage({ ...share, url }) : "";
+  // Noté à l'ouverture de Messages ou WhatsApp : le devis prêt passe à « Envoyé ».
+  const shared = (channel: string) => {
+    void apiFetch(`/api/quotes/${quoteId}/shared`, { method: "POST", json: { channel } })
+      .then(() => router.refresh())
+      .catch(() => undefined);
+  };
+  const copy = async (text: string, what: "lien" | "message") => {
+    await navigator.clipboard?.writeText(text).catch(() => undefined);
+    setCopied(what);
+  };
   return (
-    <div>
+    <div className="space-y-2">
       {url ? (
-        <div className="flex gap-2">
-          <input readOnly value={url} className="field-sm flex-1 text-xs" onFocus={(e) => e.target.select()} aria-label="Lien de consultation" />
-          <button
-            type="button"
-            className="btn-secondary min-h-8 text-sm"
-            onClick={async () => {
-              await navigator.clipboard?.writeText(url).catch(() => undefined);
-              setCopied(true);
-            }}
-          >
-            {copied ? "Copié" : "Copier"}
-          </button>
-        </div>
+        <>
+          <div className="flex gap-2">
+            <input readOnly value={url} className="field-sm flex-1 text-xs" onFocus={(e) => e.target.select()} aria-label="Lien de consultation" />
+            <button type="button" className="btn-secondary min-h-8 text-sm" onClick={() => copy(url, "lien")}>
+              {copied === "lien" ? "Copié" : "Copier"}
+            </button>
+          </div>
+          {share ? (
+            <div className="space-y-2 rounded-md bg-surface-2 p-2" data-testid="envoi-message">
+              <label className="label text-xs" htmlFor="share-phone">
+                Portable du client
+              </label>
+              <input
+                id="share-phone"
+                type="tel"
+                className="field-sm w-full"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="06 12 34 56 78"
+                autoComplete="off"
+              />
+              {phone && !isMobile(phone) ? <p className="text-xs text-warning">Ce numéro ne semble pas être un portable : le SMS risque de ne pas arriver.</p> : null}
+              <p className="whitespace-pre-line rounded border border-line bg-surface p-2 text-xs" aria-label="Message prêt à envoyer">
+                {message}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <a className="btn-secondary min-h-8 text-sm" href={smsHref(phone, message)} onClick={() => shared("sms")}>
+                  <Icon name="phone" size={16} /> Envoyer par SMS
+                </a>
+                <a
+                  className="btn-secondary min-h-8 text-sm"
+                  href={whatsappHref(phone, message)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => shared("whatsapp")}
+                >
+                  <Icon name="send" size={16} /> WhatsApp
+                </a>
+                <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => copy(message, "message").then(() => shared("autre"))}>
+                  <Icon name="copy" size={16} /> {copied === "message" ? "Message copié" : "Copier le message"}
+                </button>
+              </div>
+              <p className="text-xs text-muted">Le message s'ouvre dans l'application de votre téléphone : relisez-le, puis envoyez-le.</p>
+            </div>
+          ) : null}
+        </>
       ) : (
         <button type="button" className="btn-secondary w-full" onClick={create}>
           <Icon name="link" size={16} /> Créer un lien de consultation

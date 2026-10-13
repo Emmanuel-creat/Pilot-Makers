@@ -1057,6 +1057,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis/nouveau", label: "Nouveau devis" },
   },
   {
+    slug: "envoyer-le-devis-par-sms",
+    category: "devis",
+    title: "Envoyer le devis par SMS ou WhatsApp",
+    summary: "Depuis votre téléphone, le lien du devis part dans un message déjà rédigé, que vous relisez avant de l'envoyer.",
+    steps: [
+      "Ouvrez le devis émis, puis « Créer un lien de consultation » dans la partie Lien de consultation.",
+      "Vérifiez le portable du client, prérempli depuis sa fiche.",
+      "Touchez « Envoyer par SMS » ou « WhatsApp » : l'application s'ouvre avec le message et le lien. Relisez, puis envoyez.",
+      "Pour une autre messagerie, utilisez « Copier le message » et collez-le.",
+    ],
+    notes: [
+      "Le devis passe à « Envoyé » et l'historique note le canal utilisé ; il passe à « Consulté » dès que le client ouvre le lien.",
+      "Le message part de votre téléphone, avec votre numéro : aucun service d'envoi n'est utilisé.",
+      "Un numéro fixe ne reçoit pas les SMS : un avertissement s'affiche dans ce cas.",
+    ],
+    link: { href: "/app/devis", label: "Mes devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-par-sms",
+    date: "2026-10-13",
+    title: "Devis par SMS et WhatsApp",
+    text: "Le lien du devis part dans un message prérédigé depuis votre téléphone ; le devis passe à « Envoyé ».",
+    href: "/aide/envoyer-le-devis-par-sms",
+  },
+  {
     id: "variantes-devis",
     date: "2026-10-13",
     title: "Variantes au choix du client",
