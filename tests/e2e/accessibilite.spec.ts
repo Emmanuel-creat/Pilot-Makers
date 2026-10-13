@@ -302,6 +302,55 @@ test("sous-traitants : fiche, attestation et vigilance sur le chantier", async (
   await expect(page.getByText("Obligation de vigilance")).toBeVisible();
 });
 
+test("devis : prix demandé à un sous-traitant, réponse en ligne puis intégration avec la marge", async ({ page, browser }) => {
+  const name = `Électricité Roux ${Date.now().toString(36)}`;
+  await login(page);
+  await page.goto("/app/sous-traitants");
+  await page.getByLabel("Raison sociale").fill(name);
+  await page.getByLabel("E-mail", { exact: true }).fill("devis@electricite-roux.fr");
+  await page.getByRole("button", { name: "Ajouter le sous-traitant" }).click();
+  await page.waitForURL(/\/app\/sous-traitants\/[0-9a-f-]{36}$/);
+
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Rénovation électrique");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const quoteUrl = page.url();
+  const panel = page.locator("#sous-traitance");
+  await panel.locator("#sq-sub").selectOption({ label: name });
+  await panel.getByLabel("Travaux demandés").fill("Remplacement du tableau électrique");
+  await panel.getByRole("button", { name: "Demander un prix" }).click();
+  const msg = panel.getByText(/Demande envoyée par e-mail\./);
+  await expect(msg).toBeVisible();
+  const link = (await msg.textContent())!.match(/https?:\/\/\S+/)![0];
+
+  const st = await browser.newContext({ locale: "fr-FR" });
+  const sp = await st.newPage();
+  await sp.goto(new URL(link).pathname);
+  await expect(sp.getByRole("heading", { name: "Remplacement du tableau électrique" })).toBeVisible();
+  await sp.getByLabel("Montant hors taxes (euros)").fill("1 500");
+  await sp.getByLabel("Délai d'intervention").fill("3 jours");
+  await sp.getByRole("button", { name: "Envoyer mon prix" }).click();
+  await expect(sp.getByText("Merci, votre prix a bien été transmis.")).toBeVisible();
+  await st.close();
+
+  await page.goto(quoteUrl);
+  const card = panel.getByTestId("demande-st").filter({ hasText: "Remplacement du tableau électrique" });
+  await expect(card.getByText("Prix reçu")).toBeVisible();
+  await card.getByLabel("Marge (%)").fill("20");
+  await card.getByRole("button", { name: "Intégrer au devis" }).click();
+  await page.waitForURL(/ligne=sous-traitance/);
+  await expect(card.getByText("Retenu", { exact: true })).toBeVisible();
+  // La ligne de sous-traitance figure dans l'éditeur du devis.
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input, textarea")).some((e) => e.value === "Remplacement du tableau électrique"),
+      ),
+    )
+    .toBe(true);
+});
+
 test("notes de frais : ticket photographié puis validation et remboursement", async ({ page }) => {
   await login(page);
   await page.goto("/app/frais");

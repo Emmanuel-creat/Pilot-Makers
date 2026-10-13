@@ -80,6 +80,7 @@ import {
 } from "@/lib/services/invoices";
 import { beginTwoFactorSetup, completeLoginChallenge, confirmTwoFactor, disableTwoFactor, regenerateRecoveryCodes } from "@/lib/services/two-factor";
 import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction, switchOrg } from "@/lib/services/team";
+import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } from "@/lib/services/subcontractor-quotes";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1435,4 +1436,52 @@ export async function updateLeadAction(fd: FormData) {
 export async function convertLeadAction(fd: FormData) {
   const quoteId = await withCtx((ctx) => convertLeadToQuote(ctx, s(fd, "id")));
   redirect(`/app/devis/${quoteId}`);
+}
+
+/* Devis des sous-traitants */
+
+export async function requestSubQuoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const quoteId = s(fd, "quoteId");
+    const subcontractorId = s(fd, "subcontractorId");
+    const r = await withCtx((ctx) =>
+      requestSubQuote(ctx, { subcontractorId, quoteId, title: s(fd, "title"), description: s(fd, "description"), send: s(fd, "send") === "1" }),
+    );
+    if (quoteId) revalidatePath(`/app/devis/${quoteId}`);
+    revalidatePath(`/app/sous-traitants/${subcontractorId}`);
+    return { ok: true, message: r.emailed ? `Demande envoyée par e-mail. ${r.url}` : `Demande créée. Lien à transmettre : ${r.url}` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function recordSubQuoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => recordSubQuote(ctx, s(fd, "id"), { amount: s(fd, "amount"), delay: s(fd, "delay"), note: s(fd, "note") }));
+    revalidatePath(s(fd, "back") || "/app/sous-traitants");
+    return { ok: true, message: "Prix enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function integrateSubQuoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let quoteId = "";
+  try {
+    ({ quoteId } = await withCtx((ctx) => integrateSubQuote(ctx, s(fd, "id"), { quoteId: s(fd, "quoteId"), margin: s(fd, "margin") })));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/devis/${quoteId}?ligne=sous-traitance`);
+}
+
+export async function decideSubQuoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const decision = s(fd, "decision") === "annule" ? "annule" : "refuse";
+    await withCtx((ctx) => decideSubQuote(ctx, s(fd, "id"), decision));
+    revalidatePath(s(fd, "back") || "/app/sous-traitants");
+    return { ok: true, message: decision === "annule" ? "Demande annulée." : "Prix écarté." };
+  } catch (e) {
+    return toState(e);
+  }
 }

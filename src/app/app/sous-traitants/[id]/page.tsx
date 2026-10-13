@@ -7,6 +7,8 @@ import { requirePageCtx } from "@/lib/server/session";
 import { JOB_STATUSES, type JobStatus } from "@/lib/services/jobs-labels";
 import { DOC_KINDS, getSubcontractor } from "@/lib/services/subcontractors";
 import { StatusBadge } from "../StatusBadge";
+import { SubQuotes } from "@/components/SubQuotes";
+import { draftQuoteChoices, listSubQuotes } from "@/lib/services/subcontractor-quotes";
 import { ArchiveSubcontractor, DeleteSubDocument, DocumentUpload, RequestDocuments, SubcontractorForm } from "../SubForms";
 
 export const metadata = { title: "Sous-traitant" };
@@ -55,6 +57,15 @@ export default async function SubcontractorPage({ params }: { params: Promise<{ 
           {sub.last_reminder_at ? <p className="mt-2 text-xs text-muted">Dernière demande envoyée le {fmtDate(sub.last_reminder_at)}.</p> : null}
         </Section>
 
+        <Section title="Demandes de prix" description="Le sous-traitant répond en ligne ; le prix retenu s'ajoute à votre devis client avec votre marge.">
+          <SubQuotes
+            rows={await listSubQuotes(ctx, { subcontractorId: sub.id })}
+            back={`/app/sous-traitants/${sub.id}`}
+            canEdit={canEdit && !sub.archived_at}
+            fixedSubId={sub.id}
+            draftQuotes={await draftQuoteChoices(ctx)}
+          />
+        </Section>
         <Section title="Tous les documents">
           {documents.length ? (
             <ul className="mb-4 divide-y divide-line text-sm">

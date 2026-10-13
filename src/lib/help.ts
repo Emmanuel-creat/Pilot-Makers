@@ -516,6 +516,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/clients", label: "Ouvrir les clients" },
   },
   {
+    slug: "devis-sous-traitants",
+    category: "devis",
+    title: "Demander un prix à un sous-traitant et l'intégrer au devis",
+    summary: "Le sous-traitant répond en ligne, son prix devient une ligne de votre devis avec votre marge.",
+    steps: [
+      "Dans le devis en préparation, section « Prix des sous-traitants », choisissez le sous-traitant et décrivez les travaux demandés.",
+      "Il reçoit un lien par e-mail et indique son montant hors taxes, son délai et joint son devis, sans créer de compte. Vous êtes prévenu dès sa réponse.",
+      "Un prix reçu par téléphone se saisit aussi à la main. Comparez les réponses, écartez celles que vous ne retenez pas.",
+      "Touchez « Intégrer au devis » avec votre marge : une ligne de sous-traitance au forfait s'ajoute, avec le coût du sous-traitant en coût de revient.",
+    ],
+    notes: [
+      "Le sous-traitant peut corriger son prix tant que vous n'avez pas décidé. Une fois le prix retenu ou écarté, le lien se ferme.",
+      "Les demandes se retrouvent aussi sur la fiche du sous-traitant, et dans l'export complet de vos données.",
+    ],
+    link: { href: "/app/sous-traitants", label: "Ouvrir les sous-traitants" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

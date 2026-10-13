@@ -21,6 +21,10 @@ import { QuoteBilling } from "./Billing";
 import { ClientThread } from "./ClientThread";
 import { listQuoteMessages } from "@/lib/services/client-space";
 import { CreateJob } from "./CreateJob";
+import { SubQuotes } from "@/components/SubQuotes";
+import { can } from "@/lib/services/context";
+import { listSubQuotes } from "@/lib/services/subcontractor-quotes";
+import { listSubcontractors } from "@/lib/services/subcontractors";
 import { jobForQuote } from "@/lib/services/jobs";
 import { listIndexValues } from "@/lib/services/revision";
 import { hasFeature } from "@/lib/services/features";
@@ -82,6 +86,7 @@ export default async function QuotePage({
           </div>
         ) : null}
         <QuoteEditor
+          key={`${draft.id}-${draft.draftRevision}`}
           initial={draft}
           revisionEnabled={!!draft.priceRevision || (await hasFeature(ctx, "revision_prix"))}
           org={{
@@ -112,6 +117,21 @@ export default async function QuotePage({
           openAssistant={sp.assistant === "1"}
           pricing={editorPricing(readPricing(org.pricing), !!ctx.entitlements.plan.features.margin)}
         />
+        {can(ctx, "costs") ? (
+          <section className="card mt-6 p-4" id="sous-traitance">
+            <h2 className="mb-1 text-sm font-semibold">Prix des sous-traitants</h2>
+            <p className="mb-3 text-xs text-muted">
+              Demandez un prix pour une partie des travaux. La réponse retenue s'ajoute au devis en ligne de sous-traitance, avec votre marge.
+            </p>
+            <SubQuotes
+              rows={await listSubQuotes(ctx, { quoteId: id })}
+              back={`/app/devis/${id}`}
+              canEdit={writable}
+              fixedQuoteId={id}
+              subcontractors={(await listSubcontractors(ctx)).map((x) => ({ id: x.id, name: x.name, email: x.email }))}
+            />
+          </section>
+        ) : null}
       </>
     );
   }

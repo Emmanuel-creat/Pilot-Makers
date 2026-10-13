@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-sous-traitants",
+    date: "2026-10-13",
+    title: "Prix des sous-traitants dans vos devis",
+    text: "Demandez un prix en un geste, le sous-traitant répond en ligne, et sa proposition retenue s'ajoute à votre devis avec votre marge.",
+    href: "/app/sous-traitants",
+  },
+  {
     id: "espace-client",
     date: "2026-10-13",
     title: "Espace client et échanges sur les devis",

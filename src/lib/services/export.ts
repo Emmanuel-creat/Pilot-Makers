@@ -76,6 +76,10 @@ export async function exportAccountData(ctx: Ctx) {
       `SELECT id, user_id, job_id, expense_date, merchant, category, amount_ttc_cents, vat_cents, payment, note, photo_type, photo_sha256, status,
          review_note, reviewed_by, reviewed_at, reimbursed_at, created_at FROM expenses WHERE org_id=$1 ORDER BY expense_date`,
     ),
+    subcontractorQuotes: await q(
+      `SELECT id, subcontractor_id, quote_id, title, description, status, expires_at, amount_ht_cents, delay, answer_note, answered_by, file_name,
+         file_type, file_sha256, margin_bp, line_id, answered_at, decided_at, created_at FROM subcontractor_quotes WHERE org_id=$1 ORDER BY created_at`,
+    ),
     quoteMessages: await q("SELECT * FROM quote_messages WHERE org_id=$1 ORDER BY created_at"),
     // Les liens d'espace client ne sont exportés que par leurs métadonnées, jamais par leur jeton.
     portalLinks: await q("SELECT id, customer_id, expires_at, revoked_at, last_used_at, created_at FROM customer_portal_links WHERE org_id=$1"),
@@ -140,6 +144,7 @@ const CSV_TABLES: [string, string][] = [
   ["documents-sous-traitants", "subcontractorDocuments"],
   ["sous-traitants-chantiers", "jobSubcontractors"],
   ["notes-de-frais", "expenses"],
+  ["devis-sous-traitants", "subcontractorQuotes"],
   ["echanges-clients", "quoteMessages"],
   ["liens-espace-client", "portalLinks"],
 ];
