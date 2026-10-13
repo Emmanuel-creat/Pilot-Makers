@@ -62,6 +62,7 @@ import { sql as m060 } from "./migrations/060_presence";
 import { sql as m061 } from "./migrations/061_garanties";
 import { sql as m062 } from "./migrations/062_absences";
 import { sql as m063 } from "./migrations/063_habilitations";
+import { sql as m064 } from "./migrations/064_parc";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -128,6 +129,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "061_garanties", sql: m061 },
   { id: "062_absences", sql: m062 },
   { id: "063_habilitations", sql: m063 },
+  { id: "064_parc", sql: m064 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

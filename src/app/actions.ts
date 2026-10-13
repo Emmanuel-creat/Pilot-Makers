@@ -11,6 +11,7 @@ import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/j
 import { releaseRetention } from "@/lib/services/warranties";
 import { addAbsence, deleteAbsence } from "@/lib/services/absences";
 import { addCertification, deleteCertification } from "@/lib/services/certifications";
+import { addCheck, addTool, deleteCheck, deleteTool, markCheckDone } from "@/lib/services/fleet";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
@@ -858,6 +859,41 @@ export async function certificationAction(_: ActionState, fd: FormData): Promise
       );
     revalidatePath("/app/equipe");
     return { ok: true, message: s(fd, "deleteId") ? "Habilitation retirée." : "Habilitation enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function fleetAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const op = s(fd, "op");
+    let message = "";
+    await withCtx(async (ctx) => {
+      if (op === "tool") {
+        await addTool(ctx, { name: s(fd, "name"), reference: s(fd, "reference") });
+        message = "Outil ajouté.";
+      } else if (op === "deleteTool") {
+        await deleteTool(ctx, s(fd, "id"));
+        message = "Outil retiré.";
+      } else if (op === "done") {
+        const due = await markCheckDone(ctx, s(fd, "id"), s(fd, "doneOn"));
+        message = due ? `Contrôle noté, prochain avant le ${due.split("-").reverse().join("/")}.` : "Contrôle noté.";
+      } else if (op === "deleteCheck") {
+        await deleteCheck(ctx, s(fd, "id"));
+        message = "Contrôle retiré.";
+      } else {
+        await addCheck(ctx, {
+          asset: s(fd, "asset"),
+          label: s(fd, "label"),
+          intervalMonths: s(fd, "intervalMonths"),
+          dueDate: s(fd, "dueDate"),
+          note: s(fd, "note"),
+        });
+        message = "Contrôle enregistré.";
+      }
+    });
+    revalidatePath("/app/parc");
+    return { ok: true, message };
   } catch (e) {
     return toState(e);
   }

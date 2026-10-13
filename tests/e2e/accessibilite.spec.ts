@@ -724,6 +724,23 @@ test("équipe : habilitation avec échéance proposée", async ({ page }) => {
   await audit(page, "habilitations");
 });
 
+test("parc : outil, contrôle périodique et contrôle fait", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/parc");
+  await page.getByLabel("Outil ou engin").fill("Nacelle ciseaux");
+  await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retirer l'outil Nacelle ciseaux" }).first()).toBeVisible();
+  await page.getByLabel("Véhicule ou outil").selectOption({ label: "Nacelle ciseaux" });
+  await page.getByLabel("Contrôle", { exact: true }).fill("Vérification générale périodique");
+  await expect(page.getByLabel("Tous les (mois)")).toHaveValue("6");
+  await page.getByRole("button", { name: "Ajouter le contrôle" }).click();
+  const list = page.getByRole("list", { name: "Contrôles du parc" });
+  await expect(list).toContainText("Nacelle ciseaux : Vérification générale périodique, tous les 6 mois");
+  await audit(page, "véhicules et outillage");
+  await list.getByRole("button", { name: /^Fait/ }).first().click();
+  await expect(list).toContainText("dernier le");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

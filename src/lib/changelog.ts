@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "parc-entretiens",
+    date: "2026-10-13",
+    title: "Véhicules et outillage",
+    text: "Contrôles techniques, entretiens et vérifications périodiques suivis, avec un rappel avant chaque échéance.",
+    href: "/aide/vehicules-et-outillage",
+  },
+  {
     id: "habilitations",
     date: "2026-10-13",
     title: "Habilitations suivies",

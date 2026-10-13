@@ -22,6 +22,7 @@ export const MENU_MODULES: MenuModule[] = [
   { key: "banque", href: "/app/banque", label: "Banque", icon: "card", hint: "Rapprochement du relevé avec les factures.", needs: "billing" },
   { key: "chantiers", href: "/app/chantiers", label: "Chantiers", icon: "hammer", hint: "Suivi, commandes, photos et journal." },
   { key: "planning", href: "/app/planning", label: "Planning", icon: "calendar", hint: "Interventions de l'équipe." },
+  { key: "parc", href: "/app/parc", label: "Véhicules et outillage", icon: "truck", hint: "Entretiens et contrôles à prévoir." },
   { key: "pointage", href: "/app/pointage", label: "Pointage", icon: "clock", hint: "Heures passées par chantier." },
   { key: "frais", href: "/app/frais", label: "Notes de frais", icon: "note", hint: "Tickets photographiés et remboursements." },
   { key: "clients", href: "/app/clients", label: "Clients", icon: "users", hint: "Fiches, historique et espace client." },

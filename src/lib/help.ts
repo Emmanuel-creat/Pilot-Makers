@@ -1211,6 +1211,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/equipe", label: "Équipe" },
   },
   {
+    slug: "vehicules-et-outillage",
+    category: "compte",
+    title: "Suivre l'entretien des véhicules et de l'outillage",
+    summary: "Contrôle technique, entretien, assurance, vérifications périodiques des échafaudages et engins : chaque échéance est suivie.",
+    steps: [
+      "Ajoutez vos véhicules dans le planning, et votre outillage ou vos engins dans « Véhicules et outillage ».",
+      "Ajoutez les contrôles à suivre : pour les plus courants, la périodicité se remplit toute seule. Indiquez la date du prochain si vous la connaissez.",
+      "Quand le contrôle est fait, cliquez sur « Fait » : la prochaine échéance se calcule avec la périodicité.",
+    ],
+    notes: [
+      "Un contrôle passe à « À prévoir » un mois avant l'échéance, et une notification part quinze jours avant.",
+      "Les contrôles en retard sont signalés en haut de la page.",
+      "Les périodicités proposées sont les plus courantes : vérifiez celles qui s'appliquent à votre matériel.",
+    ],
+    link: { href: "/app/parc", label: "Véhicules et outillage" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
