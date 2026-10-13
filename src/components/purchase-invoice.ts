@@ -9,18 +9,8 @@ export interface ReadInvoice {
   totalCents: number | null;
 }
 
-export async function readInvoiceFile(
-  file: File | undefined,
-): Promise<ReadInvoice | null> {
-  if (
-    !file ||
-    !(
-      file.type === "application/pdf" ||
-      /\.(pdf|xml)$/i.test(file.name) ||
-      /xml/.test(file.type)
-    )
-  )
-    return null;
+export async function readInvoiceFile(file: File | undefined): Promise<ReadInvoice | null> {
+  if (!file || !(file.type === "application/pdf" || /\.(pdf|xml)$/i.test(file.name) || /xml/.test(file.type))) return null;
   const body = new FormData();
   body.set("file", file);
   try {
@@ -36,15 +26,10 @@ export async function readInvoiceFile(
   }
 }
 
-export const eurosField = (cents: number | null) =>
-  cents === null ? "" : (cents / 100).toFixed(2).replace(".", ",");
+export const eurosField = (cents: number | null) => (cents === null ? "" : (cents / 100).toFixed(2).replace(".", ","));
 
 /** Remplit un champ du formulaire, s'il existe et si la valeur est connue. */
-export function setField(
-  form: HTMLFormElement | null | undefined,
-  name: string,
-  value: string,
-) {
+export function setField(form: HTMLFormElement | null | undefined, name: string, value: string) {
   const input = form?.elements.namedItem(name);
   if (value && input instanceof HTMLInputElement) input.value = value;
 }

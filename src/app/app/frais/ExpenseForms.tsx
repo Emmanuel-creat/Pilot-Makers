@@ -6,22 +6,10 @@ import { deleteExpenseAction, reviewExpensesAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { FormMessage } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
-import {
-  eurosField,
-  readInvoiceFile,
-  setField,
-} from "@/components/purchase-invoice";
+import { eurosField, readInvoiceFile, setField } from "@/components/purchase-invoice";
 
 /** Nouvelle note : photo du ticket prise avec le téléphone, montant et catégorie. */
-export function ExpenseForm({
-  jobs,
-  categories,
-  today,
-}: {
-  jobs: { id: string; title: string }[];
-  categories: Record<string, string>;
-  today: string;
-}) {
+export function ExpenseForm({ jobs, categories, today }: { jobs: { id: string; title: string }[]; categories: Record<string, string>; today: string }) {
   const router = useRouter();
   const form = useRef<HTMLFormElement>(null);
   const [busy, setBusy] = useState(false);
@@ -38,17 +26,10 @@ export function ExpenseForm({
     if (!data || !f) return;
     setField(f, "amount", eurosField(data.totalCents));
     setField(f, "vat", eurosField(data.vatCents));
-    if (data.issueDate && data.issueDate <= today)
-      setField(f, "date", data.issueDate);
+    if (data.issueDate && data.issueDate <= today) setField(f, "date", data.issueDate);
     setField(f, "merchant", data.supplier.slice(0, 120));
-    setField(
-      f,
-      "note",
-      data.number ? `Facture ${data.number}`.slice(0, 500) : "",
-    );
-    setRead(
-      `Facture électronique lue${data.number ? ` (n° ${data.number})` : ""} : vérifiez les montants préremplis.`,
-    );
+    setField(f, "note", data.number ? `Facture ${data.number}`.slice(0, 500) : "");
+    setRead(`Facture électronique lue${data.number ? ` (n° ${data.number})` : ""} : vérifiez les montants préremplis.`);
   }
 
   return (
@@ -65,11 +46,7 @@ export function ExpenseForm({
             method: "POST",
             body: new FormData(e.currentTarget),
           });
-          if (!res.ok)
-            throw new Error(
-              ((await res.json().catch(() => ({}))) as { error?: string })
-                .error ?? "Envoi impossible",
-            );
+          if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "Envoi impossible");
           form.current?.reset();
           setRead(null);
           setDone(true);
@@ -96,35 +73,20 @@ export function ExpenseForm({
           onChange={(e) => void readInvoice(e.currentTarget.files?.[0])}
         />
         <p id="fr-photo-help" className="mt-1 text-xs text-muted" role="status">
-          {read ??
-            "Une facture électronique au format PDF (Factur-X) remplit seule le montant, la TVA, la date et le fournisseur."}
+          {read ?? "Une facture électronique au format PDF (Factur-X) remplit seule le montant, la TVA, la date et le fournisseur."}
         </p>
       </div>
       <div>
         <label className="label" htmlFor="fr-amount">
           Montant TTC (euros)
         </label>
-        <input
-          id="fr-amount"
-          name="amount"
-          className="field"
-          inputMode="decimal"
-          placeholder="18,50"
-          required
-        />
+        <input id="fr-amount" name="amount" className="field" inputMode="decimal" placeholder="18,50" required />
       </div>
       <div>
         <label className="label" htmlFor="fr-vat">
           Dont TVA
         </label>
-        <input
-          id="fr-vat"
-          name="vat"
-          className="field"
-          inputMode="decimal"
-          placeholder="1,68"
-          aria-describedby="fr-vat-help"
-        />
+        <input id="fr-vat" name="vat" className="field" inputMode="decimal" placeholder="1,68" aria-describedby="fr-vat-help" />
         <p id="fr-vat-help" className="mt-1 text-xs text-muted">
           Indiquée sur le ticket ; laissez vide si absente.
         </p>
@@ -133,15 +95,7 @@ export function ExpenseForm({
         <label className="label" htmlFor="fr-date">
           Date
         </label>
-        <input
-          id="fr-date"
-          name="date"
-          type="date"
-          className="field"
-          defaultValue={today}
-          max={today}
-          required
-        />
+        <input id="fr-date" name="date" type="date" className="field" defaultValue={today} max={today} required />
       </div>
       <div>
         <label className="label" htmlFor="fr-category">
@@ -159,13 +113,7 @@ export function ExpenseForm({
         <label className="label" htmlFor="fr-merchant">
           Commerçant
         </label>
-        <input
-          id="fr-merchant"
-          name="merchant"
-          className="field"
-          maxLength={120}
-          placeholder="Station, restaurant, magasin..."
-        />
+        <input id="fr-merchant" name="merchant" className="field" maxLength={120} placeholder="Station, restaurant, magasin..." />
       </div>
       <div>
         <label className="label" htmlFor="fr-job">
@@ -184,23 +132,10 @@ export function ExpenseForm({
         <legend className="label">Payé avec</legend>
         <div className="flex flex-wrap gap-4 text-sm">
           <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="payment"
-              value="perso"
-              defaultChecked
-              className="h-4 w-4"
-            />{" "}
-            Mon argent, à rembourser
+            <input type="radio" name="payment" value="perso" defaultChecked className="h-4 w-4" /> Mon argent, à rembourser
           </label>
           <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="payment"
-              value="entreprise"
-              className="h-4 w-4"
-            />{" "}
-            La carte de l'entreprise
+            <input type="radio" name="payment" value="entreprise" className="h-4 w-4" /> La carte de l'entreprise
           </label>
         </div>
       </fieldset>
@@ -212,8 +147,7 @@ export function ExpenseForm({
       </div>
       <div className="sm:col-span-2">
         <button className="btn-primary" disabled={busy}>
-          <Icon name="upload" size={16} />{" "}
-          {busy ? "Envoi..." : "Envoyer la note de frais"}
+          <Icon name="upload" size={16} /> {busy ? "Envoi..." : "Envoyer la note de frais"}
         </button>
         {error ? (
           <p role="alert" className="mt-2 text-sm text-danger">
@@ -233,10 +167,7 @@ export function DeleteExpense({ id, label }: { id: string; label: string }) {
   return (
     <ActionForm action={deleteExpenseAction} className="">
       <input type="hidden" name="id" value={id} />
-      <button
-        className="btn-ghost min-h-8 px-2 text-danger"
-        aria-label={`Supprimer ${label}`}
-      >
+      <button className="btn-ghost min-h-8 px-2 text-danger" aria-label={`Supprimer ${label}`}>
         <Icon name="trash" size={16} />
       </button>
     </ActionForm>
@@ -270,20 +201,10 @@ export function ExpenseReview({ rows }: { rows: Row[] }) {
   return (
     <form action={act} className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="btn-ghost min-h-8 text-sm"
-          onClick={() => setChecked(new Set(pending.map((r) => r.id)))}
-          disabled={!pending.length}
-        >
+        <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => setChecked(new Set(pending.map((r) => r.id)))} disabled={!pending.length}>
           Tout cocher à valider ({pending.length})
         </button>
-        <button
-          type="button"
-          className="btn-ghost min-h-8 text-sm"
-          onClick={() => setChecked(new Set())}
-          disabled={!checked.size}
-        >
+        <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => setChecked(new Set())} disabled={!checked.size}>
           Tout décocher
         </button>
       </div>
@@ -304,12 +225,7 @@ export function ExpenseReview({ rows }: { rows: Row[] }) {
               <span className="block text-xs text-muted">{r.detail}</span>
             </label>
             {r.photo ? (
-              <a
-                className="link shrink-0"
-                href={r.photo}
-                target="_blank"
-                rel="noopener"
-              >
+              <a className="link shrink-0" href={r.photo} target="_blank" rel="noopener">
                 Ticket
               </a>
             ) : (
@@ -330,36 +246,16 @@ export function ExpenseReview({ rows }: { rows: Row[] }) {
           </label>
           <input id="ex-note" name="note" className="field" maxLength={300} />
         </div>
-        <button
-          name="decision"
-          value="valide"
-          className="btn-primary"
-          disabled={!checked.size}
-        >
+        <button name="decision" value="valide" className="btn-primary" disabled={!checked.size}>
           <Icon name="check" size={16} /> Valider ({checked.size})
         </button>
-        <button
-          name="decision"
-          value="refuse"
-          className="btn-secondary"
-          disabled={!checked.size}
-        >
+        <button name="decision" value="refuse" className="btn-secondary" disabled={!checked.size}>
           Refuser
         </button>
-        <button
-          name="decision"
-          value="rembourse"
-          className="btn-secondary"
-          disabled={!checked.size}
-        >
+        <button name="decision" value="rembourse" className="btn-secondary" disabled={!checked.size}>
           <Icon name="euro" size={16} /> Remboursé
         </button>
-        <button
-          name="decision"
-          value="soumis"
-          className="btn-ghost"
-          disabled={!checked.size}
-        >
+        <button name="decision" value="soumis" className="btn-ghost" disabled={!checked.size}>
           Rouvrir
         </button>
       </div>

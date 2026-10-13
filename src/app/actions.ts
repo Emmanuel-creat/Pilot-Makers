@@ -1707,7 +1707,7 @@ export async function treasuryAction(_: ActionState, fd: FormData): Promise<Acti
 
 export async function accountingPlanAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const keys = ["customers", "sales", "goods", "subcontracting", "travel", "deposits", "bank", "vat2000", "vat1000", "vat550", "vat210", "auxPrefix"];
+    const keys = ["customers", "sales", "goods", "subcontracting", "travel", "deposits", "bank", "staff", "vatDeductible", "travelExpenses", "fuel", "supplies", "otherExpenses", "vat2000", "vat1000", "vat550", "vat210", "auxPrefix"];
     await withCtx((ctx) => savePlan(ctx, { ...Object.fromEntries(keys.map((k) => [k, s(fd, k)])), ventilate: fd.get("ventilate") === "on" }));
     revalidatePath("/app/entreprise");
     revalidatePath("/app/comptabilite");

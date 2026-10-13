@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "export-logiciels-comptables",
+    date: "2026-10-13",
+    title: "Export vers les logiciels comptables",
+    text: "Notes de frais au journal, format tableur en plus du FEC, pour Pennylane, Sage, Cegid, EBP ou QuickBooks.",
+    href: "/aide/exporter-vers-le-logiciel-comptable",
+  },
+  {
     id: "lecture-factures-achat",
     date: "2026-10-13",
     title: "Factures d'achat lues automatiquement",

@@ -75,7 +75,7 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <button className="btn-secondary">Télécharger le fichier des écritures</button>
           </form>
           <p className="mt-2 text-xs text-muted">
-            Journal des ventes et des règlements au format officiel (18 colonnes, séparateur tabulation), à transmettre à votre expert-comptable.
+            Ventes, règlements et notes de frais au format officiel (18 colonnes, séparateur tabulation), à transmettre à votre expert-comptable. Autres formats dans Comptabilité.
           </p>
         </details>
       ) : null}

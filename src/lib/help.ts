@@ -952,6 +952,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "exporter-vers-le-logiciel-comptable",
+    category: "factures",
+    title: "Exporter vers Pennylane, Sage, Cegid, EBP ou QuickBooks",
+    summary: "Un seul fichier reprend ventes, règlements et notes de frais, avec les comptes de votre cabinet : il s'importe dans tous les logiciels comptables.",
+    steps: [
+      "Dans Comptabilité, vérifiez le plan comptable : comptes de vente, de TVA, de frais et du personnel, repris de votre cabinet.",
+      "Choisissez la période et le format : FEC (le fichier officiel, accepté par tous les logiciels) ou tableur (CSV, point-virgule) pour un import paramétrable.",
+      "Dans votre logiciel, ouvrez l'import d'écritures : « Importer un FEC » dans Pennylane, Sage, Cegid, EBP, Quadra ou QuickBooks ; pour le tableur, indiquez une fois l'ordre des colonnes.",
+      "Ou invitez votre expert-comptable avec la fonction « Comptable » : il télécharge lui-même les exports, en consultation seule.",
+    ],
+    notes: [
+      "Journaux : VT ventes (factures, acomptes, avoirs), BQ banque (règlements reçus, remboursements de frais), NF notes de frais validées.",
+      "Chaque salarié a son compte auxiliaire de personnel ; une dépense payée avec la carte de l'entreprise passe directement en banque.",
+      "La synchronisation automatique avec un logiciel précis attend l'ouverture d'un accès partenaire chez son éditeur : l'export couvre le même besoin sans saisie.",
+    ],
+    link: { href: "/app/comptabilite", label: "Ouvrir la comptabilité" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -1,30 +1,12 @@
 import { PDFDocument } from "pdf-lib";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { Database } from "@/lib/db";
-import {
-  amountCents,
-  embeddedInvoiceXml,
-  isoDate,
-  parseInvoiceXml,
-  readPurchaseInvoice,
-} from "@/lib/invoice-reader";
+import { amountCents, embeddedInvoiceXml, isoDate, parseInvoiceXml, readPurchaseInvoice } from "@/lib/invoice-reader";
 import type { Ctx } from "@/lib/services/context";
 import { buildUbl, einvoiceFile, invoiceData } from "@/lib/services/einvoice";
 import { createFinalInvoice, getInvoice } from "@/lib/services/invoices";
-import {
-  createQuote,
-  getDraft,
-  issueQuote,
-  recordResponseManually,
-  saveDraft,
-} from "@/lib/services/quotes";
-import {
-  completeProfile,
-  freshDb,
-  line,
-  makeCustomer,
-  signUp,
-} from "./helpers";
+import { createQuote, getDraft, issueQuote, recordResponseManually, saveDraft } from "@/lib/services/quotes";
+import { completeProfile, freshDb, line, makeCustomer, signUp } from "./helpers";
 
 let db: Database;
 let ctx: Ctx;
@@ -101,9 +83,7 @@ describe("lecture des factures d'achat", () => {
 
   it("XML UBL et CII seuls, avec entités échappées", async () => {
     const inv = await finalInvoice();
-    const ubl = await readPurchaseInvoice(
-      new TextEncoder().encode("﻿" + buildUbl(inv.snapshot)),
-    );
+    const ubl = await readPurchaseInvoice(new TextEncoder().encode("﻿" + buildUbl(inv.snapshot)));
     expect(ubl).toMatchObject({
       format: "ubl",
       number: inv.number,
@@ -130,19 +110,9 @@ describe("lecture des factures d'achat", () => {
     const bytes = await plain.save();
     expect(await embeddedInvoiceXml(bytes)).toBeNull();
     expect(await readPurchaseInvoice(bytes)).toBeNull();
-    expect(
-      await readPurchaseInvoice(
-        new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]),
-      ),
-    ).toBeNull();
-    expect(
-      await readPurchaseInvoice(
-        new TextEncoder().encode("<html><body>Bonjour</body></html>"),
-      ),
-    ).toBeNull();
-    expect(
-      await readPurchaseInvoice(new TextEncoder().encode("%PDF-1.7 abîmé")),
-    ).toBeNull();
+    expect(await readPurchaseInvoice(new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]))).toBeNull();
+    expect(await readPurchaseInvoice(new TextEncoder().encode("<html><body>Bonjour</body></html>"))).toBeNull();
+    expect(await readPurchaseInvoice(new TextEncoder().encode("%PDF-1.7 abîmé"))).toBeNull();
     // Un fichier joint qui n'est pas un XML de facture n'est pas lu.
     const other = await PDFDocument.create();
     other.addPage();

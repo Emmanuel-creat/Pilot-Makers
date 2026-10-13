@@ -7,7 +7,8 @@
  *   4457xx TVA       crédit de la TVA par taux, nette de celle déjà déclarée sur les acomptes
  *   4191 acomptes    débit du hors taxe des acomptes déduits sur la facture de solde
  * Un avoir passe les mêmes comptes en sens inverse.
- * Journal de banque (BQ) : un règlement = 512000 au débit, 411 client au crédit.
+ * Journal de banque (BQ) : un règlement = 512000 au débit, 411 client au crédit ; un remboursement de frais = 421 au débit.
+ * Journal des notes de frais (NF) : charge HT et TVA déductible au débit, 421 salarié (ou banque, carte de l'entreprise) au crédit.
  */
 
 import { centsToInput } from "@/lib/calc/format";
@@ -16,7 +17,7 @@ import { badRequest } from "@/lib/http";
 import type { Ctx } from "./context";
 import { audit } from "./context";
 import type { InvoiceSnapshot } from "./invoices";
-import { DEFAULT_PLAN, getPlan, salesAccount, vatAccountOf, ventilate, type AccountingPlan } from "./accounting-plan";
+import { DEFAULT_PLAN, expenseAccount, getPlan, salesAccount, vatAccountOf, ventilate, type AccountingPlan } from "./accounting-plan";
 
 export const FEC_COLUMNS = [
   "JournalCode",
@@ -90,7 +91,14 @@ function salesSplit(plan: AccountingPlan, snap: InvoiceSnapshot, totalHt: number
 
 /** Écriture d'une facture ou d'un avoir, équilibrée au centime. */
 export function invoiceLines(
-  inv: { kind: string; number: string; customer_id: string | null; amount_due_cents: number; total_ht_cents: number; depositRelated: boolean },
+  inv: {
+    kind: string;
+    number: string;
+    customer_id: string | null;
+    amount_due_cents: number;
+    total_ht_cents: number;
+    depositRelated: boolean;
+  },
   snap: InvoiceSnapshot,
   depositVatByNumber: Map<string, { bp: number; cents: number }[]>,
   plan: AccountingPlan = DEFAULT_PLAN,
@@ -103,7 +111,13 @@ export function invoiceLines(
     if (!amount) return;
     // Un montant négatif change de colonne : le FEC n'accepte que des montants positifs.
     const real = side === "debit" ? amount : -amount;
-    lines.push({ account, label, aux: withAux ? aux : undefined, debit: real > 0 ? real : 0, credit: real < 0 ? -real : 0 });
+    lines.push({
+      account,
+      label,
+      aux: withAux ? aux : undefined,
+      debit: real > 0 ? real : 0,
+      credit: real < 0 ? -real : 0,
+    });
   };
   put(plan.customers, "Clients", sign * inv.amount_due_cents, "debit", true);
   if (deposit) put(plan.deposits, "Clients - avances et acomptes reçus", sign * inv.total_ht_cents, "credit");
@@ -132,11 +146,15 @@ export function invoiceLines(
 function depositVatParts(snap: InvoiceSnapshot, deductedTtc: number) {
   const total = snap.calc.totalTtcCents;
   const groups = snap.calc.vatGroups;
-  const parts = groups.map((g) => ({ bp: g.vatBp, cents: total ? Math.round((g.vatCents * deductedTtc) / total) : 0 }));
+  const parts = groups.map((g) => ({
+    bp: g.vatBp,
+    cents: total ? Math.round((g.vatCents * deductedTtc) / total) : 0,
+  }));
   return parts;
 }
 
-export async function buildFec(ctx: Ctx, from: string, to: string) {
+/** Écritures de la période : ventes, règlements, notes de frais et leurs remboursements. */
+export async function accountingEntries(ctx: Ctx, from: string, to: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) throw badRequest("Période invalide");
   const org = (await ctx.db.query<{ siren: string }>("SELECT siren FROM organizations WHERE id=$1", [ctx.orgId]))[0];
   const plan = await getPlan(ctx);
@@ -146,12 +164,12 @@ export async function buildFec(ctx: Ctx, from: string, to: string) {
      FROM invoices i WHERE org_id=$1 AND issue_date BETWEEN $2 AND $3 ORDER BY issued_at`,
     [ctx.orgId, from, to],
   );
-  const deposits = await ctx.db.query<{ number: string; snapshot: InvoiceSnapshot }>(
-    "SELECT number, snapshot FROM invoices WHERE org_id=$1 AND kind='deposit'",
-    [ctx.orgId],
-  );
+  const deposits = await ctx.db.query<{
+    number: string;
+    snapshot: InvoiceSnapshot;
+  }>("SELECT number, snapshot FROM invoices WHERE org_id=$1 AND kind='deposit'", [ctx.orgId]);
   const depositSnap = new Map(deposits.map((d) => [d.number, d.snapshot]));
-  const rows: string[][] = [];
+  const rows: Entry[] = [];
   let seq = 0;
   for (const r of invoices) {
     const snap = r.snapshot as InvoiceSnapshot;
@@ -178,7 +196,7 @@ export async function buildFec(ctx: Ctx, from: string, to: string) {
     );
     seq++;
     const lib = `${r.kind === "credit_note" ? "Avoir" : r.kind === "deposit" ? "Acompte" : r.kind === "progress" ? "Situation" : "Facture"} ${r.number} ${snap.customer.name}`;
-    for (const l of lines) rows.push(fecRow("VT", "Journal des ventes", `VT${String(seq).padStart(6, "0")}`, date, l, String(r.number), lib));
+    for (const l of lines) rows.push(entry("VT", "Journal des ventes", `VT${String(seq).padStart(6, "0")}`, date, l, String(r.number), lib));
   }
   const payments = await ctx.db.query<Record<string, unknown>>(
     `SELECT p.amount_cents, p.paid_on, p.method, p.reference, i.number, i.customer_id, i.snapshot->'customer'->>'name' AS customer_name
@@ -194,30 +212,227 @@ export async function buildFec(ctx: Ctx, from: string, to: string) {
     const aux = auxOf((p.customer_id as string | null) ?? null, String(p.customer_name ?? ""), plan.auxPrefix);
     const lib = `Règlement ${p.number}${p.reference ? " " + clean(String(p.reference)) : ""}`;
     const num_ = `BQ${String(bq).padStart(6, "0")}`;
-    rows.push(fecRow("BQ", "Banque", num_, date, { account: plan.bank, label: "Banque", debit: amount, credit: 0 }, String(p.number), lib));
+    rows.push(entry("BQ", "Banque", num_, date, { account: plan.bank, label: "Banque", debit: amount, credit: 0 }, String(p.number), lib));
     rows.push(
-      fecRow("BQ", "Banque", num_, date, { account: plan.customers, label: "Clients", aux, debit: 0, credit: amount }, String(p.number), lib),
+      entry(
+        "BQ",
+        "Banque",
+        num_,
+        date,
+        {
+          account: plan.customers,
+          label: "Clients",
+          aux,
+          debit: 0,
+          credit: amount,
+        },
+        String(p.number),
+        lib,
+      ),
     );
   }
-  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "export.fec", data: { from, to, rows: rows.length }, ip: ctx.ip });
-  const content = [FEC_COLUMNS.join("\t"), ...rows.map((r) => r.join("\t"))].join("\r\n") + "\r\n";
+  const expenses = await ctx.db.query<Record<string, unknown>>(
+    `SELECT e.id, e.expense_date, e.merchant, e.category, e.amount_ttc_cents, e.vat_cents, e.payment, e.user_id, u.name AS user_name
+     FROM expenses e JOIN users u ON u.id=e.user_id
+     WHERE e.org_id=$1 AND e.status IN ('valide', 'rembourse') AND e.expense_date BETWEEN $2 AND $3 ORDER BY e.expense_date, e.created_at`,
+    [ctx.orgId, from, to],
+  );
+  let nf = 0;
+  for (const e of expenses) {
+    nf++;
+    const date = dateOf(e.expense_date);
+    const ttc = num(e.amount_ttc_cents);
+    const vat = num(e.vat_cents);
+    const piece = `NF${String(e.id).replaceAll("-", "").slice(0, 8).toUpperCase()}`;
+    const lib = `${EXPENSE_LABELS[String(e.category)] ?? "Frais"} ${clean(String(e.merchant ?? ""))}`.trim();
+    const num_ = `NF${String(nf).padStart(6, "0")}`;
+    const staff = staffAux(String(e.user_id), String(e.user_name ?? ""));
+    const lines: Line[] = [
+      {
+        account: expenseAccount(plan, String(e.category)),
+        label: "Frais",
+        debit: ttc - vat,
+        credit: 0,
+      },
+    ];
+    if (vat)
+      lines.push({
+        account: plan.vatDeductible,
+        label: "TVA déductible",
+        debit: vat,
+        credit: 0,
+      });
+    lines.push(
+      e.payment === "perso"
+        ? {
+            account: plan.staff,
+            label: "Personnel, notes de frais",
+            aux: staff,
+            debit: 0,
+            credit: ttc,
+          }
+        : { account: plan.bank, label: "Banque", debit: 0, credit: ttc },
+    );
+    for (const l of lines) rows.push(entry("NF", "Notes de frais", num_, date, l, piece, lib));
+  }
+  const refunds = await ctx.db.query<Record<string, unknown>>(
+    `SELECT e.id, e.reimbursed_at, e.amount_ttc_cents, e.merchant, e.user_id, u.name AS user_name
+     FROM expenses e JOIN users u ON u.id=e.user_id
+     WHERE e.org_id=$1 AND e.status='rembourse' AND e.payment='perso' AND e.reimbursed_at IS NOT NULL
+       AND (e.reimbursed_at AT TIME ZONE 'Europe/Paris')::date BETWEEN $2 AND $3 ORDER BY e.reimbursed_at`,
+    [ctx.orgId, from, to],
+  );
+  for (const e of refunds) {
+    bq++;
+    const date = dateOf(e.reimbursed_at);
+    const amount = num(e.amount_ttc_cents);
+    const piece = `NF${String(e.id).replaceAll("-", "").slice(0, 8).toUpperCase()}`;
+    const lib = `Remboursement frais ${clean(String(e.user_name ?? ""))}`.trim();
+    const num_ = `BQ${String(bq).padStart(6, "0")}`;
+    const staff = staffAux(String(e.user_id), String(e.user_name ?? ""));
+    rows.push(
+      entry(
+        "BQ",
+        "Banque",
+        num_,
+        date,
+        {
+          account: plan.staff,
+          label: "Personnel, notes de frais",
+          aux: staff,
+          debit: amount,
+          credit: 0,
+        },
+        piece,
+        lib,
+      ),
+    );
+    rows.push(entry("BQ", "Banque", num_, date, { account: plan.bank, label: "Banque", debit: 0, credit: amount }, piece, lib));
+  }
   const siren = (org?.siren ?? "").replace(/\D/g, "") || "000000000";
-  return { filename: `${siren}FEC${ymd(to)}.txt`, content, count: rows.length };
+  return { entries: rows, siren };
 }
 
-function fecRow(journal: string, journalLib: string, num_: string, date: string, l: Line, piece: string, lib: string): string[] {
-  return [
+export interface Entry {
+  journal: string;
+  journalLib: string;
+  num: string;
+  /** AAAA-MM-JJ */
+  date: string;
+  line: Line;
+  piece: string;
+  lib: string;
+}
+
+function entry(journal: string, journalLib: string, num_: string, date: string, line: Line, piece: string, lib: string): Entry {
+  return {
     journal,
     journalLib,
-    num_,
+    num: num_,
+    date,
+    line,
+    piece: clean(piece),
+    lib: clean(lib).slice(0, 200),
+  };
+}
+
+function dateOf(v: unknown) {
+  return v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10);
+}
+
+function staffAux(userId: string, name: string) {
+  return {
+    num: `S${userId.replaceAll("-", "").slice(0, 8).toUpperCase()}`,
+    name: clean(name) || "Salarié",
+  };
+}
+
+const EXPENSE_LABELS: Record<string, string> = {
+  repas: "Repas",
+  carburant: "Carburant",
+  peage_parking: "Péage et stationnement",
+  fournitures: "Petites fournitures",
+  hebergement: "Hébergement",
+  transport: "Transport",
+  autre: "Frais",
+};
+
+export const ACCOUNTING_FORMATS = {
+  fec: "Fichier des écritures comptables (FEC)",
+  csv: "Tableur (CSV, point-virgule)",
+} as const;
+export type AccountingFormat = keyof typeof ACCOUNTING_FORMATS;
+
+/** Ligne au format tableur français : séparateur point-virgule, virgule décimale, guillemets si besoin. */
+function csvCell(v: string) {
+  return /[;"\r\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v;
+}
+
+export const CSV_COLUMNS = ["Journal", "Date", "N° écriture", "Pièce", "Compte", "Compte auxiliaire", "Nom du tiers", "Libellé", "Débit", "Crédit"] as const;
+
+/** Export des écritures, au format FEC officiel ou en tableur à importer dans Pennylane, Sage, Cegid, EBP ou QuickBooks. */
+export async function buildAccountingExport(ctx: Ctx, from: string, to: string, format: string = "fec") {
+  if (!(format in ACCOUNTING_FORMATS)) throw badRequest("Format d'export inconnu");
+  const { entries, siren } = await accountingEntries(ctx, from, to);
+  await audit(ctx.db, {
+    orgId: ctx.orgId,
+    userId: ctx.userId,
+    action: "export.fec",
+    data: { from, to, rows: entries.length, format },
+    ip: ctx.ip,
+  });
+  if (format === "csv") {
+    const fr = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+    const lines = entries.map((e) =>
+      [
+        e.journal,
+        fr(e.date),
+        e.num,
+        e.piece,
+        e.line.account,
+        e.line.aux?.num ?? "",
+        e.line.aux?.name ?? "",
+        e.lib,
+        centsToInput(e.line.debit),
+        centsToInput(e.line.credit),
+      ]
+        .map(csvCell)
+        .join(";"),
+    );
+    return {
+      filename: `ecritures-${ymd(from)}-${ymd(to)}.csv`,
+      contentType: "text/csv; charset=utf-8",
+      content: "\uFEFF" + [CSV_COLUMNS.join(";"), ...lines].join("\r\n") + "\r\n",
+      count: entries.length,
+    };
+  }
+  const content = [FEC_COLUMNS.join("\t"), ...entries.map((e) => fecRow(e).join("\t"))].join("\r\n") + "\r\n";
+  return {
+    filename: `${siren}FEC${ymd(to)}.txt`,
+    contentType: "text/plain; charset=utf-8",
+    content,
+    count: entries.length,
+  };
+}
+
+export async function buildFec(ctx: Ctx, from: string, to: string) {
+  return buildAccountingExport(ctx, from, to, "fec");
+}
+
+function fecRow(e: Entry): string[] {
+  const { line: l, date } = e;
+  return [
+    e.journal,
+    e.journalLib,
+    e.num,
     ymd(date),
     l.account,
     l.label,
     l.aux?.num ?? "",
     l.aux?.name ?? "",
-    clean(piece),
+    e.piece,
     ymd(date),
-    clean(lib).slice(0, 200),
+    e.lib,
     centsToInput(l.debit),
     centsToInput(l.credit),
     "",

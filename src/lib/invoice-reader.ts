@@ -7,15 +7,7 @@
  * saisie. Une simple photo ou un PDF sans XML joint n'est pas lu : les montants restent à saisir.
  */
 
-import {
-  decodePDFRawStream,
-  PDFArray,
-  PDFDict,
-  PDFDocument,
-  PDFName,
-  PDFRawStream,
-  PDFStream,
-} from "pdf-lib";
+import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream, PDFStream } from "pdf-lib";
 
 export interface PurchaseInvoiceData {
   format: "cii" | "ubl";
@@ -37,9 +29,7 @@ const decodeEntities = (s: string) =>
   s
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_, n) =>
-      String.fromCodePoint(parseInt(n, 16)),
-    )
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
@@ -49,16 +39,11 @@ const decodeEntities = (s: string) =>
 
 /** Contenu de la première balise de ce nom (préfixe d'espace de noms quelconque), dans le fragment donné. */
 function tag(xml: string, name: string): string {
-  const m = new RegExp(
-    `<(?:[\\w.-]+:)?${name}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?${name}>`,
-  ).exec(xml);
+  const m = new RegExp(`<(?:[\\w.-]+:)?${name}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?${name}>`).exec(xml);
   return m ? m[1] : "";
 }
 
-const text = (xml: string, ...path: string[]) =>
-  decodeEntities(
-    path.reduce((frag, n) => tag(frag, n), xml).replace(/<[^>]+>/g, ""),
-  );
+const text = (xml: string, ...path: string[]) => decodeEntities(path.reduce((frag, n) => tag(frag, n), xml).replace(/<[^>]+>/g, ""));
 
 /** Montant décimal (point ou virgule) en centimes ; null s'il est absent ou illisible. */
 export function amountCents(s: string): number | null {
@@ -82,24 +67,14 @@ export function parseCii(xml: string): PurchaseInvoiceData | null {
   const doc = tag(xml, "ExchangedDocument");
   const seller = tag(xml, "SellerTradeParty");
   const settlement = tag(xml, "ApplicableHeaderTradeSettlement");
-  const sums = tag(
-    settlement,
-    "SpecifiedTradeSettlementHeaderMonetarySummation",
-  );
+  const sums = tag(settlement, "SpecifiedTradeSettlementHeaderMonetarySummation");
   return {
     format: "cii",
     number: text(doc, "ID"),
     supplier: text(seller, "Name"),
     supplierVat: text(tag(seller, "SpecifiedTaxRegistration"), "ID"),
     issueDate: isoDate(text(doc, "IssueDateTime", "DateTimeString")),
-    dueDate: isoDate(
-      text(
-        settlement,
-        "SpecifiedTradePaymentTerms",
-        "DueDateDateTime",
-        "DateTimeString",
-      ),
-    ),
+    dueDate: isoDate(text(settlement, "SpecifiedTradePaymentTerms", "DueDateDateTime", "DateTimeString")),
     netCents: amountCents(text(sums, "TaxBasisTotalAmount")),
     vatCents: amountCents(text(sums, "TaxTotalAmount")),
     totalCents: amountCents(text(sums, "GrandTotalAmount")),
@@ -109,34 +84,21 @@ export function parseCii(xml: string): PurchaseInvoiceData | null {
 
 /** Facture ou avoir au format UBL 2.1 (Peppol BIS, XRechnung UBL). */
 export function parseUbl(xml: string): PurchaseInvoiceData | null {
-  const root = /<(?:[\w.-]+:)?(Invoice|CreditNote)[\s>]/.exec(
-    xml.slice(0, 3000),
-  );
+  const root = /<(?:[\w.-]+:)?(Invoice|CreditNote)[\s>]/.exec(xml.slice(0, 3000));
   if (!root) return null;
   const supplier = tag(xml, "AccountingSupplierParty");
   const totals = tag(xml, "LegalMonetaryTotal");
-  const name =
-    text(supplier, "PartyLegalEntity", "RegistrationName") ||
-    text(supplier, "PartyName", "Name");
+  const name = text(supplier, "PartyLegalEntity", "RegistrationName") || text(supplier, "PartyName", "Name");
   // Le premier cbc:ID du document est son numéro (il précède tous les blocs cac).
-  const head = xml.slice(
-    0,
-    xml.search(
-      /<(?:[\w.-]+:)?(AccountingSupplierParty|InvoicePeriod|OrderReference|BillingReference)[\s>]/,
-    ) >>> 0,
-  );
-  const number = decodeEntities(
-    /<cbc:ID(?:\s[^>]*)?>([^<]*)<\/cbc:ID>/.exec(head)?.[1] ?? text(xml, "ID"),
-  );
+  const head = xml.slice(0, xml.search(/<(?:[\w.-]+:)?(AccountingSupplierParty|InvoicePeriod|OrderReference|BillingReference)[\s>]/) >>> 0);
+  const number = decodeEntities(/<cbc:ID(?:\s[^>]*)?>([^<]*)<\/cbc:ID>/.exec(head)?.[1] ?? text(xml, "ID"));
   return {
     format: "ubl",
     number,
     supplier: name,
     supplierVat: text(tag(supplier, "PartyTaxScheme"), "CompanyID"),
     issueDate: isoDate(text(head, "IssueDate") || text(xml, "IssueDate")),
-    dueDate: isoDate(
-      text(xml, "DueDate") || text(tag(xml, "PaymentMeans"), "PaymentDueDate"),
-    ),
+    dueDate: isoDate(text(xml, "DueDate") || text(tag(xml, "PaymentMeans"), "PaymentDueDate")),
     netCents: amountCents(text(totals, "TaxExclusiveAmount")),
     vatCents: amountCents(text(tag(xml, "TaxTotal"), "TaxAmount")),
     totalCents: amountCents(text(totals, "TaxInclusiveAmount")),
@@ -155,15 +117,11 @@ export function parseInvoiceXml(xml: string): PurchaseInvoiceData | null {
 const XML_NAMES = /^(factur-x|zugferd-invoice|xrechnung|order-x)\.xml$/i;
 
 function streamBytes(s: PDFStream): Uint8Array {
-  return s instanceof PDFRawStream
-    ? decodePDFRawStream(s).decode()
-    : s.getContents();
+  return s instanceof PDFRawStream ? decodePDFRawStream(s).decode() : s.getContents();
 }
 
 /** XML de facture joint à un PDF (Factur-X, ZUGFeRD), ou null. */
-export async function embeddedInvoiceXml(
-  pdf: Uint8Array,
-): Promise<string | null> {
+export async function embeddedInvoiceXml(pdf: Uint8Array): Promise<string | null> {
   let doc: PDFDocument;
   try {
     doc = await PDFDocument.load(pdf, {
@@ -211,22 +169,15 @@ function findInvoiceXml(doc: PDFDocument): string | null {
     }
   const fileName = (spec: PDFDict) => {
     const v = spec.lookup(PDFName.of("UF")) ?? spec.lookup(PDFName.of("F"));
-    const raw =
-      v && "decodeText" in v
-        ? (v as { decodeText(): string }).decodeText()
-        : "";
+    const raw = v && "decodeText" in v ? (v as { decodeText(): string }).decodeText() : "";
     return raw.trim();
   };
-  specs.sort(
-    (a, b) =>
-      Number(XML_NAMES.test(fileName(b))) - Number(XML_NAMES.test(fileName(a))),
-  );
+  specs.sort((a, b) => Number(XML_NAMES.test(fileName(b))) - Number(XML_NAMES.test(fileName(a))));
   for (const spec of specs) {
     const ef = spec.lookupMaybe(PDFName.of("EF"), PDFDict);
     const stream = ef?.lookup(PDFName.of("UF")) ?? ef?.lookup(PDFName.of("F"));
     if (!(stream instanceof PDFStream)) continue;
-    if (!XML_NAMES.test(fileName(spec)) && !/\.xml$/i.test(fileName(spec)))
-      continue;
+    if (!XML_NAMES.test(fileName(spec)) && !/\.xml$/i.test(fileName(spec))) continue;
     try {
       const bytes = streamBytes(stream);
       if (bytes.length > MAX_XML) continue;
@@ -238,26 +189,16 @@ function findInvoiceXml(doc: PDFDocument): string | null {
   return null;
 }
 
-const isPdf = (b: Uint8Array) =>
-  b.length > 4 &&
-  b[0] === 0x25 &&
-  b[1] === 0x50 &&
-  b[2] === 0x44 &&
-  b[3] === 0x46;
+const isPdf = (b: Uint8Array) => b.length > 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46;
 
 /** Lit une facture d'achat : PDF Factur-X ou XML CII ou UBL. Renvoie null si le fichier ne contient pas de données structurées. */
-export async function readPurchaseInvoice(
-  bytes: Uint8Array,
-): Promise<PurchaseInvoiceData | null> {
+export async function readPurchaseInvoice(bytes: Uint8Array): Promise<PurchaseInvoiceData | null> {
   if (isPdf(bytes)) {
     const xml = await embeddedInvoiceXml(bytes);
     return xml ? parseInvoiceXml(xml) : null;
   }
   if (bytes.length > MAX_XML) return null;
-  const head = new TextDecoder()
-    .decode(bytes.subarray(0, 200))
-    .replace(/^﻿/, "")
-    .trimStart();
+  const head = new TextDecoder().decode(bytes.subarray(0, 200)).replace(/^﻿/, "").trimStart();
   if (!head.startsWith("<")) return null;
   return parseInvoiceXml(new TextDecoder().decode(bytes));
 }

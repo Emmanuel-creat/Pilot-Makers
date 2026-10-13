@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { getPlan, PLAN_FIELDS } from "@/lib/services/accounting-plan";
 import { can, isReadOnlyMember } from "@/lib/services/context";
+import { ACCOUNTING_FORMATS } from "@/lib/services/fec";
 
 export const metadata = { title: "Comptabilité" };
 
@@ -53,7 +54,7 @@ export default async function AccountingPage() {
 
       <section className="card mt-6 p-5" aria-labelledby="fec-titre">
         <h2 id="fec-titre" className="font-semibold">
-          Fichier des écritures comptables (FEC)
+          Écritures comptables
         </h2>
         <form action="/api/exports/fec" method="get" className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
           <div>
@@ -68,11 +69,29 @@ export default async function AccountingPage() {
             </label>
             <input id="cpt-au" name="au" type="date" className="field" defaultValue={`${year}-12-31`} required />
           </div>
+          <div>
+            <label className="label" htmlFor="cpt-format">
+              Format
+            </label>
+            <select id="cpt-format" name="format" className="field" defaultValue="fec">
+              {Object.entries(ACCOUNTING_FORMATS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </div>
           <button className="btn-secondary">
             <Icon name="download" size={16} /> Télécharger
           </button>
         </form>
-        <p className="mt-2 text-xs text-muted">Journal des ventes et des règlements, avec les comptes du plan ci-dessous.</p>
+        <p className="mt-2 text-xs text-muted">
+          Ventes, règlements, notes de frais validées et leurs remboursements, avec les comptes du plan ci-dessous. Pennylane, Sage, Cegid, EBP, Quadra et
+          QuickBooks importent le FEC ; le format tableur sert aux imports paramétrables.{" "}
+          <Link href="/aide/exporter-vers-le-logiciel-comptable" className="underline">
+            Importer dans votre logiciel
+          </Link>
+        </p>
       </section>
 
       <section className="card mt-6 p-5" aria-labelledby="plan-titre">

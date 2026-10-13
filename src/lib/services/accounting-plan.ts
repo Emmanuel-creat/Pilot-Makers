@@ -20,6 +20,14 @@ export interface AccountingPlan {
   travel: string;
   deposits: string;
   bank: string;
+  /** Notes de frais avancées par le personnel, à lui rembourser */
+  staff: string;
+  vatDeductible: string;
+  /** Repas, hébergement, péages, transports */
+  travelExpenses: string;
+  fuel: string;
+  supplies: string;
+  otherExpenses: string;
   /** TVA collectée par taux, en points de base */
   vat: Record<number, string>;
   /** Préfixe des comptes clients auxiliaires */
@@ -36,6 +44,12 @@ export const DEFAULT_PLAN: AccountingPlan = {
   travel: "708500",
   deposits: "419100",
   bank: "512000",
+  staff: "421000",
+  vatDeductible: "445660",
+  travelExpenses: "625100",
+  fuel: "606140",
+  supplies: "606300",
+  otherExpenses: "628000",
   vat: { 2000: "445711", 1000: "445712", 550: "445713", 210: "445714", 0: "445710" },
   auxPrefix: "C",
   ventilate: false,
@@ -49,7 +63,21 @@ export const PLAN_FIELDS: { key: Exclude<keyof AccountingPlan, "vat" | "ventilat
   { key: "travel", label: "Frais de déplacement refacturés" },
   { key: "deposits", label: "Acomptes reçus" },
   { key: "bank", label: "Banque" },
+  { key: "staff", label: "Personnel, notes de frais à rembourser" },
+  { key: "vatDeductible", label: "TVA déductible sur les frais" },
+  { key: "travelExpenses", label: "Déplacements, repas et hébergement" },
+  { key: "fuel", label: "Carburant" },
+  { key: "supplies", label: "Petites fournitures" },
+  { key: "otherExpenses", label: "Autres frais" },
 ];
+
+/** Compte de charge d'une note de frais selon sa catégorie. */
+export function expenseAccount(plan: AccountingPlan, category: string) {
+  if (category === "carburant") return plan.fuel;
+  if (category === "fournitures") return plan.supplies;
+  if (category === "autre") return plan.otherExpenses;
+  return plan.travelExpenses;
+}
 
 export const VAT_RATES = [2000, 1000, 550, 210] as const;
 
@@ -82,6 +110,12 @@ export function readPlan(raw: unknown): AccountingPlan {
     travel: acc(o.travel, DEFAULT_PLAN.travel),
     deposits: acc(o.deposits, DEFAULT_PLAN.deposits),
     bank: acc(o.bank, DEFAULT_PLAN.bank),
+    staff: acc(o.staff, DEFAULT_PLAN.staff),
+    vatDeductible: acc(o.vatDeductible, DEFAULT_PLAN.vatDeductible),
+    travelExpenses: acc(o.travelExpenses, DEFAULT_PLAN.travelExpenses),
+    fuel: acc(o.fuel, DEFAULT_PLAN.fuel),
+    supplies: acc(o.supplies, DEFAULT_PLAN.supplies),
+    otherExpenses: acc(o.otherExpenses, DEFAULT_PLAN.otherExpenses),
     vat,
     auxPrefix: typeof o.auxPrefix === "string" && /^[A-Z0-9]{0,4}$/.test(o.auxPrefix) ? o.auxPrefix : DEFAULT_PLAN.auxPrefix,
     ventilate: o.ventilate === true,
@@ -99,6 +133,12 @@ const planSchema = z.object({
   travel: account("Frais de déplacement"),
   deposits: account("Acomptes reçus"),
   bank: account("Banque"),
+  staff: account("Personnel").default(DEFAULT_PLAN.staff),
+  vatDeductible: account("TVA déductible").default(DEFAULT_PLAN.vatDeductible),
+  travelExpenses: account("Déplacements").default(DEFAULT_PLAN.travelExpenses),
+  fuel: account("Carburant").default(DEFAULT_PLAN.fuel),
+  supplies: account("Petites fournitures").default(DEFAULT_PLAN.supplies),
+  otherExpenses: account("Autres frais").default(DEFAULT_PLAN.otherExpenses),
   vat2000: account("TVA à 20 %"),
   vat1000: account("TVA à 10 %"),
   vat550: account("TVA à 5,5 %"),
@@ -130,6 +170,12 @@ export async function savePlan(ctx: Ctx, raw: unknown) {
     travel: d.travel,
     deposits: d.deposits,
     bank: d.bank,
+    staff: d.staff,
+    vatDeductible: d.vatDeductible,
+    travelExpenses: d.travelExpenses,
+    fuel: d.fuel,
+    supplies: d.supplies,
+    otherExpenses: d.otherExpenses,
     vat: { 2000: d.vat2000, 1000: d.vat1000, 550: d.vat550, 210: d.vat210, 0: DEFAULT_PLAN.vat[0] },
     auxPrefix: d.auxPrefix,
     ventilate: d.ventilate,

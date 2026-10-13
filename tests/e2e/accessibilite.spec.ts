@@ -770,6 +770,10 @@ test("comptabilité : plan comptable du cabinet et exports", async ({ page }) =>
   await expect(page.getByTestId("plan-comptable")).toContainText("707100");
   const fec = await page.request.get("/api/exports/fec?du=2026-01-01&au=2026-12-31");
   expect(fec.status()).toBe(200);
+  await page.getByLabel("Format").selectOption("csv");
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Télécharger", exact: true }).click();
+  expect((await download).suggestedFilename()).toMatch(/^ecritures-\d{8}-\d{8}\.csv$/);
   await page.goto("/app/entreprise?onglet=comptabilite");
   await page.getByRole("checkbox", { name: /Ventiler le chiffre d'affaires/ }).uncheck();
   await page.getByRole("button", { name: "Enregistrer le plan comptable" }).click();
