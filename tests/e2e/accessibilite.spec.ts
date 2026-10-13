@@ -531,6 +531,22 @@ test("notes de frais : facture électronique Factur-X lue et préremplie", async
   await expect(page.getByText("Négoce Rhône Matériaux").first()).toBeVisible();
 });
 
+test("assistance : rappel téléphonique demandé puis annulé", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/assistance");
+  await page.getByLabel("Numéro à rappeler").fill("06 12 34 56 78");
+  await page.getByLabel("Jour").selectOption({ index: 1 });
+  await page.getByLabel("Créneau").selectOption("apres_midi");
+  await page.getByLabel("Sujet (facultatif)").fill("Paramétrer les factures d'acompte");
+  await page.getByRole("button", { name: "Être rappelé" }).click();
+  await expect(page.getByTestId("rappel-prevu")).toContainText("entre 14 h et 17 h");
+  await expect(page.getByTestId("rappel-prevu")).toContainText("06 12 34 56 78");
+  await expect(page.getByText("Séances de prise en main en ligne")).toBeVisible();
+  await audit(page, "assistance avec rappel");
+  await page.getByRole("button", { name: "Annuler le rappel" }).click();
+  await expect(page.getByRole("button", { name: "Être rappelé" })).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

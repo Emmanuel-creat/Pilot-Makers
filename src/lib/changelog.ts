@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "rappel-et-prise-en-main",
+    date: "2026-10-13",
+    title: "Rappel par un conseiller et séances de prise en main",
+    text: "Choisissez votre créneau de rappel ou inscrivez-vous à une séance en ligne, depuis Assistance.",
+    href: "/aide/etre-rappele-et-prise-en-main",
+  },
+  {
     id: "export-logiciels-comptables",
     date: "2026-10-13",
     title: "Export vers les logiciels comptables",

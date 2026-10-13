@@ -970,6 +970,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/comptabilite", label: "Ouvrir la comptabilité" },
   },
   {
+    slug: "etre-rappele-et-prise-en-main",
+    category: "demarrer",
+    title: "Être rappelé par un conseiller ou suivre une séance de prise en main",
+    summary: "Choisissez un créneau de rappel ou inscrivez-vous à une séance en ligne : une personne de l'équipe vous guide.",
+    steps: [
+      "Ouvrez Assistance depuis le menu.",
+      "Pour un rappel : indiquez votre numéro, le jour (du lundi au vendredi, dans les deux semaines) et le créneau du matin ou de l'après-midi.",
+      "Pour une séance en ligne : choisissez une date et cliquez sur « S'inscrire ». Le lien de connexion et l'invitation d'agenda arrivent par e-mail.",
+      "Un empêchement ? Annulez le rappel ou désinscrivez-vous depuis la même page, la place est rendue aux autres.",
+    ],
+    notes: [
+      "Un seul rappel peut être en attente à la fois. Son issue (effectué, injoignable) s'affiche ensuite sur la page.",
+      "Si une séance est annulée par l'équipe, chaque inscrit est prévenu par e-mail.",
+    ],
+    link: { href: "/app/assistance", label: "Ouvrir l'assistance" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

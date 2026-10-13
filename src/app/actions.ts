@@ -90,6 +90,15 @@ import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/se
 import { addRge, removeRge } from "@/lib/services/aids";
 import { saveTreasury } from "@/lib/services/finance";
 import { savePlan } from "@/lib/services/accounting-plan";
+import {
+  cancelCallback,
+  cancelSession,
+  closeCallback,
+  createSession as createOnboardingSession,
+  registerToSession,
+  requestCallback,
+  unregisterFromSession,
+} from "@/lib/services/support-desk";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -540,7 +549,67 @@ export async function ticketAction(_: ActionState, fd: FormData): Promise<Action
   }
 }
 
+export async function callbackAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => requestCallback(ctx, { phone: s(fd, "phone"), date: s(fd, "date"), slot: s(fd, "slot"), topic: s(fd, "topic") }));
+    revalidatePath("/app/assistance");
+    return { ok: true, message: "Rappel demandé. Un conseiller vous appelle sur le créneau choisi." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function cancelCallbackAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => cancelCallback(ctx, s(fd, "id")));
+    revalidatePath("/app/assistance");
+    return { ok: true, message: "Rappel annulé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function sessionRegistrationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const leave = s(fd, "leave") === "1";
+    await withCtx((ctx) => (leave ? unregisterFromSession(ctx, s(fd, "id")) : registerToSession(ctx, s(fd, "id"))));
+    revalidatePath("/app/assistance");
+    return { ok: true, message: leave ? "Désinscription enregistrée." : "Inscription confirmée : le lien et l'invitation d'agenda vous sont envoyés par e-mail." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
 /* Administration ---------------------------------------------------- */
+
+export async function closeCallbackAction(fd: FormData) {
+  await withCtx((ctx) => closeCallback(ctx, s(fd, "id"), s(fd, "status"), s(fd, "outcome")));
+  revalidatePath("/admin/assistance");
+}
+
+export async function createSessionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      createOnboardingSession(ctx, {
+        startsAt: s(fd, "startsAt"),
+        duration: s(fd, "duration"),
+        title: s(fd, "title"),
+        description: s(fd, "description"),
+        capacity: s(fd, "capacity"),
+        url: s(fd, "url"),
+      }),
+    );
+    revalidatePath("/admin/assistance");
+    return { ok: true, message: "Séance programmée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function cancelSessionAction(fd: FormData) {
+  await withCtx((ctx) => cancelSession(ctx, s(fd, "id")));
+  revalidatePath("/admin/assistance");
+}
 
 export async function suspendAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
