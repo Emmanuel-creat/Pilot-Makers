@@ -920,6 +920,23 @@ test("vitrine : rendez-vous de visite réservé en ligne", async ({ page, browse
   await expect(page.getByText("Hugo Lambert, 06 98 76 54 32")).toBeHidden();
 });
 
+test("chantier : dossier des ouvrages exécutés", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Dossier des ouvrages exécutés" })).toBeVisible();
+  await expect(page.getByTestId("doe-checks")).toContainText("Réception prononcée");
+  await page.getByLabel("Conseils d'entretien").fill("Nettoyer les joints au savon neutre, sans produit acide.");
+  await page.getByRole("button", { name: "Enregistrer les conseils" }).click();
+  await expect(page.getByText("Conseils d'entretien enregistrés.")).toBeVisible();
+  await audit(page, "dossier des ouvrages exécutés");
+  const href = await page.getByRole("link", { name: "Télécharger le dossier" }).getAttribute("href");
+  const res = await page.request.get(href!);
+  expect(res.headers()["content-type"]).toBe("application/pdf");
+  expect((await res.body()).subarray(0, 5).toString()).toBe("%PDF-");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -31,6 +31,10 @@ import { deleteJobMessageAction } from "@/app/actions";
 import { JobMessageForm } from "./JobChat";
 import { jobReview } from "@/lib/services/reviews";
 import { RequestReviewForm } from "../../avis/ReviewForms";
+import { doeStatus } from "@/lib/services/doe";
+import { doeNotesAction } from "@/app/actions";
+import { ActionForm } from "@/components/forms/ActionForm";
+import { Submit } from "@/components/forms/Submit";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -53,11 +57,12 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     getWarranty(ctx, id),
     listJobMessages(ctx, id),
   ]);
-  const [review, customerEmail] = await Promise.all([
+  const [review, customerEmail, doe] = await Promise.all([
     jobReview(ctx, id),
     job.customer_id
       ? ctx.db.query<{ email: string }>("SELECT email FROM customers WHERE id=$1 AND org_id=$2", [job.customer_id, ctx.orgId]).then((r) => r[0]?.email ?? "")
       : Promise.resolve(""),
+    doeStatus(ctx, id),
   ]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const costsAllowed = can(ctx, "costs");
@@ -299,6 +304,48 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <p className="text-sm text-muted">Pas encore de réception.</p>
           )}
         </Section>
+        <div className="lg:col-span-2">
+          <Section
+            title="Dossier des ouvrages exécutés"
+            description="Le dossier à remettre au client : ouvrages réalisés, documents techniques, réception, garanties, conseils d'entretien et photos."
+            actions={
+              <a className="btn-secondary shrink-0" href={`/api/jobs/${job.id}/doe`} target="_blank" rel="noreferrer">
+                <Icon name="download" size={16} /> Télécharger le dossier
+              </a>
+            }
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <ul className="space-y-2 text-sm" data-testid="doe-checks">
+                {doe.checks.map((c) => (
+                  <li key={c.key} className="flex items-start gap-2">
+                    <Icon name={c.ok ? "check" : "alert"} size={16} className={`mt-0.5 shrink-0 ${c.ok ? "text-success" : "text-warning"}`} />
+                    <span>
+                      <span className="font-medium">{c.label}</span>
+                      {c.ok ? null : <span className="block text-xs text-muted">{c.hint}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <ActionForm action={doeNotesAction} className="space-y-2">
+                <input type="hidden" name="jobId" value={job.id} />
+                <label className="label" htmlFor="doe-notes">
+                  Conseils d'entretien
+                </label>
+                <textarea
+                  id="doe-notes"
+                  name="notes"
+                  rows={5}
+                  maxLength={4000}
+                  className="field"
+                  defaultValue={doe.notes}
+                  disabled={!canEdit}
+                  placeholder="Ex. : nettoyer les joints au savon neutre, pas de produit acide ; contrôler le siphon de la douche tous les six mois."
+                />
+                {canEdit ? <Submit className="btn-secondary">Enregistrer les conseils</Submit> : null}
+              </ActionForm>
+            </div>
+          </Section>
+        </div>
         <div className="lg:col-span-2">
           <Section
             title="Avis du client"

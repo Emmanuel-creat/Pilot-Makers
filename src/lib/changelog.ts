@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "dossier-ouvrages-executes",
+    date: "2026-10-13",
+    title: "Dossier des ouvrages exécutés",
+    text: "Le DOE de chaque chantier en un PDF : ouvrages réalisés, garanties, conseils d'entretien et photos, avec procès-verbaux et fiches techniques en annexe.",
+    href: "/aide/dossier-ouvrages-executes",
+  },
+  {
     id: "visites-en-ligne",
     date: "2026-10-13",
     title: "Rendez-vous de visite en ligne",

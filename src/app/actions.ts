@@ -76,6 +76,7 @@ import { deleteJobMessage, postJobMessage } from "@/lib/services/job-chat";
 import { setMonthlyReport } from "@/lib/services/monthly-report";
 import { hideReview, replyReview, requestReview } from "@/lib/services/reviews";
 import { cancelVisit, saveVisitSettings } from "@/lib/services/visits";
+import { saveDoeNotes } from "@/lib/services/doe";
 import {
   cancelQuote,
   createAmendment,
@@ -2090,6 +2091,17 @@ export async function cancelVisitAction(_: ActionState, fd: FormData): Promise<A
     await withCtx((ctx) => cancelVisit(ctx, s(fd, "id")));
     revalidatePath("/app/demandes");
     return { ok: true, message: "Visite annulée : pensez à prévenir le client." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function doeNotesAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => saveDoeNotes(ctx, jobId, s(fd, "notes")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Conseils d'entretien enregistrés." };
   } catch (e) {
     return toState(e);
   }

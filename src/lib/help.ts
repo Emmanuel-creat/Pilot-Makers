@@ -1426,6 +1426,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=vitrine", label: "Régler les visites" },
   },
   {
+    slug: "dossier-ouvrages-executes",
+    category: "devis",
+    title: "Remettre le dossier des ouvrages exécutés",
+    summary: "Le DOE du chantier réuni en un PDF, documents techniques et procès-verbaux joints.",
+    steps: [
+      "Sur la fiche du chantier, la partie « Dossier des ouvrages exécutés » liste ce qui est prêt et ce qui manque : réception, réserves, fiches techniques, photos, conseils d'entretien, assurance décennale.",
+      "Rédigez quelques conseils d'entretien propres aux travaux, puis enregistrez-les.",
+      "Cliquez sur « Télécharger le dossier » : le PDF reprend les ouvrages réalisés, les garanties et les photos, suivis du procès-verbal de réception, du procès-verbal de levée des réserves et des fiches techniques des articles utilisés.",
+    ],
+    notes: ["Les fiches techniques viennent des documents joints aux articles du catalogue. Avant la réception, le dossier est marqué provisoire."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
