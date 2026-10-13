@@ -97,14 +97,39 @@ export async function notifyOrg(q: Queryable, orgId: string, msg: PushMessage) {
      WHERE m.org_id=$1 AND (m.job_function IS NULL OR m.job_function <> 'comptable')`,
     [orgId],
   );
-  return enqueueFor(q, subs.map((s) => s.id), orgId, msg);
+  return enqueueFor(
+    q,
+    subs.map((s) => s.id),
+    orgId,
+    msg,
+  );
+}
+
+/** Prévient sur leur téléphone certains membres de l'entreprise seulement. */
+export async function notifyUsers(q: Queryable, orgId: string, userIds: readonly string[], msg: PushMessage) {
+  if (!userIds.length) return 0;
+  const subs = await q.query<{ id: string }>(
+    `SELECT s.id FROM push_subscriptions s JOIN memberships m ON m.user_id=s.user_id AND m.org_id=$1 WHERE s.user_id = ANY($2::uuid[])`,
+    [orgId, [...userIds]],
+  );
+  return enqueueFor(
+    q,
+    subs.map((s) => s.id),
+    orgId,
+    msg,
+  );
 }
 
 /** Notification d'essai sur tous les appareils de la personne connectée. */
 export async function testPush(ctx: Ctx) {
   const subs = await ctx.db.query<{ id: string }>("SELECT id FROM push_subscriptions WHERE user_id=$1", [ctx.userId]);
   if (!subs.length) throw badRequest("Activez d'abord les notifications sur cet appareil");
-  return enqueueFor(ctx.db, subs.map((s) => s.id), ctx.orgId, { title: "Pilot-Makers", body: "Les notifications fonctionnent sur cet appareil.", url: "/app/compte" });
+  return enqueueFor(
+    ctx.db,
+    subs.map((s) => s.id),
+    ctx.orgId,
+    { title: "Pilot-Makers", body: "Les notifications fonctionnent sur cet appareil.", url: "/app/compte" },
+  );
 }
 
 /** Tâche d'envoi d'une notification. */

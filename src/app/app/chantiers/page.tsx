@@ -4,13 +4,14 @@ import { Empty, PageHeader, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { JOB_STATUSES, listJobs } from "@/lib/services/jobs";
 import { pct } from "@/lib/services/jobs-labels";
+import { unreadJobMessages } from "@/lib/services/job-chat";
 
 export const metadata = { title: "Chantiers" };
 
 export default async function JobsPage({ searchParams }: { searchParams: Promise<{ statut?: string }> }) {
   const { statut } = await searchParams;
   const ctx = await requirePageCtx();
-  const jobs = await listJobs(ctx, { status: statut });
+  const [jobs, unread] = await Promise.all([listJobs(ctx, { status: statut }), unreadJobMessages(ctx)]);
   const filters: [string, string][] = [["", "Tous"], ...Object.entries(JOB_STATUSES)];
   return (
     <div className="mx-auto max-w-5xl">
@@ -48,14 +49,17 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                       {j.quote_number ? ` (devis ${j.quote_number})` : ""}
                     </div>
                   </div>
-                  <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-muted">
-                    {JOB_STATUSES[j.status]}
-                  </span>
+                  <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-muted">{JOB_STATUSES[j.status]}</span>
                 </div>
                 <div className="mt-3 flex items-center gap-3">
                   <progress className="h-2 flex-1 accent-accent" max={10000} value={j.progressBp} aria-label={`Avancement de ${j.title}`} />
                   <span className="tabular text-sm font-medium">{pct(j.progressBp)} %</span>
                 </div>
+                {unread.get(j.id) ? (
+                  <div className="mt-2 flex items-center gap-1 text-xs font-medium text-accent">
+                    <Icon name="mail" size={14} /> {unread.get(j.id)} message{unread.get(j.id)! > 1 ? "s" : ""} non lu{unread.get(j.id)! > 1 ? "s" : ""}
+                  </div>
+                ) : null}
                 {j.start_date ? (
                   <div className="mt-2 text-xs text-muted">
                     Du {fmtDate(j.start_date)}

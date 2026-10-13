@@ -46,7 +46,13 @@ export function PublishPhoto({ jobId, entryId, published, defaultCaption }: { jo
             <label className="label" htmlFor={`pp-note-${entryId}`}>
               Comment l'accord a été donné (facultatif)
             </label>
-            <input id={`pp-note-${entryId}`} name="consentNote" maxLength={300} className="field" placeholder="Ex. : accord écrit au procès-verbal de réception" />
+            <input
+              id={`pp-note-${entryId}`}
+              name="consentNote"
+              maxLength={300}
+              className="field"
+              placeholder="Ex. : accord écrit au procès-verbal de réception"
+            />
           </div>
           <FormMessage state={state} />
           <div className="flex justify-end">

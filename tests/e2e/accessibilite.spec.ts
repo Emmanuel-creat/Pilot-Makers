@@ -814,6 +814,22 @@ test("pointage : barème des indemnités de déplacement", async ({ page }) => {
   await audit(page, "indemnités de déplacement");
 });
 
+test("chantier : message à l'équipe", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  const text = `Livraison du receveur demain 8 h (${Date.now().toString(36)})`;
+  await page.getByLabel("Message à l'équipe").fill(text);
+  await page.getByRole("button", { name: "Envoyer", exact: true }).click();
+  await expect(page.getByRole("list", { name: "Messages du chantier" })).toContainText(text);
+  await expect(page.getByLabel("Message à l'équipe")).toHaveValue("");
+  await audit(page, "messages de chantier");
+  const item = page.getByRole("listitem").filter({ hasText: text });
+  await item.getByRole("button", { name: "Retirer" }).click();
+  await expect(page.getByText(text)).toHaveCount(0);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

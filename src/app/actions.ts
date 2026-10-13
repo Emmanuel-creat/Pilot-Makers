@@ -72,6 +72,7 @@ import { setFormalNotice } from "@/lib/services/recovery";
 import { saveAcquisitionCosts, SOURCES, type Source } from "@/lib/services/acquisition";
 import { addLabel, deleteLabel, setLabelShown } from "@/lib/services/labels";
 import { saveTravelRates } from "@/lib/services/travel";
+import { deleteJobMessage, postJobMessage } from "@/lib/services/job-chat";
 import {
   cancelQuote,
   createAmendment,
@@ -2017,4 +2018,20 @@ export async function saveTravelRatesAction(_: ActionState, fd: FormData): Promi
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function postJobMessageAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) => postJobMessage(ctx, jobId, s(fd, "body")));
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Message envoyé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteJobMessageAction(fd: FormData) {
+  await withCtx((ctx) => deleteJobMessage(ctx, s(fd, "id")));
+  revalidatePath(`/app/chantiers/${s(fd, "jobId")}`);
 }

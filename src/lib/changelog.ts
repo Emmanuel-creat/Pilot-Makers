@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "messages-chantier",
+    date: "2026-10-13",
+    title: "Messages d'équipe par chantier",
+    text: "Une conversation par chantier entre le bureau et les compagnons, avec notification des personnes affectées et messages non lus signalés.",
+    href: "/aide/messages-de-chantier",
+  },
+  {
     id: "deplacements",
     date: "2026-10-13",
     title: "Indemnités de déplacement",

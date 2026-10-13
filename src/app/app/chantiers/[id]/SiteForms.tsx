@@ -188,11 +188,7 @@ export function ReceptionForm({
               </button>
             </div>
           ))}
-          <button
-            type="button"
-            className="btn-ghost text-sm"
-            onClick={() => setRows([...rows, { key: Date.now(), label: "", location: "", due: "" }])}
-          >
+          <button type="button" className="btn-ghost text-sm" onClick={() => setRows([...rows, { key: Date.now(), label: "", location: "", due: "" }])}>
             <Icon name="plus" size={16} /> Ajouter une réserve
           </button>
         </fieldset>
@@ -235,12 +231,7 @@ export function LiftReserveForm({ reserveId, label }: { reserveId: string; label
   return (
     <ActionForm action={liftReserveAction} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="reserveId" value={reserveId} />
-      <input
-        name="note"
-        className="field min-w-40 flex-1"
-        placeholder="Travaux réalisés (facultatif)"
-        aria-label={`Commentaire de levée : ${label}`}
-      />
+      <input name="note" className="field min-w-40 flex-1" placeholder="Travaux réalisés (facultatif)" aria-label={`Commentaire de levée : ${label}`} />
       <Submit className="btn-secondary" pendingLabel="Enregistrement...">
         <Icon name="check" size={16} /> Lever
       </Submit>

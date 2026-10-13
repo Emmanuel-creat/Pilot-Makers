@@ -1342,6 +1342,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/pointage?vue=equipe", label: "Ouvrir le pointage de l'équipe" },
   },
   {
+    slug: "messages-de-chantier",
+    category: "demarrer",
+    title: "Échanger avec l'équipe sur un chantier",
+    summary: "Consignes et questions au même endroit que le journal.",
+    steps: [
+      "Ouvrez le chantier et écrivez dans « Messages de l'équipe ».",
+      "Les personnes affectées au chantier dans le planning, et celles qui ont déjà écrit, reçoivent une notification sur leur téléphone.",
+      "La liste des chantiers signale les messages que vous n'avez pas encore lus.",
+    ],
+    notes: ["Chacun peut retirer ses propres messages ; un responsable peut retirer n'importe quel message."],
+    link: { href: "/app/chantiers", label: "Voir les chantiers" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

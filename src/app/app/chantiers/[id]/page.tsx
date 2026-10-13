@@ -26,6 +26,9 @@ import { publishedJournalIds } from "@/lib/services/showcase";
 import { PublishPhoto } from "./PublishPhoto";
 import { getWarranty } from "@/lib/services/warranties";
 import { WarrantySummary } from "../garanties/WarrantySummary";
+import { listJobMessages } from "@/lib/services/job-chat";
+import { deleteJobMessageAction } from "@/app/actions";
+import { JobMessageForm } from "./JobChat";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -40,12 +43,13 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     throw e;
   });
   const { job, sections, progressBp } = data;
-  const [journal, rec, hours, published, warranty] = await Promise.all([
+  const [journal, rec, hours, published, warranty, messages] = await Promise.all([
     listJournal(ctx, id),
     getReception(ctx, id),
     jobHours(ctx, id),
     publishedJournalIds(ctx, id),
     getWarranty(ctx, id),
+    listJobMessages(ctx, id),
   ]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const costsAllowed = can(ctx, "costs");
@@ -75,12 +79,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         }
         actions={
           address ? (
-            <a
-              className="btn-secondary"
-              href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
+            <a className="btn-secondary" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">
               <Icon name="pin" size={16} /> Voir sur la carte
             </a>
           ) : null
@@ -156,6 +155,37 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div id="messages" className="scroll-mt-4 lg:col-span-2">
+          <Section
+            title="Messages de l'équipe"
+            description="Consignes et questions entre le bureau et le chantier. Les personnes affectées au chantier sont prévenues sur leur téléphone."
+          >
+            {messages.length ? (
+              <ol className="mb-4 space-y-2" aria-label="Messages du chantier">
+                {messages.map((m) => (
+                  <li key={m.id} className={`flex ${m.mine ? "justify-end" : ""}`}>
+                    <div className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${m.mine ? "bg-accent-soft" : "bg-surface-2"}`}>
+                      <div className="text-xs text-muted">
+                        {m.mine ? "Vous" : m.authorName}, {when(m.createdAt)}
+                      </div>
+                      <p className="whitespace-pre-line break-words">{m.body}</p>
+                      {canEdit && (m.mine || can(ctx, "settings")) ? (
+                        <form action={deleteJobMessageAction}>
+                          <input type="hidden" name="id" value={m.id} />
+                          <input type="hidden" name="jobId" value={job.id} />
+                          <button className="link inline-flex min-h-6 items-center text-xs text-danger">Retirer</button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="mb-4 text-sm text-muted">Aucun message pour l&apos;instant.</p>
+            )}
+            {canEdit ? <JobMessageForm jobId={job.id} /> : null}
+          </Section>
+        </div>
         <Section title="Journal de chantier" description="Photos et notes datées, avec la position si l'appareil la donne.">
           {canEdit ? <JournalForm jobId={job.id} /> : null}
           {journal.length ? (
@@ -267,10 +297,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           <Section title="Coûts et marge" description="Achats affectés et heures pointées, comparés aux coûts prévus au devis.">
             {costs.alert !== "none" ? (
               <div className="mb-4">
-                <Notice
-                  tone={costs.alert === "over" ? "danger" : "warning"}
-                  title={costs.alert === "over" ? "Budget dépassé" : "Budget presque consommé"}
-                >
+                <Notice tone={costs.alert === "over" ? "danger" : "warning"} title={costs.alert === "over" ? "Budget dépassé" : "Budget presque consommé"}>
                   {pct(costs.consumedBp ?? 0)} % du coût prévu est déjà dépensé, pour un avancement de {pct(costs.progressBp)} %.
                 </Notice>
               </div>
@@ -309,9 +336,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                   <tr className="font-semibold">
                     <td className="px-3 py-2">Marge (vendu {formatEuros(costs.soldCents)} HT)</td>
                     <td className="tabular px-3 py-2 text-right">{formatEuros(costs.planned.marginCents)}</td>
-                    <td
-                      className={`tabular px-3 py-2 text-right ${costs.real.marginCents < costs.planned.marginCents ? "text-danger" : "text-success"}`}
-                    >
+                    <td className={`tabular px-3 py-2 text-right ${costs.real.marginCents < costs.planned.marginCents ? "text-danger" : "text-success"}`}>
                       {formatEuros(costs.real.marginCents)}
                     </td>
                     <td className="tabular px-3 py-2 text-right">{formatEuros(costs.real.marginCents - costs.planned.marginCents)}</td>
@@ -337,9 +362,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                       <tr key={t.id} className="border-b border-line last:border-0">
                         <td className="px-3 py-2">
                           {t.label}
-                          {t.nature === "main_oeuvre" ? (
-                            <span className="block text-xs text-muted">Main-d'oeuvre : suivie par les heures pointées</span>
-                          ) : null}
+                          {t.nature === "main_oeuvre" ? <span className="block text-xs text-muted">Main-d'oeuvre : suivie par les heures pointées</span> : null}
                         </td>
                         <td className="tabular px-3 py-2 text-right">{formatEuros(t.soldCents)}</td>
                         <td className="tabular px-3 py-2 text-right">{t.plannedCostCents === null ? "" : formatEuros(t.plannedCostCents)}</td>
@@ -408,18 +431,12 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
       ) : null}
       {orders ? (
         <div className="mt-6">
-          <Section
-            title="Commandes fournisseurs"
-            description="Fournitures et sous-traitance du devis, commandées, reçues puis rapprochées de la facture."
-          >
+          <Section title="Commandes fournisseurs" description="Fournitures et sous-traitance du devis, commandées, reçues puis rapprochées de la facture.">
             {orders.length ? (
               <ul className="mb-4 divide-y divide-line text-sm">
                 {orders.map((o) => (
                   <li key={o.id}>
-                    <Link
-                      href={`/app/chantiers/${job.id}/commandes/${o.id}`}
-                      className="flex items-center justify-between gap-2 py-2 hover:bg-surface-2"
-                    >
+                    <Link href={`/app/chantiers/${job.id}/commandes/${o.id}`} className="flex items-center justify-between gap-2 py-2 hover:bg-surface-2">
                       <span className="min-w-0">
                         <span className="font-medium">{o.number}</span>
                         <span className="block truncate text-xs text-muted">
@@ -444,8 +461,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             {subs.some((s) => s.vigilance && s.compliance.status !== "valide") ? (
               <div className="mb-4">
                 <Notice tone="danger" title="Obligation de vigilance">
-                  Un marché d'au moins 5 000 euros HT impose une attestation URSSAF de moins de six mois : réclamez les documents manquants avant le
-                  démarrage.
+                  Un marché d'au moins 5 000 euros HT impose une attestation URSSAF de moins de six mois : réclamez les documents manquants avant le démarrage.
                 </Notice>
               </div>
             ) : null}

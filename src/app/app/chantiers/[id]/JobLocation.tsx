@@ -6,19 +6,7 @@ import { FormMessage, Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
 
 /** Emplacement du chantier : depuis l'adresse, ou position relevée sur place avec le téléphone. */
-export function JobLocation({
-  jobId,
-  located,
-  source,
-  label,
-  canEdit,
-}: {
-  jobId: string;
-  located: boolean;
-  source: string;
-  label: string;
-  canEdit: boolean;
-}) {
+export function JobLocation({ jobId, located, source, label, canEdit }: { jobId: string; located: boolean; source: string; label: string; canEdit: boolean }) {
   const [geo, locate] = useActionState(locateJobAction, null);
   const [pos, savePos] = useActionState(jobPositionAction, null);
   const form = useRef<HTMLFormElement>(null);
