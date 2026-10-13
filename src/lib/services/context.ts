@@ -5,7 +5,7 @@ import { appendSealed } from "./sealed-journal";
 export type Role = "owner" | "admin" | "member";
 
 /** Fonction dans l'entreprise : affine les droits du rôle. */
-export type JobFunction = "gerant" | "conducteur" | "secretariat" | "ouvrier";
+export type JobFunction = "gerant" | "conducteur" | "secretariat" | "ouvrier" | "comptable";
 /**
  * Droits par domaine :
  * - settings : réglages de l'entreprise, équipe, abonnement, API, webhooks, export complet ;
@@ -40,7 +40,18 @@ export const JOB_FUNCTIONS: Record<JobFunction, { label: string; role: "admin" |
     permissions: [],
     description: "Ses chantiers, le journal, son pointage et ses notes de frais.",
   },
+  comptable: {
+    label: "Expert-comptable",
+    role: "member",
+    permissions: ["billing"],
+    description: "Consultation des factures, règlements, TVA, trésorerie et exports comptables. Aucune modification possible ; ne compte pas dans les utilisateurs de l'offre.",
+  },
 };
+
+/** Fonctions qui consultent sans jamais modifier. */
+export function isReadOnlyMember(ctx: Pick<Ctx, "jobFunction">) {
+  return ctx.jobFunction === "comptable";
+}
 
 const PERMISSION_MESSAGES: Record<Permission, string> = {
   settings: "Réservé au gérant : réglages de l'entreprise",
@@ -121,6 +132,7 @@ export function requireWritable(ctx: Ctx) {
     throw forbidden("Compte en lecture seule : " + (ctx.entitlements.notice ?? "action impossible"));
   }
   if (ctx.supportAccess) throw forbidden("L'accès support est en lecture seule");
+  if (isReadOnlyMember(ctx)) throw forbidden("L'accès expert-comptable est en lecture seule");
 }
 
 export async function audit(

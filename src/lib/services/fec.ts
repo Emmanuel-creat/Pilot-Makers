@@ -16,6 +16,7 @@ import { badRequest } from "@/lib/http";
 import type { Ctx } from "./context";
 import { audit } from "./context";
 import type { InvoiceSnapshot } from "./invoices";
+import { DEFAULT_PLAN, getPlan, salesAccount, vatAccountOf, ventilate, type AccountingPlan } from "./accounting-plan";
 
 export const FEC_COLUMNS = [
   "JournalCode",
@@ -38,10 +39,8 @@ export const FEC_COLUMNS = [
   "Idevise",
 ] as const;
 
-const VAT_ACCOUNTS: Record<number, string> = { 2000: "445711", 1000: "445712", 550: "445713", 210: "445714" };
-
 export function vatAccount(bp: number) {
-  return VAT_ACCOUNTS[bp] ?? "445710";
+  return vatAccountOf(DEFAULT_PLAN, bp);
 }
 
 interface Line {
@@ -60,9 +59,33 @@ function clean(t: string) {
   return t.replace(/[\t\r\n|]+/g, " ").trim();
 }
 
-function auxOf(customerId: string | null, name: string) {
+function auxOf(customerId: string | null, name: string, prefix = DEFAULT_PLAN.auxPrefix) {
   const code = (customerId ?? "").replaceAll("-", "").slice(0, 8).toUpperCase() || "DIVERS";
-  return { num: `C${code}`, name: clean(name) || "Client" };
+  return { num: `${prefix}${code}`, name: clean(name) || "Client" };
+}
+
+const ACCOUNT_LABELS: Record<string, string> = {
+  sales: "Prestations de services",
+  goods: "Ventes de fournitures",
+  subcontracting: "Travaux sous-traités",
+  travel: "Frais de déplacement refacturés",
+};
+
+/** Hors taxe de la facture par compte de vente, au prorata des lignes de chaque nature. */
+function salesSplit(plan: AccountingPlan, snap: InvoiceSnapshot, totalHt: number): [string, string, number][] {
+  if (!plan.ventilate) return [[plan.sales, ACCOUNT_LABELS.sales, totalHt]];
+  const nets = new Map(snap.calc.sections.flatMap((s) => s.lines.filter((l) => !l.optional).map((l) => [l.id, l.netCents] as const)));
+  const weights = new Map<string, number>();
+  for (const s of snap.sections) {
+    for (const l of s.lines) {
+      const acc = salesAccount(plan, l.nature);
+      weights.set(acc, (weights.get(acc) ?? 0) + (nets.get(l.id) ?? 0));
+    }
+  }
+  const parts = ventilate(totalHt, weights);
+  if (!parts.size) return [[plan.sales, ACCOUNT_LABELS.sales, totalHt]];
+  const label = (acc: string) => ACCOUNT_LABELS[(["sales", "goods", "subcontracting", "travel"] as const).find((k) => plan[k] === acc) ?? "sales"];
+  return [...parts.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([acc, cents]) => [acc, label(acc), cents]);
 }
 
 /** Écriture d'une facture ou d'un avoir, équilibrée au centime. */
@@ -70,9 +93,10 @@ export function invoiceLines(
   inv: { kind: string; number: string; customer_id: string | null; amount_due_cents: number; total_ht_cents: number; depositRelated: boolean },
   snap: InvoiceSnapshot,
   depositVatByNumber: Map<string, { bp: number; cents: number }[]>,
+  plan: AccountingPlan = DEFAULT_PLAN,
 ): Line[] {
   const sign = inv.kind === "credit_note" ? -1 : 1;
-  const aux = auxOf(inv.customer_id, snap.customer.name);
+  const aux = auxOf(inv.customer_id, snap.customer.name, plan.auxPrefix);
   const deposit = inv.depositRelated;
   const lines: Line[] = [];
   const put = (account: string, label: string, amount: number, side: "debit" | "credit", withAux = false) => {
@@ -81,8 +105,9 @@ export function invoiceLines(
     const real = side === "debit" ? amount : -amount;
     lines.push({ account, label, aux: withAux ? aux : undefined, debit: real > 0 ? real : 0, credit: real < 0 ? -real : 0 });
   };
-  put("411000", "Clients", sign * inv.amount_due_cents, "debit", true);
-  put(deposit ? "419100" : "706000", deposit ? "Clients - avances et acomptes reçus" : "Prestations de services", sign * inv.total_ht_cents, "credit");
+  put(plan.customers, "Clients", sign * inv.amount_due_cents, "debit", true);
+  if (deposit) put(plan.deposits, "Clients - avances et acomptes reçus", sign * inv.total_ht_cents, "credit");
+  else for (const [acc, label, cents] of salesSplit(plan, snap, inv.total_ht_cents)) put(acc, label, sign * cents, "credit");
   const vat = new Map<number, number>();
   for (const g of snap.calc.vatGroups) vat.set(g.vatBp, (vat.get(g.vatBp) ?? 0) + g.vatCents);
   let depositHt = 0;
@@ -97,9 +122,9 @@ export function invoiceLines(
     }
   }
   for (const [bp, cents] of [...vat.entries()].sort((a, b) => b[0] - a[0])) {
-    put(vatAccount(bp), `TVA collectée ${(bp / 100).toString().replace(".", ",")} %`, sign * cents, "credit");
+    put(vatAccountOf(plan, bp), `TVA collectée ${(bp / 100).toString().replace(".", ",")} %`, sign * cents, "credit");
   }
-  put("419100", "Clients - avances et acomptes reçus", sign * depositHt, "debit");
+  put(plan.deposits, "Clients - avances et acomptes reçus", sign * depositHt, "debit");
   return lines;
 }
 
@@ -114,15 +139,17 @@ function depositVatParts(snap: InvoiceSnapshot, deductedTtc: number) {
 export async function buildFec(ctx: Ctx, from: string, to: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) throw badRequest("Période invalide");
   const org = (await ctx.db.query<{ siren: string }>("SELECT siren FROM organizations WHERE id=$1", [ctx.orgId]))[0];
+  const plan = await getPlan(ctx);
   const invoices = await ctx.db.query<Record<string, unknown>>(
     `SELECT id, kind, number, customer_id, issue_date, amount_due_cents, total_ht_cents, snapshot, credited_invoice_id,
        (SELECT kind FROM invoices c WHERE c.id = i.credited_invoice_id) AS credited_kind
      FROM invoices i WHERE org_id=$1 AND issue_date BETWEEN $2 AND $3 ORDER BY issued_at`,
     [ctx.orgId, from, to],
   );
-  const deposits = await ctx.db.query<{ number: string; snapshot: InvoiceSnapshot }>("SELECT number, snapshot FROM invoices WHERE org_id=$1 AND kind='deposit'", [
-    ctx.orgId,
-  ]);
+  const deposits = await ctx.db.query<{ number: string; snapshot: InvoiceSnapshot }>(
+    "SELECT number, snapshot FROM invoices WHERE org_id=$1 AND kind='deposit'",
+    [ctx.orgId],
+  );
   const depositSnap = new Map(deposits.map((d) => [d.number, d.snapshot]));
   const rows: string[][] = [];
   let seq = 0;
@@ -147,6 +174,7 @@ export async function buildFec(ctx: Ctx, from: string, to: string) {
       },
       snap,
       map,
+      plan,
     );
     seq++;
     const lib = `${r.kind === "credit_note" ? "Avoir" : r.kind === "deposit" ? "Acompte" : r.kind === "progress" ? "Situation" : "Facture"} ${r.number} ${snap.customer.name}`;
@@ -163,11 +191,13 @@ export async function buildFec(ctx: Ctx, from: string, to: string) {
     bq++;
     const date = String(p.paid_on instanceof Date ? p.paid_on.toISOString() : p.paid_on).slice(0, 10);
     const amount = num(p.amount_cents);
-    const aux = auxOf((p.customer_id as string | null) ?? null, String(p.customer_name ?? ""));
+    const aux = auxOf((p.customer_id as string | null) ?? null, String(p.customer_name ?? ""), plan.auxPrefix);
     const lib = `Règlement ${p.number}${p.reference ? " " + clean(String(p.reference)) : ""}`;
     const num_ = `BQ${String(bq).padStart(6, "0")}`;
-    rows.push(fecRow("BQ", "Banque", num_, date, { account: "512000", label: "Banque", debit: amount, credit: 0 }, String(p.number), lib));
-    rows.push(fecRow("BQ", "Banque", num_, date, { account: "411000", label: "Clients", aux, debit: 0, credit: amount }, String(p.number), lib));
+    rows.push(fecRow("BQ", "Banque", num_, date, { account: plan.bank, label: "Banque", debit: amount, credit: 0 }, String(p.number), lib));
+    rows.push(
+      fecRow("BQ", "Banque", num_, date, { account: plan.customers, label: "Clients", aux, debit: 0, credit: amount }, String(p.number), lib),
+    );
   }
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "export.fec", data: { from, to, rows: rows.length }, ip: ctx.ip });
   const content = [FEC_COLUMNS.join("\t"), ...rows.map((r) => r.join("\t"))].join("\r\n") + "\r\n";

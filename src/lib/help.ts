@@ -740,6 +740,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/rapports/tva", label: "Ouvrir la TVA à déclarer" },
   },
   {
+    slug: "espace-expert-comptable",
+    category: "compte",
+    title: "Donner un accès à son expert-comptable",
+    summary: "Votre cabinet consulte vos factures, votre TVA et votre trésorerie et télécharge le FEC avec vos propres comptes, sans rien pouvoir modifier.",
+    steps: [
+      "Dans Entreprise, onglet Comptabilité, reprenez les comptes de votre cabinet : clients, prestations, fournitures, acomptes, banque et TVA par taux.",
+      "Cochez la ventilation si votre cabinet sépare la main-d'œuvre, les fournitures, la sous-traitance et les déplacements.",
+      "Dans Équipe, invitez l'adresse de votre cabinet avec la fonction Expert-comptable.",
+      "Votre cabinet arrive sur la page Comptabilité : factures, TVA à déclarer, trésorerie et fichier des écritures comptables.",
+    ],
+    notes: [
+      "L'accès expert-comptable est en lecture seule et ne compte pas dans le nombre d'utilisateurs de votre offre.",
+      "Les coûts et marges de vos chantiers restent invisibles pour le cabinet.",
+    ],
+    link: { href: "/app/comptabilite", label: "Ouvrir la comptabilité" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

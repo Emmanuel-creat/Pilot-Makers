@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "espace-expert-comptable",
+    date: "2026-10-13",
+    title: "Accès expert-comptable et plan comptable",
+    text: "Invitez votre cabinet en lecture seule, gratuitement, et exportez vos ventes avec ses propres comptes, ventilées par nature si besoin.",
+    href: "/aide/espace-expert-comptable",
+  },
+  {
     id: "tva-et-tresorerie",
     date: "2026-10-13",
     title: "TVA préparée et trésorerie à 3 mois",

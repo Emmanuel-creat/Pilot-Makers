@@ -650,3 +650,24 @@ test("rapports : TVA à déclarer et trésorerie à 3 mois", async ({ page }) =>
   await page.getByRole("button", { name: "Mettre à jour la prévision" }).click();
   await expect(page.getByText("Prévision mise à jour.")).toBeVisible();
 });
+
+test("comptabilité : plan comptable du cabinet et exports", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/comptabilite");
+  await expect(page.getByRole("heading", { level: 1, name: "Comptabilité" })).toBeVisible();
+  await audit(page, "comptabilité");
+  await page.getByRole("link", { name: "Modifier les comptes" }).click();
+  await page.getByLabel("Fournitures et matériaux").fill("707100");
+  await page.getByRole("checkbox", { name: /Ventiler le chiffre d'affaires/ }).check();
+  await audit(page, "plan comptable");
+  await page.getByRole("button", { name: "Enregistrer le plan comptable" }).click();
+  await expect(page.getByText("Plan comptable enregistré.")).toBeVisible();
+  await page.goto("/app/comptabilite");
+  await expect(page.getByTestId("plan-comptable")).toContainText("707100");
+  const fec = await page.request.get("/api/exports/fec?du=2026-01-01&au=2026-12-31");
+  expect(fec.status()).toBe(200);
+  await page.goto("/app/entreprise?onglet=comptabilite");
+  await page.getByRole("checkbox", { name: /Ventiler le chiffre d'affaires/ }).uncheck();
+  await page.getByRole("button", { name: "Enregistrer le plan comptable" }).click();
+  await expect(page.getByText("Plan comptable enregistré.")).toBeVisible();
+});

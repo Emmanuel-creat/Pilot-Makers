@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { isReadOnlyMember } from "@/lib/services/context";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Empty, PageHeader, Section, Stat, fmtDate } from "@/components/ui";
@@ -14,6 +16,7 @@ export const metadata = { title: "Tableau de bord" };
 
 export default async function Dashboard() {
   const ctx = await requirePageCtx();
+  if (isReadOnlyMember(ctx)) redirect("/app/comptabilite");
   const d = await getDashboard(ctx);
   const c = d.counts;
   const total = Object.values(c).reduce((a, b) => a + b, 0);

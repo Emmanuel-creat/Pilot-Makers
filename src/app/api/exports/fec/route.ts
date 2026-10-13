@@ -1,13 +1,15 @@
 import { hitRate } from "@/lib/rate-limit";
 import { forbidden } from "@/lib/http";
 import { api } from "@/lib/server/session";
-import { requireRole } from "@/lib/services/context";
+import { isReadOnlyMember, requirePermission, requireRole } from "@/lib/services/context";
 import { buildFec } from "@/lib/services/fec";
 
 /** Fichier des écritures comptables : /api/exports/fec?du=AAAA-MM-JJ&au=AAAA-MM-JJ */
 export const GET = api(async ({ req, ctx }) => {
   if (ctx.supportAccess) throw forbidden("Export indisponible en accès support");
-  requireRole(ctx, "admin");
+  // Le gérant, l'administration, ou le cabinet comptable invité.
+  if (isReadOnlyMember(ctx)) requirePermission(ctx, "billing");
+  else requireRole(ctx, "admin");
   await hitRate(ctx.db, "files.transfer", ctx.orgId);
   const u = new URL(req.url);
   const year = new Date().getFullYear();

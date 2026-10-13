@@ -20,6 +20,8 @@ import { can } from "@/lib/services/context";
 import { getShowcase, listShowcasePhotos } from "@/lib/services/showcase";
 import { Showcase } from "./Showcase";
 import { RgeList } from "./RgeList";
+import { AccountingForm } from "./AccountingForm";
+import { getPlan } from "@/lib/services/accounting-plan";
 import { listRge } from "@/lib/services/aids";
 import { parisDate } from "@/lib/services/quotes";
 
@@ -36,6 +38,7 @@ const TABS = [
   ["relances", "Relances"],
   ["vitrine", "Vitrine"],
   ["factures", "Factures"],
+  ["comptabilite", "Comptabilité"],
   ["webhooks", "Webhooks"],
   ["api", "API"],
   ["historique", "Historique"],
@@ -146,6 +149,8 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
       ) : tab === "historique" ? (
         <History ctxPromise={organizationHistory(ctx)} />
+      ) : tab === "comptabilite" ? (
+        <AccountingForm plan={await getPlan(ctx)} canEdit={canEdit} />
       ) : tab === "assurance" ? (
         <>
           <OrgForm key={tab} tab={tab} initial={values as Record<string, string | boolean | number | null>} canEdit={canEdit} />

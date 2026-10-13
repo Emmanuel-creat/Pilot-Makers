@@ -181,7 +181,9 @@ export async function assertAiQuota(q: Queryable, ctx: Ctx) {
 }
 
 export async function assertCanAddMember(q: Queryable, ctx: Ctx) {
-  const r = await one<{ n: unknown }>(q, "SELECT count(*) AS n FROM memberships WHERE org_id = $1", [ctx.orgId]);
+  const r = await one<{ n: unknown }>(q, "SELECT count(*) AS n FROM memberships WHERE org_id = $1 AND job_function IS DISTINCT FROM 'comptable'", [
+    ctx.orgId,
+  ]);
   if (num(r?.n) >= ctx.entitlements.plan.maxUsers) {
     throw paymentRequired(`L'offre ${ctx.entitlements.plan.name} est limitée à ${ctx.entitlements.plan.maxUsers} utilisateur(s)`);
   }

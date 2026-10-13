@@ -24,13 +24,14 @@ export async function inviteMember(ctx: Ctx, raw: unknown) {
     .object({
       email: emailSchema,
       role: z.enum(["admin", "member"]).optional(),
-      jobFunction: z.enum(["", "gerant", "conducteur", "secretariat", "ouvrier"]).optional().default(""),
+      jobFunction: z.enum(["", "gerant", "conducteur", "secretariat", "ouvrier", "comptable"]).optional().default(""),
     })
     .safeParse(raw);
   if (!parsed.success) throw badRequest(parsed.error.issues[0].message);
-  await assertCanAddMember(ctx.db, ctx);
   const { email } = parsed.data;
   const jobFunction = (parsed.data.jobFunction || null) as JobFunction | null;
+  // Le cabinet comptable consulte sans compter dans les utilisateurs de l'offre.
+  if (jobFunction !== "comptable") await assertCanAddMember(ctx.db, ctx);
   // La fonction détermine le rôle ; sans fonction, le rôle choisi s'applique.
   const role = jobFunction ? JOB_FUNCTIONS[jobFunction].role : (parsed.data.role ?? "member");
   const already = await one(ctx.db, "SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1 AND u.email=$2", [ctx.orgId, email]);
@@ -99,9 +100,14 @@ export async function setMemberFunction(ctx: Ctx, userId: string, fn: string) {
   requireWritable(ctx);
   if (fn && !(fn in JOB_FUNCTIONS)) throw badRequest("Fonction inconnue");
   if (userId === ctx.userId) throw badRequest("Vous ne pouvez pas modifier votre propre fonction");
-  const m = await one<{ role: Role }>(ctx.db, "SELECT role FROM memberships WHERE org_id=$1 AND user_id=$2", [ctx.orgId, userId]);
+  const m = await one<{ role: Role; job_function: string | null }>(ctx.db, "SELECT role, job_function FROM memberships WHERE org_id=$1 AND user_id=$2", [
+    ctx.orgId,
+    userId,
+  ]);
   if (!m) throw notFound("Membre introuvable");
   const jobFunction = (fn || null) as JobFunction | null;
+  // Le cabinet comptable ne prend pas de place dans l'offre : il en prend une s'il change de fonction.
+  if (m.job_function === "comptable" && jobFunction !== "comptable") await assertCanAddMember(ctx.db, ctx);
   if (m.role === "owner") {
     if (jobFunction && jobFunction !== "gerant") throw badRequest("Le titulaire du compte garde tous les droits : fonction Gérant");
     await ctx.db.query("UPDATE memberships SET job_function=$3 WHERE org_id=$1 AND user_id=$2", [ctx.orgId, userId, jobFunction]);
