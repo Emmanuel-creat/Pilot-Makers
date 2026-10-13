@@ -821,6 +821,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/boite-envoi", label: "Voir les e-mails envoyés" },
   },
   {
+    slug: "cles-d-acces",
+    category: "compte",
+    title: "Se connecter avec une clé d'accès",
+    summary: "Plus besoin de taper le mot de passe : le téléphone ou l'ordinateur vous reconnaît par l'empreinte, le visage ou son code.",
+    steps: [
+      "Dans Mon compte, section Clés d'accès, donnez un nom à l'appareil si vous le souhaitez puis « Ajouter une clé d'accès ».",
+      "Confirmez avec l'empreinte, le visage ou le code de l'appareil.",
+      "À la prochaine connexion, choisissez « Se connecter avec une clé d'accès » sur la page de connexion.",
+    ],
+    notes: [
+      "Une clé d'accès est liée à Pilot-Makers : un faux site ne peut pas s'en servir. Elle vaut double authentification.",
+      "Le mot de passe reste utilisable. Retirez la clé d'un appareil perdu ou vendu depuis Mon compte.",
+      "Jusqu'à 10 clés par compte, par exemple une pour le téléphone et une pour l'ordinateur du bureau.",
+    ],
+    link: { href: "/app/compte", label: "Ouvrir Mon compte" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

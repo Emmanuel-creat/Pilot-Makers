@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "cles-d-acces",
+    date: "2026-10-13",
+    title: "Connexion par clé d'accès",
+    text: "Connectez-vous avec l'empreinte ou le visage de votre téléphone, sans mot de passe.",
+    href: "/aide/cles-d-acces",
+  },
+  {
     id: "envois-reessayes",
     date: "2026-10-13",
     title: "E-mails renvoyés automatiquement",

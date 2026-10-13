@@ -48,6 +48,8 @@ export const RATE_RULES = {
   "public.lead": rule(5, 3600, "Trop de demandes envoyées depuis cette adresse."),
   /** Photos du journal de chantier, par entreprise */
   "job.photo": rule(300, 3600, "Trop de photos envoyées en peu de temps."),
+  /** Connexions par clé d'accès, par adresse IP */
+  "passkey.login": rule(30, 600, "Trop de tentatives de connexion depuis cette adresse."),
 } as const;
 
 export type RateBucket = keyof typeof RATE_RULES;

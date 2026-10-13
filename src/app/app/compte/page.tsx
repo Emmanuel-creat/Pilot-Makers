@@ -19,6 +19,8 @@ import {
 } from "@/app/actions";
 import { pendingTwoFactorSetup, twoFactorState } from "@/lib/services/two-factor";
 import { CodesForm } from "./TwoFactor";
+import { PasskeyManager } from "@/components/Passkeys";
+import { listPasskeys } from "@/lib/services/passkeys";
 
 export const metadata = { title: "Mon compte" };
 
@@ -34,7 +36,7 @@ const codeField = (id: string) => (
 export default async function AccountPage({ searchParams }: { searchParams: Promise<{ double?: string }> }) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
-  const [tf, pending] = await Promise.all([twoFactorState(ctx.db, ctx.userId), pendingTwoFactorSetup(ctx)]);
+  const [tf, pending, passkeys] = await Promise.all([twoFactorState(ctx.db, ctx.userId), pendingTwoFactorSetup(ctx), listPasskeys(ctx)]);
   const [sessions, user] = await Promise.all([
     listSessions(ctx),
     ctx.db.query<{ name: string; locale: string; timezone: string; status: string; deletion_requested_at: Date | null; created_at: Date }>(
@@ -107,6 +109,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           L'administration de la plateforme n'est accessible qu'avec la double authentification activée.
         </Notice>
       ) : null}
+      <Section
+        title="Clés d'accès"
+        description="Connectez-vous sans mot de passe, avec l'empreinte, le visage ou le code de votre téléphone ou ordinateur. Une clé d'accès ne peut pas être volée par un faux site et vaut double authentification."
+      >
+        <PasskeyManager initial={passkeys} />
+      </Section>
       <Section
         title="Double authentification"
         description="Après le mot de passe, un code à 6 chiffres affiché par une application d'authentification (Google Authenticator, Microsoft Authenticator, 2FAS, Aegis...) est demandé."

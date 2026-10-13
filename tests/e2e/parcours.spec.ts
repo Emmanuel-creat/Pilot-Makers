@@ -198,3 +198,28 @@ test("espace client : lien personnel, documents et message", async ({ page, brow
   await page.goto("/app");
   await expect(page.getByText(/nouveau message du client|nouveaux messages du client/).first()).toBeVisible();
 });
+
+test("clé d'accès : ajout dans Mon compte puis connexion sans mot de passe", async ({ page, context }) => {
+  // Authentificateur virtuel du navigateur, qui vérifie l'utilisateur comme une empreinte digitale.
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("WebAuthn.enable");
+  await cdp.send("WebAuthn.addVirtualAuthenticator", {
+    options: { protocol: "ctap2", transport: "internal", hasResidentKey: true, hasUserVerification: true, isUserVerified: true },
+  });
+  await login(page);
+  await page.goto("/app/compte");
+  await page.getByLabel("Nom de l'appareil (facultatif)").fill("Téléphone de test");
+  await page.getByRole("button", { name: "Ajouter une clé d'accès" }).click();
+  await expect(page.getByText("Clé d'accès ajoutée")).toBeVisible();
+  await expect(page.getByText("Téléphone de test")).toBeVisible();
+
+  await context.clearCookies();
+  await page.goto("/connexion");
+  await page.getByRole("button", { name: "Se connecter avec une clé d'accès" }).click();
+  await page.waitForURL(/\/app(\/|$)/);
+
+  await page.goto("/app/compte");
+  await expect(page.getByText(/utilisée le/)).toBeVisible();
+  await page.getByRole("button", { name: "Retirer la clé d'accès Téléphone de test" }).click();
+  await expect(page.getByText("Aucune clé d'accès pour l'instant.")).toBeVisible();
+});

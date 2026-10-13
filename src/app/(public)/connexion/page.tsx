@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthCard } from "@/components/forms/AuthCard";
 import { Notice } from "@/components/ui";
 import { LoginForm } from "./LoginForm";
+import { PasskeyLogin } from "@/components/Passkeys";
 
 export const metadata = { title: "Connexion" };
 
@@ -26,6 +27,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ r
         </div>
       ) : null}
       <LoginForm next={sp.next ?? ""} />
+      <div className="mt-4">
+        <PasskeyLogin next={sp.next ?? ""} />
+      </div>
     </AuthCard>
   );
 }
