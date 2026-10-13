@@ -1,6 +1,6 @@
 "use client";
 
-import { saveGoalsAction } from "@/app/actions";
+import { monthlyReportAction, saveGoalsAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
@@ -31,6 +31,17 @@ export function GoalsForm({ signed, sent }: { signed: string; sent: string }) {
         </div>
       </div>
       <Submit>Enregistrer les objectifs</Submit>
+    </ActionForm>
+  );
+}
+
+export function MonthlyReportForm({ enabled }: { enabled: boolean }) {
+  return (
+    <ActionForm action={monthlyReportAction} className="space-y-3">
+      <label className="flex min-h-6 items-center gap-2 text-sm">
+        <input type="checkbox" name="enabled" defaultChecked={enabled} /> Recevoir chaque début de mois le rapport du mois écoulé par e-mail
+      </label>
+      <Submit>Enregistrer</Submit>
     </ActionForm>
   );
 }

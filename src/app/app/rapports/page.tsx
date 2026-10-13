@@ -4,7 +4,8 @@ import { Icon } from "@/components/Icon";
 import { centsToInput, formatEuros } from "@/lib/calc/format";
 import { requirePageCtx } from "@/lib/server/session";
 import { getReport, monthLabel, type Breakdown } from "@/lib/services/reports";
-import { GoalsForm, PrintButton } from "./ReportActions";
+import { GoalsForm, MonthlyReportForm, PrintButton } from "./ReportActions";
+import { getMonthlyReportSetting } from "@/lib/services/monthly-report";
 import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Rapports" };
@@ -64,6 +65,8 @@ export default async function ReportsPage() {
   const ctx = await requirePageCtx();
   const r = await getReport(ctx);
   const canEdit = can(ctx, "billing") && !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const canSettings = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const monthlyReport = canSettings ? await getMonthlyReportSetting(ctx) : false;
   const max = Math.max(1, ...r.months.map((m) => Math.max(m.signedHtCents, m.invoicedHtCents, m.collectedCents)));
   const total = r.months.reduce(
     (t, m) => ({ signed: t.signed + m.signedHtCents, invoiced: t.invoiced + m.invoicedHtCents, collected: t.collected + m.collectedCents }),
@@ -133,6 +136,15 @@ export default async function ReportsPage() {
           ) : (
             <p className="text-sm text-muted">Aucun objectif fixé pour l'instant.</p>
           )}
+          {canSettings ? (
+            <div className="mt-4 border-t border-line pt-4 print:hidden" data-testid="rapport-mensuel">
+              <h3 className="mb-1 text-sm font-medium">Rapport mensuel</h3>
+              <p className="mb-2 text-xs text-muted">
+                Envoyé au gérant la première semaine du mois : signé, facturé, encaissé, retards de paiement, comparés au mois précédent et à l&apos;an dernier.
+              </p>
+              <MonthlyReportForm enabled={monthlyReport} />
+            </div>
+          ) : null}
           {canEdit ? (
             <details className="mt-4 print:hidden">
               <summary className="cursor-pointer text-sm font-medium">Fixer les objectifs mensuels</summary>

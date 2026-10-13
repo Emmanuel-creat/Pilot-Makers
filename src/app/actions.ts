@@ -73,6 +73,7 @@ import { saveAcquisitionCosts, SOURCES, type Source } from "@/lib/services/acqui
 import { addLabel, deleteLabel, setLabelShown } from "@/lib/services/labels";
 import { saveTravelRates } from "@/lib/services/travel";
 import { deleteJobMessage, postJobMessage } from "@/lib/services/job-chat";
+import { setMonthlyReport } from "@/lib/services/monthly-report";
 import {
   cancelQuote,
   createAmendment,
@@ -2034,4 +2035,15 @@ export async function postJobMessageAction(_: ActionState, fd: FormData): Promis
 export async function deleteJobMessageAction(fd: FormData) {
   await withCtx((ctx) => deleteJobMessage(ctx, s(fd, "id")));
   revalidatePath(`/app/chantiers/${s(fd, "jobId")}`);
+}
+
+export async function monthlyReportAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const enabled = fd.get("enabled") === "on";
+    await withCtx((ctx) => setMonthlyReport(ctx, enabled));
+    revalidatePath("/app/rapports");
+    return { ok: true, message: enabled ? "Rapport mensuel activé." : "Rapport mensuel désactivé." };
+  } catch (e) {
+    return toState(e);
+  }
 }

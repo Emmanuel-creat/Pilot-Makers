@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "rapport-mensuel",
+    date: "2026-10-13",
+    title: "Rapport mensuel",
+    text: "Chaque début de mois, le gérant reçoit par e-mail l'essentiel du mois écoulé, comparé au mois précédent, à l'an dernier et à l'objectif.",
+    href: "/aide/rapport-mensuel",
+  },
+  {
     id: "messages-chantier",
     date: "2026-10-13",
     title: "Messages d'équipe par chantier",

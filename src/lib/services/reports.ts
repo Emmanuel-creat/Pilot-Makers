@@ -111,12 +111,10 @@ function breakdown(rows: { key: string; label: string; status: string; ht: numbe
     } else b.refused++;
     map.set(r.key, b);
   }
-  return [...map.values()]
-    .map((b) => ({ ...b, rate: rate(b.signed, b.refused) }))
-    .sort((a, b) => b.signedHtCents - a.signedHtCents || b.signed - a.signed);
+  return [...map.values()].map((b) => ({ ...b, rate: rate(b.signed, b.refused) })).sort((a, b) => b.signedHtCents - a.signedHtCents || b.signed - a.signed);
 }
 
-export async function getReport(ctx: Ctx, monthsCount = 12, now = new Date()): Promise<Report> {
+export async function getReport(ctx: Pick<Ctx, "db" | "orgId">, monthsCount = 12, now = new Date()): Promise<Report> {
   const today = parisDate(now);
   const months = lastMonths(today, monthsCount);
   const since = `${months[0]}-01`;

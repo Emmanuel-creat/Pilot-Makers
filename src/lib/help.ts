@@ -1355,6 +1355,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers", label: "Voir les chantiers" },
   },
   {
+    slug: "rapport-mensuel",
+    category: "compte",
+    title: "Recevoir le rapport mensuel",
+    summary: "L'essentiel du mois écoulé dans votre boîte mail.",
+    steps: [
+      "Le gérant reçoit la première semaine de chaque mois un e-mail : devis signés, facturé, encaissé, devis en attente, factures en retard et chantiers en cours.",
+      "Chaque chiffre est comparé au mois précédent et au même mois de l'an dernier, et à votre objectif s'il est fixé.",
+      "Pour l'arrêter, décochez l'envoi dans Rapports, sous « Objectifs du mois ».",
+    ],
+    notes: ["Le rapport n'est envoyé qu'une fois par mois, même si le serveur redémarre."],
+    link: { href: "/app/rapports", label: "Voir les rapports" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

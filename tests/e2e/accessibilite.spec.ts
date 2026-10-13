@@ -830,6 +830,19 @@ test("chantier : message à l'équipe", async ({ page }) => {
   await expect(page.getByText(text)).toHaveCount(0);
 });
 
+test("rapports : rapport mensuel envoyé au gérant", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  const box = page.getByLabel("Recevoir chaque début de mois le rapport du mois écoulé par e-mail");
+  await box.uncheck();
+  await page.getByTestId("rapport-mensuel").getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Rapport mensuel désactivé.")).toBeVisible();
+  await box.check();
+  await page.getByTestId("rapport-mensuel").getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Rapport mensuel activé.")).toBeVisible();
+  await audit(page, "rapport mensuel");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
