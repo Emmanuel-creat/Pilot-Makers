@@ -18,6 +18,7 @@ export interface ItemFormValue {
   /** Pertes et chutes en %, vide si aucune */
   waste_percent: string;
   supplier: string;
+  supplier_ref: string;
   duration_minutes: number | null;
   price_valid_until: string | null;
   active: boolean;
@@ -39,6 +40,7 @@ export const EMPTY_ITEM: ItemFormValue = {
   vat_percent: "20",
   waste_percent: "",
   supplier: "",
+  supplier_ref: "",
   duration_minutes: null,
   price_valid_until: null,
   active: true,
@@ -204,7 +206,10 @@ export function ItemForm({
               />
             </div>
           </div>
-          <div className="mt-3">{text("supplier", "Fournisseur")}</div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {text("supplier", "Fournisseur")}
+            {text("supplier_ref", "Référence chez le fournisseur")}
+          </div>
           {m ? (
             <p className="mt-2 text-sm">
               Marge sur vente : <strong>{m.rate.toFixed(1).replace(".", ",")} %</strong>, coefficient {m.coef.toFixed(2).replace(".", ",")}

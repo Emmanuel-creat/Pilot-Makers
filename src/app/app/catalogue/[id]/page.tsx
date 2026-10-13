@@ -63,6 +63,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
               vat_percent: String(input.vat_percent ?? "20"),
               waste_percent: String(input.waste_percent ?? ""),
               supplier: input.supplier ?? "",
+              supplier_ref: input.supplier_ref ?? "",
               duration_minutes: it.duration_minutes,
               price_valid_until: input.price_valid_until ?? null,
               active: input.active ?? true,

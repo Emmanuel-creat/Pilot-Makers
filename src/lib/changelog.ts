@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "tarifs-fournisseurs",
+    date: "2026-10-13",
+    title: "Tarifs fournisseurs et alerte de marge",
+    text: "Importez le fichier de prix de votre négoce : vos prix d'achat se mettent à jour et les articles dont la marge baisse trop sont signalés.",
+    href: "/aide/tarifs-fournisseurs",
+  },
+  {
     id: "page-vitrine",
     date: "2026-10-13",
     title: "Page vitrine et réalisations",

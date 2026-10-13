@@ -84,6 +84,7 @@ import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } fr
 import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes";
 import { createIncident, updateIncident } from "@/lib/services/status";
 import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/services/showcase";
+import { dismissCostAlert } from "@/lib/services/supplier-prices";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1595,4 +1596,9 @@ export async function showcasePhotoAction(_: ActionState, fd: FormData): Promise
 export async function removeShowcasePhotoAction(fd: FormData) {
   await withCtx((ctx) => removeShowcasePhoto(ctx, s(fd, "id")));
   revalidatePath("/app/entreprise");
+}
+
+export async function dismissCostAlertAction(fd: FormData) {
+  await withCtx((ctx) => dismissCostAlert(ctx, s(fd, "id")));
+  revalidatePath("/app/catalogue");
 }

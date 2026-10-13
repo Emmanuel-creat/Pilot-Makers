@@ -654,6 +654,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=vitrine", label: "Ouvrir la vitrine" },
   },
   {
+    slug: "tarifs-fournisseurs",
+    category: "catalogue",
+    title: "Mettre à jour vos prix d'achat avec le fichier de votre négoce",
+    summary: "Importez le fichier de prix d'un fournisseur : vos coûts d'achat se mettent à jour et une alerte signale les marges trop basses.",
+    steps: [
+      "Sur chaque article acheté, indiquez le fournisseur et sa référence chez lui (fiche de l'article, informations internes).",
+      "Demandez à votre négoce son fichier de prix (CSV ou Excel, par exemple au format FAB-DIS), puis ouvrez Catalogue, Tarifs fournisseurs.",
+      "Choisissez le fournisseur, le seuil de marge en dessous duquel vous voulez être alerté, et le fichier. « Voir les changements » montre chaque prix d'achat modifié et la marge qui en résulte.",
+      "Confirmez avec « Appliquer les nouveaux prix d'achat ». Les articles passés sous le seuil apparaissent en tête du catalogue jusqu'à ce que vous cliquiez sur « Marge vue ».",
+    ],
+    notes: [
+      "Vos prix de vente ne changent jamais automatiquement : vous décidez de les revoir.",
+      "Le prix net est repris tel quel, ou calculé depuis le prix public et la remise du fichier. Chaque changement reste dans l'historique des prix de l'article, et les ouvrages qui contiennent l'article suivent son nouveau coût.",
+      "Réservé aux personnes qui voient les coûts de l'entreprise.",
+    ],
+    link: { href: "/app/catalogue/tarifs-fournisseurs", label: "Ouvrir les tarifs fournisseurs" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

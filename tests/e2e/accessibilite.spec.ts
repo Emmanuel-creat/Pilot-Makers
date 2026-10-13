@@ -550,3 +550,33 @@ test("vitrine : page publique publiée puis demande de devis reçue", async ({ p
   await page.goto("/app/demandes");
   await expect(page.getByText("Lucie Bernard").first()).toBeVisible();
 });
+
+test("catalogue : fichier de prix fournisseur et alerte de marge", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/nouveau");
+  await page.getByLabel("Nom de la prestation").fill("Colle carrelage C2 25 kg");
+  await page.getByLabel("Prix de vente HT (€)").fill("30");
+  await page.getByLabel("Coût d'achat HT (€)").fill("22");
+  await page.getByLabel("Fournisseur", { exact: true }).fill("Négoce E2E");
+  await page.getByLabel("Référence chez le fournisseur").fill("CK-E2E");
+  await page.getByRole("button", { name: "Créer la prestation" }).click();
+  await page.waitForURL(/\/app\/catalogue\/[0-9a-f-]{36}$/);
+
+  await page.goto("/app/catalogue/tarifs-fournisseurs");
+  await page.getByLabel("Fournisseur").fill("Négoce E2E");
+  await page.getByLabel("Fichier de prix (.csv, .xlsx ou .ods)").setInputFiles({
+    name: "tarif.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("REFCIALE;LIBELLE240;PRIXBASE;REMISE\nCK-E2E;Colle C2 25 kg;32,00;20\n", "utf8"),
+  });
+  await page.getByRole("button", { name: "Voir les changements" }).click();
+  await expect(page.getByText(/passent sous la marge de 20 %/)).toBeVisible();
+  await audit(page, "tarifs fournisseurs");
+  await page.getByRole("button", { name: "Appliquer les nouveaux prix d'achat" }).click();
+  await expect(page.getByRole("heading", { name: "Prix d'achat mis à jour" })).toBeVisible();
+
+  await page.goto("/app/catalogue");
+  await expect(page.getByRole("heading", { name: /Marge en baisse/ })).toBeVisible();
+  await page.getByRole("button", { name: "Marge vue" }).first().click();
+  await expect(page.getByRole("heading", { name: /Marge en baisse/ })).toBeHidden();
+});

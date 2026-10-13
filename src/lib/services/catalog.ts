@@ -42,6 +42,8 @@ export interface CatalogItem {
   /** Pertes et chutes à prévoir, en points de base (1000 = 10 %) */
   waste_bp: number;
   supplier: string;
+  /** Référence de l'article chez le fournisseur, pour la mise à jour des prix d'achat */
+  supplier_ref: string;
   duration_minutes: number | null;
   price_valid_until: string | null;
   active: boolean;
@@ -115,6 +117,7 @@ export const itemSchema = z.object({
   vat_percent: decimalText("Taux de TVA", 2, true),
   waste_percent: decimalText("Pertes et chutes", 2, false),
   supplier: z.string().trim().max(120).optional().default(""),
+  supplier_ref: z.string().trim().max(60).optional().default(""),
   duration_minutes: z.coerce.number().int().min(0).max(100000).optional().nullable(),
   price_valid_until: z
     .string()
@@ -172,8 +175,8 @@ export async function createItem(ctx: Ctx, raw: unknown, q: Queryable = ctx.db, 
   const row = await one<{ id: string }>(
     q,
     `INSERT INTO catalog_items (org_id, reference, name, description, category, subcategory, unit, unit_cost4, hourly_cost4,
-       unit_price4, vat_bp, supplier, duration_minutes, price_valid_until, active, favorite, source, source_note, updated_by, tags, waste_bp)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21) RETURNING id`,
+       unit_price4, vat_bp, supplier, duration_minutes, price_valid_until, active, favorite, source, source_note, updated_by, tags, waste_bp, supplier_ref)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING id`,
     [
       ctx.orgId,
       reference,
@@ -196,6 +199,7 @@ export async function createItem(ctx: Ctx, raw: unknown, q: Queryable = ctx.db, 
       ctx.userId,
       d.tags ?? [],
       d.waste_percent ?? 0,
+      d.supplier_ref,
     ],
   );
   return row!.id;
@@ -226,7 +230,7 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
     await tx.query(
       `UPDATE catalog_items SET reference=$3, name=$4, description=$5, category=$6, subcategory=$7, unit=$8, unit_cost4=$9,
          hourly_cost4=$10, unit_price4=$11, vat_bp=$12, supplier=$13, duration_minutes=$14, price_valid_until=$15, active=$16,
-         favorite=$17, updated_by=$18, tags=coalesce($19, tags), waste_bp=coalesce($20, waste_bp), updated_at=now()
+         favorite=$17, updated_by=$18, tags=coalesce($19, tags), waste_bp=coalesce($20, waste_bp), supplier_ref=$21, updated_at=now()
        WHERE id=$1 AND org_id=$2`,
       [
         id,
@@ -249,6 +253,7 @@ export async function updateItem(ctx: Ctx, id: string, raw: unknown) {
         ctx.userId,
         d.tags ?? null,
         d.waste_percent,
+        d.supplier_ref,
       ],
     );
     if (before.unit_price4 !== d.unit_price || before.unit_cost4 !== d.unit_cost) {
@@ -303,6 +308,7 @@ export function itemToInput(it: CatalogItem): ItemInput {
     vat_percent: bpToInput(it.vat_bp),
     waste_percent: it.waste_bp ? bpToInput(it.waste_bp) : "",
     supplier: it.supplier,
+    supplier_ref: it.supplier_ref ?? "",
     duration_minutes: it.duration_minutes,
     price_valid_until: it.price_valid_until,
     active: it.active,
@@ -417,6 +423,7 @@ const CSV_COLUMNS = [
   "vat_percent",
   "waste_percent",
   "supplier",
+  "supplier_ref",
   "duration_minutes",
   "price_valid_until",
   "active",
@@ -497,6 +504,8 @@ const CATALOG_ALIASES: Record<string, CatalogField> = {
   "taux de chute": "waste_percent",
   "pertes et chutes": "waste_percent",
   fournisseur: "supplier",
+  "reference fournisseur": "supplier_ref",
+  "ref fournisseur": "supplier_ref",
   duree: "duration_minutes",
   "duree minutes": "duration_minutes",
   "temps de pose": "duration_minutes",

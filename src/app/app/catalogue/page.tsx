@@ -4,6 +4,9 @@ import { Empty, PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { CATEGORIES, listCatalogTags, searchItems } from "@/lib/services/catalog";
 import { CatalogTable } from "./CatalogTable";
+import { CostAlerts } from "./CostAlerts";
+import { can } from "@/lib/services/context";
+import { listCostAlerts } from "@/lib/services/supplier-prices";
 
 export const metadata = { title: "Catalogue" };
 
@@ -37,12 +40,18 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
             <Link href="/app/catalogue/import" className="btn-secondary">
               <Icon name="upload" size={16} /> Importer
             </Link>
+            {can(ctx, "costs") ? (
+              <Link href="/app/catalogue/tarifs-fournisseurs" className="btn-secondary">
+                <Icon name="truck" size={16} /> Tarifs fournisseurs
+              </Link>
+            ) : null}
             <Link href="/app/catalogue/nouveau" className="btn-primary">
               <Icon name="plus" size={16} /> Nouvelle prestation
             </Link>
           </>
         }
       />
+      {can(ctx, "costs") ? <CostAlerts alerts={await listCostAlerts(ctx)} /> : null}
       <form className={`mb-4 grid gap-2 ${tags.length ? "sm:grid-cols-[1fr_180px_160px_160px_auto_auto]" : "sm:grid-cols-[1fr_180px_160px_auto_auto]"}`}>
         <div className="relative">
           <Icon name="search" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
