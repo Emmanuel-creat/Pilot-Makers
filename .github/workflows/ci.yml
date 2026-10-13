@@ -4,8 +4,25 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    # Chaque lundi : nouvelles failles publiées sur des dépendances déjà installées.
+    - cron: "0 6 * * 1"
 
 jobs:
+  securite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Secrets écrits par erreur
+        run: npm run check:secrets
+      - name: Failles connues des dépendances livrées
+        run: npm audit --omit=dev --audit-level=high
+
   verifier:
     runs-on: ubuntu-latest
     steps:

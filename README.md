@@ -52,7 +52,7 @@ Comptes de démonstration (mot de passe `Demo2026Pilot`) :
 ## Vérifications
 
 ```bash
-npm run verify      # textes, types, tests
+npm run verify      # textes, secrets, types, tests
 npm run build && npm run test:e2e   # parcours complet dans un navigateur (Playwright)
 npm run build       # build de production
 ```
@@ -81,7 +81,7 @@ L'application a besoin d'un serveur Node.js et d'une base PostgreSQL : elle ne p
 
 ## Technique
 
-Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, PostgreSQL (requêtes SQL paramétrées, isolation par entreprise sur chaque requête), pdf-lib, zod, vitest.
+Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, PostgreSQL (requêtes SQL paramétrées, isolation par entreprise sur chaque requête), pdf-lib, zod, vitest. Organisation du code, cycle d'une requête, preuves et sécurité : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Avertissement
 
