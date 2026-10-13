@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "edition-a-plusieurs",
+    date: "2026-10-13",
+    title: "Un devis, plusieurs mains",
+    text: "Voyez qui modifie le même devis que vous ; ses changements s'ajoutent aux vôtres sans recharger la page.",
+    href: "/aide/modifier-un-devis-a-plusieurs",
+  },
+  {
     id: "devis-par-sms",
     date: "2026-10-13",
     title: "Devis par SMS et WhatsApp",

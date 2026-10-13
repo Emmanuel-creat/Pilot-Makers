@@ -1075,6 +1075,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Mes devis" },
   },
   {
+    slug: "modifier-un-devis-a-plusieurs",
+    category: "devis",
+    title: "Modifier un devis à plusieurs",
+    summary: "Vous et un collègue pouvez travailler sur le même devis en même temps : chacun voit qui est là, et les modifications de l'autre s'ajoutent aux siennes.",
+    steps: [
+      "Ouvrez le devis : si un collègue l'a aussi ouvert, un bandeau indique son nom, et la section sur laquelle il travaille est signalée.",
+      "Travaillez normalement : chaque modification est enregistrée en quelques secondes.",
+      "Les modifications de votre collègue apparaissent d'elles-mêmes, sans recharger la page, et s'ajoutent aux vôtres.",
+    ],
+    notes: [
+      "Si vous changez tous les deux le même élément (la même ligne, l'objet du devis), rien n'est écrasé : un bandeau liste les éléments concernés et vous choisissez la version à garder.",
+      "Cela fonctionne aussi entre votre téléphone et votre ordinateur, ou entre deux onglets.",
+    ],
+    link: { href: "/app/devis", label: "Mes devis" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

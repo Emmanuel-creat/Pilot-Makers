@@ -626,6 +626,24 @@ test("devis : variantes base et confort au choix du client", async ({ page }) =>
   await audit(page, "variantes de devis");
 });
 
+test("devis : modification faite ailleurs reprise sans recharger", async ({ page, context }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Cuisine à deux mains");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const other = await context.newPage();
+  await other.goto(page.url());
+  await other.getByLabel("Objet des travaux").fill("Cuisine complète, modifiée sur la tablette");
+  await expect(other.getByText("Enregistré").first()).toBeVisible();
+  // Le premier onglet reprend la modification au signal de présence suivant, sans rechargement.
+  await expect(page.getByLabel("Objet des travaux")).toHaveValue("Cuisine complète, modifiée sur la tablette", { timeout: 15_000 });
+  await page.getByLabel("Conditions de paiement").fill("Acompte de 30 % à la commande.");
+  await expect(page.getByText("Enregistré").first()).toBeVisible();
+  await expect(other.getByLabel("Conditions de paiement")).toHaveValue("Acompte de 30 % à la commande.", { timeout: 15_000 });
+  await other.close();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

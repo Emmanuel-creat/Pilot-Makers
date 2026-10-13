@@ -9,6 +9,7 @@ import { appendDictated, Dictation } from "@/components/Dictation";
 import { StatusBadge } from "@/components/ui";
 import { draftToCalcInput } from "@/lib/calc/draft";
 import { variantGroups } from "@/lib/calc/variants";
+import { mergeDrafts } from "@/lib/draft-merge";
 import { computeQuote } from "@/lib/calc/engine";
 import { groupRuns } from "@/lib/calc/groups";
 import { bpToInput, formatEuros, formatPercent, price4ToInput } from "@/lib/calc/format";
@@ -108,6 +109,17 @@ function payload(d: QuoteDraft) {
   };
 }
 
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** Champs comparés lors de la fusion avec les modifications d'une autre personne. */
+const MERGE_FIELDS = Object.keys(payload({ sections: [] } as unknown as QuoteDraft)).filter((k) => k !== "sections") as (keyof QuoteDraft & string)[];
+
+interface Collaborator {
+  userId: string;
+  name: string;
+  sectionId: string;
+}
+
 export function QuoteEditor({
   initial,
   org,
@@ -155,6 +167,11 @@ export function QuoteEditor({
   const inFlight = useRef<Promise<void> | null>(null);
   const latest = useRef(d);
   latest.current = d;
+  // Dernière version commune avec le serveur : point de départ de la fusion des modifications des autres.
+  const base = useRef<QuoteDraft>(initial);
+  const [others, setOthers] = useState<Collaborator[]>([]);
+  const [mergeConflicts, setMergeConflicts] = useState<string[]>([]);
+  const focusedSection = useRef("");
   const franchise = org.vat_regime === "franchise";
   const vatExempt = franchise || d.reverseCharge;
 
@@ -231,6 +248,75 @@ export function QuoteEditor({
   const warnings = issues.filter((i) => !i.blocking);
   const lineResults = useMemo(() => new Map(calc.sections.flatMap((s) => s.lines.map((l) => [l.id, l] as const))), [calc]);
 
+  /* Édition à plusieurs : reprise des modifications enregistrées par une autre personne */
+  const absorbRemote = useCallback(async (by = ""): Promise<boolean> => {
+    let remote: QuoteDraft;
+    try {
+      remote = (await apiFetch<{ quote: QuoteDraft }>(`/api/quotes/${initial.id}`)).quote;
+    } catch {
+      return false;
+    }
+    if (remote.draftRevision <= revision.current && remote.draftRevision === base.current.draftRevision) return true;
+    const local = latest.current;
+    const unsaved = savedSeq.current < changeSeq.current || !same(payload(local), payload(base.current));
+    if (!unsaved) {
+      base.current = remote;
+      revision.current = remote.draftRevision;
+      latest.current = remote;
+      setD(remote);
+      if (by) setToast(`Devis mis à jour par ${by}`);
+      return true;
+    }
+    const m = mergeDrafts(base.current, local, remote, MERGE_FIELDS);
+    if (!m.merged) {
+      setMergeConflicts(m.conflicts);
+      return false;
+    }
+    const merged = { ...m.merged, draftRevision: remote.draftRevision };
+    base.current = remote;
+    revision.current = remote.draftRevision;
+    latest.current = merged;
+    setD(merged);
+    setMergeConflicts([]);
+    changeSeq.current++;
+    setSave("dirty");
+    setToast(by ? `Modifications de ${by} reprises avec les vôtres` : "Modifications de l'équipe reprises avec les vôtres");
+    return true;
+    // Les références sont stables ; seul l'identifiant du devis compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.id]);
+
+  /* Présence : qui a ce devis ouvert, et sur quelle section */
+  useEffect(() => {
+    let stop = false;
+    const beat = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const r = await apiFetch<{ others: Collaborator[]; draftRevision: number }>(`/api/quotes/${initial.id}/presence`, {
+          method: "POST",
+          json: { sectionId: focusedSection.current },
+        });
+        if (stop) return;
+        setOthers(r.others);
+        if (r.draftRevision > revision.current && !inFlight.current) await absorbRemote(r.others.map((o) => o.name).join(", "));
+      } catch {
+        // Hors connexion : la présence reprendra au prochain signal.
+      }
+    };
+    void beat();
+    const t = setInterval(() => void beat(), 5000);
+    const bye = () => {
+      void fetch(`/api/quotes/${initial.id}/presence`, { method: "DELETE", keepalive: true, credentials: "same-origin" }).catch(() => undefined);
+    };
+    window.addEventListener("pagehide", bye);
+    return () => {
+      stop = true;
+      clearInterval(t);
+      window.removeEventListener("pagehide", bye);
+      bye();
+    };
+  }, [initial.id, absorbRemote]);
+
   /* Sauvegarde automatique */
   const doSave = useCallback(async (): Promise<void> => {
     if (inFlight.current) {
@@ -238,6 +324,7 @@ export function QuoteEditor({
       if (savedSeq.current >= changeSeq.current) return;
     }
     const seq = changeSeq.current;
+    const sent = latest.current;
     setSave("saving");
     const p = (async () => {
       try {
@@ -246,6 +333,7 @@ export function QuoteEditor({
           json: { draftRevision: revision.current, quote: payload(latest.current) },
         });
         revision.current = r.draftRevision;
+        base.current = sent;
         savedSeq.current = seq;
         setSaveError("");
         setSave(changeSeq.current > seq ? "dirty" : "saved");
@@ -255,6 +343,8 @@ export function QuoteEditor({
           // Sans réseau, la copie locale garde le travail ; l'envoi reprend au retour de la connexion.
           setSave("offline");
         } else if (e instanceof ApiError && e.code === "revision_conflict") {
+          // Quelqu'un d'autre a enregistré entre-temps : fusion automatique si personne n'a touché aux mêmes zones.
+          if (await absorbRemote()) return;
           setSave("conflict");
           revision.current = Number(e.data.currentRevision ?? revision.current);
         } else {
@@ -691,9 +781,21 @@ export function QuoteEditor({
           </div>
         </div>
       ) : null}
+      {others.length ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-accent/30 bg-accent-soft px-3 py-2 text-sm" data-testid="presence" aria-live="polite">
+          <Icon name="users" size={16} className="text-accent" />
+          <span>
+            {others.map((o) => o.name).join(", ")} {others.length > 1 ? "modifient" : "modifie"} aussi ce devis. Les modifications de chacun sont reprises
+            automatiquement.
+          </span>
+        </div>
+      ) : null}
       {save === "conflict" ? (
         <div className="mb-4 rounded-md border border-danger/40 bg-danger-soft p-4 text-sm" role="alert">
-          <p className="font-medium">Ce devis a été modifié ailleurs (autre onglet ou autre appareil).</p>
+          <p className="font-medium">Ce devis a été modifié ailleurs (autre personne, autre onglet ou autre appareil).</p>
+          {mergeConflicts.length ? (
+            <p className="mt-1">Les mêmes éléments ont été changés des deux côtés : {mergeConflicts.slice(0, 4).join(", ")}{mergeConflicts.length > 4 ? "…" : ""}.</p>
+          ) : null}
           <p className="mt-1">Vos modifications sont toujours affichées ici. Choisissez la version à garder.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" className="btn-secondary" onClick={reload}>
@@ -820,6 +922,9 @@ export function QuoteEditor({
                 <div
                   key={s.id}
                   className="card p-3 sm:p-4"
+                  onFocusCapture={() => {
+                    focusedSection.current = s.id;
+                  }}
                   onDragOver={(e) => {
                     if (drag) e.preventDefault();
                   }}
@@ -828,6 +933,16 @@ export function QuoteEditor({
                     if (dragOver === null) dropOn(s.id, null);
                   }}
                 >
+                  {others.some((o) => o.sectionId === s.id) ? (
+                    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-accent" data-testid="presence-section">
+                      <Icon name="edit" size={14} />
+                      {others
+                        .filter((o) => o.sectionId === s.id)
+                        .map((o) => o.name)
+                        .join(", ")}{" "}
+                      travaille sur cette section
+                    </p>
+                  ) : null}
                   {d.sections.length > 1 ? (
                     <input
                       value={s.group ?? ""}
