@@ -452,6 +452,26 @@ test("devis : cotes du métré dictées à la voix", async ({ page }) => {
   await expect(dialog.getByTestId("metre-total")).toHaveText("Total : 33,81 m²");
 });
 
+test("banque : relevé importé, opération mise de côté puis remise", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/factures");
+  await page.getByRole("link", { name: "Rapprochement bancaire" }).click();
+  await expect(page.getByRole("heading", { name: "Rapprochement bancaire" })).toBeVisible();
+  const label = `VIR INCONNU ${Date.now().toString(36).toUpperCase()}`;
+  const today = new Date().toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
+  const csv = Buffer.from(`Date;Libellé;Débit;Crédit\n${today};${label};;12,34\n${today};CB QUINCAILLERIE;8,50;\n`, "utf8");
+  await page.getByLabel(/Relevé bancaire/).setInputFiles({ name: "releve.csv", mimeType: "text/csv", buffer: csv });
+  await expect(page.getByText("2 opération(s) ajoutée(s), 0 rapprochée(s) automatiquement.")).toBeVisible();
+  const item = page.locator("li", { hasText: label }).first();
+  await expect(item).toBeVisible();
+  await audit(page, "rapprochement bancaire");
+  await item.getByRole("button", { name: "Mettre de côté (hors factures)" }).click();
+  const done = page.locator("li", { hasText: label }).filter({ hasText: "mise de côté" });
+  await expect(done).toBeVisible();
+  await done.getByRole("button", { name: "Remettre" }).click();
+  await expect(page.locator("li", { hasText: label }).getByRole("button", { name: "Mettre de côté (hors factures)" })).toBeVisible();
+});
+
 test("notes de frais : ticket photographié puis validation et remboursement", async ({ page }) => {
   await login(page);
   await page.goto("/app/frais");

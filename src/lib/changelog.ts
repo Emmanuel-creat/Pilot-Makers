@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "rapprochement-bancaire",
+    date: "2026-10-13",
+    title: "Rapprochement bancaire",
+    text: "Importez votre relevé : les virements qui citent une facture sont enregistrés tout seuls.",
+    href: "/aide/rapprochement-bancaire",
+  },
+  {
     id: "cotes-dictees",
     date: "2026-10-13",
     title: "Cotes du métré dictées à la voix",

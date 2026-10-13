@@ -23,7 +23,17 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const [items, summary] = await Promise.all([listInvoices(ctx, { status: sp.statut || undefined, q: sp.q }), invoiceSummary(ctx)]);
   return (
     <div className="space-y-4">
-      <PageHeader title="Factures" subtitle="Acomptes, factures de solde et avoirs, émis depuis les devis acceptés." />
+      <PageHeader
+        title="Factures"
+        subtitle="Acomptes, factures de solde et avoirs, émis depuis les devis acceptés."
+        actions={
+          can(ctx, "billing") ? (
+            <Link href="/app/banque" className="btn-secondary">
+              Rapprochement bancaire
+            </Link>
+          ) : null
+        }
+      />
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat label="Reste à encaisser" value={formatEuros(summary.toCollectCents)} hint={`${summary.openCount} facture(s)`} href="/app/factures?statut=issued" />
         <Stat label="En retard" value={formatEuros(summary.overdueCents)} hint={`${summary.overdueCount} facture(s)`} href="/app/factures?statut=overdue" />

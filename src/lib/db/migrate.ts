@@ -53,6 +53,7 @@ import { sql as m051 } from "./migrations/051_fiches_techniques";
 import { sql as m052 } from "./migrations/052_file_de_taches";
 import { sql as m053 } from "./migrations/053_cles_acces";
 import { sql as m054 } from "./migrations/054_notifications_telephone";
+import { sql as m055 } from "./migrations/055_releves_bancaires";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -110,6 +111,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "052_file_de_taches", sql: m052 },
   { id: "053_cles_acces", sql: m053 },
   { id: "054_notifications_telephone", sql: m054 },
+  { id: "055_releves_bancaires", sql: m055 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

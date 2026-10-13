@@ -1,5 +1,6 @@
 "use server";
 
+import { confirmMatch, setIgnored, unmatch } from "@/lib/services/bank";
 import { cookies } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -1563,6 +1564,38 @@ export async function retryJobAction(_: ActionState, fd: FormData): Promise<Acti
     await withCtx((ctx) => retryDeadJob(ctx, s(fd, "id")));
     revalidatePath("/admin/statut");
     return { ok: true, message: "Tâche relancée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Rapprochement bancaire -------------------------------------------- */
+
+export async function bankMatchAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => confirmMatch(ctx, s(fd, "id"), s(fd, "invoiceId")));
+    revalidatePath("/app/banque");
+    return { ok: true, message: "Paiement enregistré sur la facture." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function bankIgnoreAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => setIgnored(ctx, s(fd, "id"), s(fd, "ignore") === "1"));
+    revalidatePath("/app/banque");
+    return { ok: true, message: s(fd, "ignore") === "1" ? "Opération mise de côté." : "Opération remise à rapprocher." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function bankUnmatchAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => unmatch(ctx, s(fd, "id")));
+    revalidatePath("/app/banque");
+    return { ok: true, message: "Rapprochement défait : le paiement a été annulé." };
   } catch (e) {
     return toState(e);
   }

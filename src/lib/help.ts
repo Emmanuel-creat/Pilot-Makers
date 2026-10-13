@@ -919,6 +919,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "rapprochement-bancaire",
+    category: "factures",
+    title: "Rapprocher le relevé bancaire des factures",
+    summary: "Importez le relevé de votre banque : les virements qui citent une facture sont enregistrés seuls, les autres vous sont proposés.",
+    steps: [
+      "Dans la banque en ligne, exportez les opérations du compte au format OFX, CAMT.053 ou CSV.",
+      "Dans Factures, ouvrez « Rapprochement bancaire » et déposez le fichier.",
+      "Un virement dont le libellé cite le numéro d'une facture est enregistré comme paiement, à la date de l'opération.",
+      "Pour les autres encaissements, choisissez la facture proposée (même montant, nom du client) ou mettez l'opération de côté.",
+    ],
+    notes: [
+      "Une opération déjà importée n'est jamais comptée deux fois, même si deux relevés se chevauchent.",
+      "« Défaire » annule le paiement enregistré par erreur. Les dépenses sont listées sans être rapprochées.",
+      "Demandez à vos clients d'indiquer le numéro de facture dans le libellé du virement : il figure sur chaque facture.",
+    ],
+    link: { href: "/app/banque", label: "Ouvrir le rapprochement" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
