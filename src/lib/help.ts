@@ -773,6 +773,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Ouvrir mes devis" },
   },
   {
+    slug: "fiches-techniques",
+    category: "catalogue",
+    title: "Joindre fiches techniques et certificats",
+    summary: "Déposez une fois les documents du fabricant sur l'article : chaque devis qui l'utilise les propose au client.",
+    steps: [
+      "Ouvrez l'article dans le Catalogue, section Fiches techniques et certificats.",
+      "Choisissez le PDF, son type (fiche technique, certificat, notice de pose, fiche de données de sécurité) et un titre, puis « Joindre ».",
+      "À l'émission, le devis cite ces documents et le client les télécharge réunis en un seul fichier depuis son lien.",
+    ],
+    notes: [
+      "PDF uniquement, 5 Mo et 10 documents au plus par article.",
+      "Retirer un document le masque du catalogue ; les devis déjà émis le gardent.",
+      "Utile pour les aides à la rénovation : le certificat ACERMI d'un isolant ou la fiche d'une pompe à chaleur sont souvent demandés.",
+    ],
+    link: { href: "/app/catalogue", label: "Ouvrir le catalogue" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

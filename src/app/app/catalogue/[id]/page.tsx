@@ -8,6 +8,8 @@ import { getItem, itemToInput, priceHistory } from "@/lib/services/catalog";
 import { listComponents } from "@/lib/services/ouvrages";
 import { Composition } from "@/components/Composition";
 import { duplicateItemAction } from "@/app/actions";
+import { listCatalogDocuments } from "@/lib/services/datasheets";
+import { ItemDocuments } from "./ItemDocuments";
 
 export const metadata = { title: "Prestation" };
 
@@ -85,6 +87,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
               }
             />
           </div>
+          <ItemDocuments itemId={it.id} initial={await listCatalogDocuments(ctx, it.id)} />
         </div>
         <aside className="card h-fit p-4">
           <h2 className="mb-2 text-sm font-semibold">Historique des prix</h2>

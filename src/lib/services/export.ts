@@ -86,6 +86,7 @@ export async function exportAccountData(ctx: Ctx) {
     onsiteSignatures: await q("SELECT quote_id, version, signer_name, image_sha256, collected_by, created_at FROM quote_signatures WHERE org_id=$1"),
     showcase: await q("SELECT enabled, slug, intro, area, show_phone, show_email, updated_at FROM showcases WHERE org_id=$1"),
     showcasePhotos: await q("SELECT id, journal_id, caption, show_city, consent_note, consent_by, created_at FROM showcase_photos WHERE org_id=$1"),
+    catalogDocuments: await q("SELECT id, item_id, kind, title, size, sha256, created_at, removed_at FROM catalog_documents WHERE org_id=$1"),
     quoteMedia: await q("SELECT id, quote_id, kind, caption, mime, position, created_at FROM quote_media WHERE org_id=$1"),
     rgeQualifications: await q("SELECT id, body, number, domains, valid_until, created_at FROM rge_qualifications WHERE org_id=$1"),
     // Les secrets de signature ne sont jamais exportés.
@@ -157,6 +158,7 @@ const CSV_TABLES: [string, string][] = [
   ["vitrine-photos", "showcasePhotos"],
   ["qualifications-rge", "rgeQualifications"],
   ["devis-photos", "quoteMedia"],
+  ["fiches-techniques", "catalogDocuments"],
 ];
 
 const README = `Export complet Pilot-Makers
@@ -237,6 +239,12 @@ export async function exportArchive(ctx: Ctx): Promise<Buffer> {
   )) {
     const at = new Date(m.created_at);
     entries.push({ name: unique(`devis-photos/${fileName(m.title)}/${m.kind}-${m.id.slice(0, 8)}.${m.mime === "image/png" ? "png" : "jpg"}`), data: m.data, date: at });
+  }
+  for (const d of await q<{ id: string; name: string; title: string; file: Uint8Array; created_at: Date }>(
+    `SELECT d.id, i.name, d.title, d.file, d.created_at FROM catalog_documents d JOIN catalog_items i ON i.id=d.item_id WHERE d.org_id=$1 ORDER BY d.created_at`,
+  )) {
+    const at = new Date(d.created_at);
+    entries.push({ name: unique(`fiches-techniques/${fileName(d.name)}/${fileName(d.title)}-${d.id.slice(0, 8)}.pdf`), data: d.file, date: at });
   }
   return zip(entries);
 }

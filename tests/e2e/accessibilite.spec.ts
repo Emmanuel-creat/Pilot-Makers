@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import { PDFDocument } from "pdf-lib";
 import { expect, test, type Page } from "@playwright/test";
 
 /**
@@ -703,4 +704,21 @@ test("devis : croquis annoté joint et imprimé dans le PDF", async ({ page }) =
   expect(pdf.status()).toBe(200);
   await page.getByRole("button", { name: "Retirer l'image 1" }).click();
   await expect(page.getByTestId("photos-devis")).toHaveCount(0);
+});
+
+test("catalogue : fiche technique jointe à un article", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue");
+  await page.getByRole("link", { name: /Pose de carrelage au sol/ }).first().click();
+  await page.waitForURL(/\/app\/catalogue\/[0-9a-f-]{36}$/);
+  const doc = await PDFDocument.create();
+  doc.addPage().drawText("Fiche technique colle C2", { x: 50, y: 700 });
+  await page.getByLabel("Document PDF (5 Mo au plus)").setInputFiles({ name: "fiche-colle.pdf", mimeType: "application/pdf", buffer: Buffer.from(await doc.save()) });
+  await page.getByLabel("Type", { exact: true }).selectOption("fiche_technique");
+  await audit(page, "fiches techniques");
+  await page.getByRole("button", { name: "Joindre" }).click();
+  const list = page.getByTestId("documents-article");
+  await expect(list.getByRole("link", { name: "fiche-colle" })).toBeVisible();
+  await list.getByRole("button", { name: "Retirer" }).last().click();
+  await expect(list.getByRole("link", { name: "fiche-colle" })).toHaveCount(0);
 });

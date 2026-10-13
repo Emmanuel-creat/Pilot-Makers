@@ -40,6 +40,7 @@ import {
 } from "./quote-types";
 import { normalizeRevision, revisionMention } from "./revision";
 import { snapshotMedia, type SnapshotMedia } from "./quote-media";
+import { documentsMention, quoteDocuments, type SnapshotDocument } from "./datasheets";
 import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualifications, type EnergyAid, type RgeQualification } from "./aids";
 import { enqueueWebhook } from "./webhooks";
 
@@ -628,6 +629,8 @@ export function buildSnapshot(args: {
   rge?: RgeQualification[];
   /** Photos et croquis joints au devis */
   media?: SnapshotMedia[];
+  /** Documents des articles du catalogue utilisés */
+  documents?: SnapshotDocument[];
 }): QuoteSnapshot {
   const { ctx, d, org, customer, calc, issues, number, version } = args;
   const aid = normalizeAid(d.energyAid);
@@ -650,6 +653,7 @@ export function buildSnapshot(args: {
     ...(org.pdf_font === "times" ? { font: "times" as const } : {}),
     ...(org.pdf_footer_note?.trim() ? { footerNote: org.pdf_footer_note.trim() } : {}),
     ...(args.media?.length ? { media: args.media } : {}),
+    ...(args.documents?.length ? { documents: args.documents } : {}),
     watermark: Boolean(ctx.entitlements.plan.features.watermark),
     org: {
       trade_name: org.trade_name,
@@ -721,6 +725,7 @@ export function buildSnapshot(args: {
       }),
       ...(d.priceRevision ? [revisionMention(d.priceRevision)] : []),
       ...aidMentions(aid, args.rge ?? [], issueDate, calc.totalTtcCents),
+      ...(args.documents?.length ? [documentsMention(args.documents)!] : []),
     ],
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
     consumer: consumerTerms(d.contractPlace, customer.type, calc, org.vat_regime),
@@ -783,7 +788,8 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
 
     const now = new Date();
     const media = await snapshotMedia(tx, ctx.orgId, id);
-    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now, rge, media });
+    const documents = await quoteDocuments(tx, ctx.orgId, d.sections.flatMap((x) => x.lines));
+    const snapshot = buildSnapshot({ ctx, d, org, customer, calc, issues, number, version, now, rge, media, documents });
     const validUntil = snapshot.validUntil;
     const check = verifySnapshot(snapshot);
     if (!check.ok) throw new HttpError(500, "integrity", "Contrôle de cohérence échoué : " + check.reason, check.reason);
@@ -858,6 +864,7 @@ export async function previewPdf(ctx: Ctx, id: string, override?: QuoteDraft): P
     version: d.currentVersion + 1,
     rge: await rgeQualifications(ctx.db, ctx.orgId),
     media: await snapshotMedia(ctx.db, ctx.orgId, id),
+    documents: await quoteDocuments(ctx.db, ctx.orgId, d.sections.flatMap((x) => x.lines)),
   });
   snapshot.preview = true;
   return renderQuotePdf(snapshot);

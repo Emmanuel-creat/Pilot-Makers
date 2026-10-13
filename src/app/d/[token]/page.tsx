@@ -54,6 +54,11 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
           <a className="btn-secondary" href={`/api/public/quotes/${token}/pdf`} target="_blank" rel="noreferrer">
             Télécharger le PDF
           </a>
+          {s.documents?.length ? (
+            <a className="link text-sm" href={`/api/public/quotes/${token}/documents`} target="_blank" rel="noreferrer">
+              Fiches techniques et certificats ({s.documents.length})
+            </a>
+          ) : null}
           <p className="text-xs text-muted">
             Translation:{" "}
             {(Object.entries(LANGS) as [string, string][]).map(([code, name], i) => (

@@ -208,6 +208,11 @@ export default async function QuotePage({
             <a href={`/api/quotes/${id}/pdf?version=${current.version}&download=1`} className="btn-secondary">
               <Icon name="download" size={16} /> Télécharger
             </a>
+            {current.snapshot.documents?.length ? (
+              <a href={`/api/quotes/${id}/documents?version=${current.version}`} target="_blank" rel="noreferrer" className="btn-secondary">
+                <Icon name="note" size={16} /> Documents joints ({current.snapshot.documents.length})
+              </a>
+            ) : null}
             {pending && writable ? <SendButton quoteId={id} primary={status === "ready"} /> : null}
           </div>
         ) : null}

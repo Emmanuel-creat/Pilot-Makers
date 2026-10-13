@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "fiches-techniques",
+    date: "2026-10-13",
+    title: "Fiches techniques jointes aux devis",
+    text: "Les fiches techniques et certificats de vos articles accompagnent automatiquement chaque devis qui les utilise.",
+    href: "/aide/fiches-techniques",
+  },
+  {
     id: "photos-et-croquis",
     date: "2026-10-13",
     title: "Photos annotées et croquis dans le devis",
