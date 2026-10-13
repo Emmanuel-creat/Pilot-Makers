@@ -636,6 +636,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/devis", label: "Ouvrir les devis" },
   },
   {
+    slug: "page-vitrine",
+    category: "compte",
+    title: "Publier votre page vitrine et vos réalisations",
+    summary: "Une page publique générée depuis votre profil : présentation, coordonnées, assurance, photos de chantiers et demande de devis.",
+    steps: [
+      "Dans Entreprise, onglet Vitrine, cochez « Publier la page vitrine », choisissez son adresse et rédigez une courte présentation.",
+      "Choisissez d'afficher ou non votre téléphone et votre e-mail, puis enregistrez. Le lien « Voir la page » ouvre la vitrine telle que vos clients la verront.",
+      "Pour ajouter une réalisation, ouvrez un chantier : sous une photo du journal, cliquez sur « Publier dans la vitrine », ajoutez une légende et confirmez l'accord du client.",
+      "Les demandes déposées sur la vitrine arrivent dans vos demandes entrantes, et vous êtes prévenu par e-mail.",
+    ],
+    notes: [
+      "Les photos sont publiées sans position GPS ni informations de l'appareil. Le nom du client et l'adresse du chantier ne sont jamais affichés, seulement la ville si vous le souhaitez.",
+      "Ne publiez que des photos sans personne reconnaissable ni numéro de rue visible. Vous pouvez retirer une photo à tout moment depuis l'onglet Vitrine.",
+      "La vitrine s'ouvre une fois le nom commercial et le SIRET renseignés.",
+    ],
+    link: { href: "/app/entreprise?onglet=vitrine", label: "Ouvrir la vitrine" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

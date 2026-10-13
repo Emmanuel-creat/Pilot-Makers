@@ -83,6 +83,9 @@ export async function exportAccountData(ctx: Ctx) {
     quoteMessages: await q("SELECT * FROM quote_messages WHERE org_id=$1 ORDER BY created_at"),
     // Les liens d'espace client ne sont exportés que par leurs métadonnées, jamais par leur jeton.
     portalLinks: await q("SELECT id, customer_id, expires_at, revoked_at, last_used_at, created_at FROM customer_portal_links WHERE org_id=$1"),
+    onsiteSignatures: await q("SELECT quote_id, version, signer_name, image_sha256, collected_by, created_at FROM quote_signatures WHERE org_id=$1"),
+    showcase: await q("SELECT enabled, slug, intro, area, show_phone, show_email, updated_at FROM showcases WHERE org_id=$1"),
+    showcasePhotos: await q("SELECT id, journal_id, caption, show_city, consent_note, consent_by, created_at FROM showcase_photos WHERE org_id=$1"),
     // Les secrets de signature ne sont jamais exportés.
     webhookEndpoints: await q("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1"),
   };
@@ -147,6 +150,9 @@ const CSV_TABLES: [string, string][] = [
   ["devis-sous-traitants", "subcontractorQuotes"],
   ["echanges-clients", "quoteMessages"],
   ["liens-espace-client", "portalLinks"],
+  ["signatures-sur-place", "onsiteSignatures"],
+  ["vitrine", "showcase"],
+  ["vitrine-photos", "showcasePhotos"],
 ];
 
 const README = `Export complet Pilot-Makers

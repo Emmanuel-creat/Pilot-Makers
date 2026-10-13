@@ -17,6 +17,8 @@ import { PricingForm } from "./PricingForm";
 import { listIndexValues } from "@/lib/services/revision";
 import { readPricing } from "@/lib/services/pricing";
 import { can } from "@/lib/services/context";
+import { getShowcase, listShowcasePhotos } from "@/lib/services/showcase";
+import { Showcase } from "./Showcase";
 
 export const metadata = { title: "Entreprise" };
 
@@ -29,6 +31,7 @@ const TABS = [
   ["paiement", "Banque"],
   ["emails", "E-mails"],
   ["relances", "Relances"],
+  ["vitrine", "Vitrine"],
   ["factures", "Factures"],
   ["webhooks", "Webhooks"],
   ["api", "API"],
@@ -136,6 +139,8 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         />
       ) : tab === "relances" ? (
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
+      ) : tab === "vitrine" ? (
+        <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
       ) : tab === "historique" ? (
         <History ctxPromise={organizationHistory(ctx)} />
       ) : (

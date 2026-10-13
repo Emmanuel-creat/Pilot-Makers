@@ -22,6 +22,8 @@ import { jobSubcontractors, listSubcontractors } from "@/lib/services/subcontrac
 import { JobSubcontractorForm, RemoveJobSubcontractor } from "../../sous-traitants/SubForms";
 import { StatusBadge } from "../../sous-traitants/StatusBadge";
 import { can } from "@/lib/services/context";
+import { publishedJournalIds } from "@/lib/services/showcase";
+import { PublishPhoto } from "./PublishPhoto";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -36,7 +38,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     throw e;
   });
   const { job, sections, progressBp } = data;
-  const [journal, rec, hours] = await Promise.all([listJournal(ctx, id), getReception(ctx, id), jobHours(ctx, id)]);
+  const [journal, rec, hours, published] = await Promise.all([listJournal(ctx, id), getReception(ctx, id), jobHours(ctx, id), publishedJournalIds(ctx, id)]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const costsAllowed = can(ctx, "costs");
   const showCosts = costsAllowed && !!ctx.entitlements.plan.features.margin;
@@ -181,6 +183,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                       ) : null}
                     </div>
                     {e.note ? <p className="whitespace-pre-line">{e.note}</p> : null}
+                    {e.has_photo && canEdit && can(ctx, "settings") ? (
+                      <PublishPhoto jobId={job.id} entryId={e.id} published={published.has(e.id)} defaultCaption={e.note} />
+                    ) : null}
                   </div>
                   {canEdit ? <DeleteJournal entryId={e.id} /> : null}
                 </li>

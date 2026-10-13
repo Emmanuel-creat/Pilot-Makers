@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "page-vitrine",
+    date: "2026-10-13",
+    title: "Page vitrine et réalisations",
+    text: "Une page publique pour votre entreprise, avec vos photos de chantier publiées avec l'accord du client et un formulaire de demande de devis.",
+    href: "/aide/page-vitrine",
+  },
+  {
     id: "assistant-relances",
     date: "2026-10-13",
     title: "L'assistant demande ce qui manque",

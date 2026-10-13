@@ -116,7 +116,6 @@ export function DeleteJournal({ entryId }: { entryId: string }) {
 /* Signature et réception                                              */
 /* ------------------------------------------------------------------ */
 
-/** Zone de signature au doigt ou au stylet, enregistrée en PNG dans un champ caché. */
 type ReserveRow = { key: number; label: string; location: string; due: string };
 
 export function ReceptionForm({

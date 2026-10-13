@@ -83,6 +83,7 @@ import { acceptInvite, changeRole, inviteMember, removeMember, setMemberFunction
 import { decideSubQuote, integrateSubQuote, recordSubQuote, requestSubQuote } from "@/lib/services/subcontractor-quotes";
 import { locateJob, locateMissing, setJobPosition } from "@/lib/services/routes";
 import { createIncident, updateIncident } from "@/lib/services/status";
+import { addShowcasePhoto, removeShowcasePhoto, updateShowcase } from "@/lib/services/showcase";
 import type { LibraryTrade } from "@/lib/library";
 import { clearSessionCookie, getCtx, requestMeta, setSessionCookie, SESSION_COOKIE, SUPPORT_COOKIE } from "@/lib/server/session";
 
@@ -1550,4 +1551,48 @@ export async function updateIncidentAction(_: ActionState, fd: FormData): Promis
   } catch (e) {
     return toState(e);
   }
+}
+
+/* Vitrine ----------------------------------------------------------- */
+
+export async function showcaseAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) =>
+      updateShowcase(ctx, {
+        enabled: fd.get("enabled"),
+        slug: s(fd, "slug"),
+        intro: s(fd, "intro"),
+        area: s(fd, "area"),
+        show_phone: fd.get("show_phone"),
+        show_email: fd.get("show_email"),
+      }),
+    );
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: r.enabled ? "Vitrine publiée." : "Vitrine enregistrée, non publiée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function showcasePhotoAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      addShowcasePhoto(ctx, s(fd, "journalId"), {
+        caption: s(fd, "caption"),
+        showCity: fd.get("showCity"),
+        consent: fd.get("consent"),
+        consentNote: s(fd, "consentNote"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${s(fd, "jobId")}`);
+    revalidatePath("/app/entreprise");
+    return { ok: true, message: "Photo ajoutée à la vitrine." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function removeShowcasePhotoAction(fd: FormData) {
+  await withCtx((ctx) => removeShowcasePhoto(ctx, s(fd, "id")));
+  revalidatePath("/app/entreprise");
 }

@@ -16,6 +16,8 @@ async function login(page: Page) {
 }
 
 async function audit(page: Page, label: string) {
+  // Après une action serveur, le titre de la page est réécrit : l'analyse attend qu'il soit en place.
+  await expect(page).toHaveTitle(/\S/);
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   const serious = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   const report = serious.map(
@@ -518,4 +520,33 @@ test("assistant : réponses aux informations manquantes puis relance", async ({ 
   await dialog.getByRole("button", { name: "Relancer avec ces réponses" }).click();
   await expect(dialog.getByLabel("Description du chantier")).toHaveValue(/Surface à traiter : 9,5 m²\. Matériaux fournis par l'entreprise\.$/);
   await expect(dialog.getByLabel("Quelle surface faut-il traiter ?")).toHaveCount(0);
+});
+
+test("vitrine : page publique publiée puis demande de devis reçue", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=vitrine");
+  await page.getByLabel("Publier la page vitrine").check();
+  await page.getByLabel("Adresse de la page").fill("demo-vitrine");
+  await page.getByLabel("Présentation").fill("Carreleur à Lyon, salles de bains et cuisines.");
+  await page.getByLabel("Zone d'intervention").fill("Lyon et 30 km");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Vitrine publiée.")).toBeVisible();
+  await audit(page, "réglages de la vitrine");
+
+  const visitor = await browser.newContext({ locale: "fr-FR" });
+  const vp = await visitor.newPage();
+  await vp.goto("/pro/demo-vitrine");
+  await expect(vp.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(vp.getByText("Carreleur à Lyon, salles de bains et cuisines.")).toBeVisible();
+  await audit(vp, "page vitrine publique");
+  await vp.getByLabel("Nom et prénom").fill("Lucie Bernard");
+  await vp.getByLabel("Téléphone").fill("06 12 34 56 78");
+  await vp.getByLabel("Vos travaux").fill("Refaire la faïence de la salle de bains, environ 12 m².");
+  await vp.getByRole("checkbox", { name: /recontacter/ }).check();
+  await vp.getByRole("button", { name: "Envoyer ma demande" }).click();
+  await expect(vp.getByRole("status")).toContainText("Demande envoyée");
+  await visitor.close();
+
+  await page.goto("/app/demandes");
+  await expect(page.getByText("Lucie Bernard").first()).toBeVisible();
 });
