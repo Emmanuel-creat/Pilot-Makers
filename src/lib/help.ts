@@ -987,6 +987,39 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/assistance", label: "Ouvrir l'assistance" },
   },
   {
+    slug: "assistant-vocal",
+    category: "demarrer",
+    title: "Demander à l'assistant vocal",
+    summary: "Dites ce que vous voulez faire : l'assistant prépare l'action, vous la relisez et la confirmez avant qu'elle soit faite.",
+    steps: [
+      "Cliquez sur « Assistant » en haut de l'écran, puis sur « Parler » (ou écrivez votre demande).",
+      "Exemples : « Crée un devis pour Durand salle de bain », « Ajoute le client Paul Martin au 06 12 34 56 78 à Lyon », « Note de frais de 23 euros 40 pour un repas », « La facture F-2026-0012 est payée par chèque ».",
+      "Relisez les champs préremplis, corrigez-les si besoin, puis cliquez sur « Confirmer ». Rien n'est enregistré avant.",
+      "Questions possibles : « Quelles factures sont en retard ? », « Combien me reste-t-il à encaisser ? », « Combien de devis en attente ? », « Qu'est-ce que j'ai aujourd'hui ? », ou « Ouvre le planning ».",
+    ],
+    notes: [
+      "La reconnaissance de la voix est faite par le navigateur (Chrome, Edge, Safari). La compréhension de la phrase se fait dans Pilot-Makers, sans envoi à un service tiers.",
+      "Cochez « Réponse à voix haute » pour entendre la réponse. Une demande non comprise renvoie vers l'article d'aide le plus proche.",
+    ],
+  },
+  {
+    slug: "personnaliser-le-menu",
+    category: "demarrer",
+    title: "Personnaliser son menu",
+    summary: "Gardez dans le menu les seules briques qui vous servent, dans l'ordre de votre choix, et choisissez les raccourcis du téléphone.",
+    steps: [
+      "Cliquez sur « Personnaliser le menu » sous le menu (sur téléphone : Plus, puis Personnaliser le menu).",
+      "Retirez une brique avec la croix, ajoutez-en une depuis « Briques disponibles », changez l'ordre avec les flèches.",
+      "Cochez « Téléphone » sur trois briques au plus pour les placer dans la barre du bas.",
+      "Enregistrez. « Revenir au menu d'origine » rétablit le menu complet.",
+    ],
+    notes: [
+      "Le menu est propre à chaque personne : chacun dans l'équipe compose le sien.",
+      "Une brique retirée reste accessible depuis Plus et la recherche ; les briques réservées à certains rôles ne sont proposées qu'à ceux qui y ont accès.",
+    ],
+    link: { href: "/app/menu", label: "Personnaliser le menu" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

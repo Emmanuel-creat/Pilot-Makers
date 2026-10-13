@@ -547,6 +547,45 @@ test("assistance : rappel téléphonique demandé puis annulé", async ({ page }
   await expect(page.getByRole("button", { name: "Être rappelé" })).toBeVisible();
 });
 
+test("menu : briques choisies, ordre et barre du téléphone", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/menu");
+  await page.getByRole("button", { name: "Retirer Modèles de devis" }).click();
+  await page.getByRole("button", { name: "Ajouter Banque" }).click();
+  await page.getByRole("button", { name: "Monter Clients" }).click();
+  await audit(page, "personnaliser le menu");
+  await page.getByRole("button", { name: "Enregistrer mon menu" }).click();
+  await expect(page.getByText("Menu enregistré.")).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "Navigation principale" });
+  await expect(nav.getByRole("link", { name: "Modèles de devis" })).toHaveCount(0);
+  await expect(nav.getByRole("link", { name: "Banque" })).toBeVisible();
+  await page.getByRole("button", { name: "Revenir au menu d'origine" }).click();
+  await expect(page.getByText("Menu d'origine rétabli.")).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Modèles de devis" })).toBeVisible();
+});
+
+test("assistant vocal : demande relue puis confirmée", async ({ page }) => {
+  await login(page);
+  await page.goto("/app");
+  await page.getByRole("button", { name: "Assistant vocal" }).click();
+  await page.getByLabel("Votre demande").fill("Ajoute le client Julien Vocal au 06 44 55 66 77 à Annecy");
+  await page.getByRole("button", { name: "Demander" }).click();
+  const answer = page.getByTestId("assistant-reponse");
+  await expect(answer).toContainText("Je crée le client Julien Vocal");
+  await expect(page.getByLabel("Téléphone", { exact: true })).toHaveValue("06 44 55 66 77");
+  await expect(page.getByLabel("Ville", { exact: true })).toHaveValue("Annecy");
+  await audit(page, "assistant vocal, relecture");
+  await page.getByRole("button", { name: "Confirmer" }).click();
+  await page.waitForURL(/\/app\/clients\/[0-9a-f-]{36}/);
+  await expect(page.getByText("Client créé.")).toBeVisible();
+  await page.getByLabel("Votre demande").fill("Combien me reste-t-il à encaisser ?");
+  await page.getByRole("button", { name: "Demander" }).click();
+  await expect(answer).toContainText("à encaisser");
+  await page.getByLabel("Votre demande").fill("Ouvre le planning");
+  await page.getByRole("button", { name: "Demander" }).click();
+  await page.waitForURL(/\/app\/planning/);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

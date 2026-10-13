@@ -7,24 +7,9 @@ import type { Ctx } from "@/lib/services/context";
 import { stopSupportAction } from "@/app/actions";
 import { NavLinks, type NavItem } from "./NavLinks";
 import { ThemeToggle } from "./ThemeToggle";
-import { can, isReadOnlyMember } from "@/lib/services/context";
+import { VoiceAssistant } from "./VoiceAssistant";
+import { isReadOnlyMember } from "@/lib/services/context";
 
-const MAIN: NavItem[] = [
-  { href: "/app", label: "Tableau de bord", icon: "home" },
-  { href: "/app/devis", label: "Devis", icon: "quote" },
-  { href: "/app/modeles", label: "Modèles de devis", icon: "copy" },
-  { href: "/app/factures", label: "Factures", icon: "euro" },
-  { href: "/app/chantiers", label: "Chantiers", icon: "hammer" },
-  { href: "/app/planning", label: "Planning", icon: "calendar" },
-  { href: "/app/pointage", label: "Pointage", icon: "clock" },
-  { href: "/app/frais", label: "Notes de frais", icon: "note" },
-  { href: "/app/clients", label: "Clients", icon: "users" },
-  { href: "/app/sous-traitants", label: "Sous-traitants", icon: "shield" },
-  { href: "/app/demandes", label: "Demandes", icon: "inbox" },
-  { href: "/app/rapports", label: "Rapports", icon: "chart" },
-  { href: "/app/comptabilite", label: "Comptabilité", icon: "archive" },
-  { href: "/app/catalogue", label: "Catalogue", icon: "box" },
-];
 /** Cabinet comptable invité : consultation des pièces et exports uniquement. */
 const ACCOUNTANT: NavItem[] = [
   { href: "/app/comptabilite", label: "Comptabilité", icon: "archive" },
@@ -43,21 +28,28 @@ const SETTINGS: NavItem[] = [
   { href: "/app/boite-envoi", label: "E-mails envoyés", icon: "mail" },
   { href: "/app/assistance", label: "Assistance", icon: "help" },
 ];
-const MOBILE: NavItem[] = [
-  { href: "/app", label: "Accueil", icon: "home" },
-  { href: "/app/devis", label: "Devis", icon: "quote" },
-  { href: "/app/clients", label: "Clients", icon: "users" },
-  { href: "/app/catalogue", label: "Catalogue", icon: "box" },
-  { href: "/app/plus", label: "Plus", icon: "menu" },
-];
+const HOME: NavItem = { href: "/app", label: "Tableau de bord", icon: "home" };
+const MORE: NavItem = { href: "/app/plus", label: "Plus", icon: "menu" };
 
-export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; orgName: string; unreadNews?: number; children: ReactNode }) {
+export function Shell({
+  ctx,
+  orgName,
+  unreadNews = 0,
+  menu,
+  children,
+}: {
+  ctx: Ctx;
+  orgName: string;
+  unreadNews?: number;
+  /** Briques choisies par l'utilisateur pour son menu et la barre du téléphone */
+  menu: { main: NavItem[]; mobile: NavItem[] };
+  children: ReactNode;
+}) {
   const news: NavItem = { href: "/app/nouveautes", label: "Nouveautés", icon: "star", badge: unreadNews };
   const admin: NavItem[] = ctx.isPlatformAdmin && !ctx.supportAccess ? [{ href: "/admin", label: "Administration", icon: "shield" }] : [];
   const accountant = isReadOnlyMember(ctx);
-  const main = accountant
-    ? ACCOUNTANT
-    : MAIN.filter((i) => (i.href !== "/app/sous-traitants" || can(ctx, "costs")) && (i.href !== "/app/comptabilite" || can(ctx, "billing")));
+  const main = accountant ? ACCOUNTANT : [HOME, ...menu.main];
+  const mobile = accountant ? [...ACCOUNTANT, ACCOUNTANT_SETTINGS[0]] : [{ ...HOME, label: "Accueil" }, ...menu.mobile, MORE];
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[248px_1fr]">
       <aside className="sticky top-0 hidden h-screen flex-col border-r border-line bg-surface lg:flex">
@@ -74,6 +66,11 @@ export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; or
         )}
         <nav className="mt-4 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3" aria-label="Navigation principale">
           <NavLinks items={main} />
+          {accountant ? null : (
+            <Link href="/app/menu" className="mt-1 flex items-center gap-3 rounded-md px-3 py-1.5 text-xs text-muted hover:bg-surface-2 hover:text-ink">
+              <Icon name="edit" size={14} /> Personnaliser le menu
+            </Link>
+          )}
           <div className="mt-5 mb-1 px-3 text-xs font-semibold tracking-wide text-muted uppercase">Réglages</div>
           <NavLinks items={accountant ? ACCOUNTANT_SETTINGS : [...SETTINGS, news, ...admin]} />
         </nav>
@@ -100,6 +97,7 @@ export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; or
             <Icon name="search" className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" size={16} />
             <input name="q" type="search" placeholder="Rechercher un devis, un client, une prestation" className="field py-1.5 pl-9" aria-label="Recherche globale" />
           </form>
+          {accountant || ctx.supportAccess ? null : <VoiceAssistant />}
           <Link href="/app/devis/nouveau" className="btn-primary px-3 lg:hidden" aria-label="Créer un devis">
             <Icon name="plus" />
           </Link>
@@ -134,7 +132,7 @@ export function Shell({ ctx, orgName, unreadNews = 0, children }: { ctx: Ctx; or
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface lg:hidden" aria-label="Navigation mobile">
-        <NavLinks items={accountant ? [...ACCOUNTANT, ACCOUNTANT_SETTINGS[0]] : MOBILE} compact />
+        <NavLinks items={mobile} compact />
       </nav>
     </div>
   );

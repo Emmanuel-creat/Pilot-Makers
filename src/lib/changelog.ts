@@ -17,6 +17,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "assistant-vocal",
+    date: "2026-10-13",
+    title: "Assistant vocal",
+    text: "Demandez à voix haute : devis, client, note de frais, paiement ou question. Vous relisez, puis vous confirmez.",
+    href: "/aide/assistant-vocal",
+  },
+  {
+    id: "menu-personnalise",
+    date: "2026-10-13",
+    title: "Menu à votre main",
+    text: "Choisissez les briques du menu, leur ordre et les raccourcis du téléphone.",
+    href: "/aide/personnaliser-le-menu",
+  },
+  {
     id: "rappel-et-prise-en-main",
     date: "2026-10-13",
     title: "Rappel par un conseiller et séances de prise en main",

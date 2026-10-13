@@ -90,6 +90,7 @@ import { createRoadmapItem, deleteRoadmapItem, setRoadmapStatus } from "@/lib/se
 import { addRge, removeRge } from "@/lib/services/aids";
 import { saveTreasury } from "@/lib/services/finance";
 import { savePlan } from "@/lib/services/accounting-plan";
+import { saveMenu } from "@/lib/services/menu-prefs";
 import {
   cancelCallback,
   cancelSession,
@@ -544,6 +545,16 @@ export async function ticketAction(_: ActionState, fd: FormData): Promise<Action
     await withCtx((ctx) => createTicket(ctx, s(fd, "subject"), s(fd, "body")));
     revalidatePath("/app/assistance");
     return { ok: true, message: "Demande envoyée. Nous vous répondons ici." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveMenuAction(menu: { main: string[]; mobile: string[] } | null): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => saveMenu(ctx, menu));
+    revalidatePath("/app", "layout");
+    return { ok: true, message: menu ? "Menu enregistré." : "Menu d'origine rétabli." };
   } catch (e) {
     return toState(e);
   }
