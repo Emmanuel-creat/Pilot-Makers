@@ -505,6 +505,32 @@ test("notes de frais : ticket photographié puis validation et remboursement", a
   expect(await csv.text()).toContain("Relais des Artisans");
 });
 
+test("notes de frais : facture électronique Factur-X lue et préremplie", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/frais");
+  const day = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10);
+  const xml =
+    `<?xml version="1.0" encoding="UTF-8"?><rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100" xmlns:ram="r" xmlns:udt="u">` +
+    `<rsm:ExchangedDocument><ram:ID>NEG-4471</ram:ID><ram:TypeCode>380</ram:TypeCode><ram:IssueDateTime><udt:DateTimeString format="102">${day.replace(/-/g, "")}</udt:DateTimeString></ram:IssueDateTime></rsm:ExchangedDocument>` +
+    `<rsm:SupplyChainTradeTransaction><ram:ApplicableHeaderTradeAgreement><ram:SellerTradeParty><ram:Name>Négoce Rhône Matériaux</ram:Name></ram:SellerTradeParty></ram:ApplicableHeaderTradeAgreement>` +
+    `<ram:ApplicableHeaderTradeSettlement><ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode><ram:SpecifiedTradeSettlementHeaderMonetarySummation>` +
+    `<ram:TaxBasisTotalAmount>100.00</ram:TaxBasisTotalAmount><ram:TaxTotalAmount currencyID="EUR">20.00</ram:TaxTotalAmount><ram:GrandTotalAmount>120.00</ram:GrandTotalAmount>` +
+    `</ram:SpecifiedTradeSettlementHeaderMonetarySummation></ram:ApplicableHeaderTradeSettlement></rsm:SupplyChainTradeTransaction></rsm:CrossIndustryInvoice>`;
+  const doc = await PDFDocument.create();
+  doc.addPage().drawText("Facture NEG-4471", { x: 50, y: 700 });
+  await doc.attach(new TextEncoder().encode(xml), "factur-x.xml", { mimeType: "text/xml", description: "Factur-X" });
+  await page.getByLabel("Photo du ticket").setInputFiles({ name: "facture.pdf", mimeType: "application/pdf", buffer: Buffer.from(await doc.save()) });
+  await expect(page.getByText(/Facture électronique lue \(n° NEG-4471\)/)).toBeVisible();
+  await expect(page.getByLabel("Montant TTC (euros)")).toHaveValue("120,00");
+  await expect(page.getByLabel("Dont TVA")).toHaveValue("20,00");
+  await expect(page.getByLabel("Date", { exact: true })).toHaveValue(day);
+  await expect(page.getByLabel("Commerçant")).toHaveValue("Négoce Rhône Matériaux");
+  await audit(page, "facture électronique lue");
+  await page.getByRole("button", { name: "Envoyer la note de frais" }).click();
+  await expect(page.getByText("Note envoyée pour validation.")).toBeVisible();
+  await expect(page.getByText("Négoce Rhône Matériaux").first()).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

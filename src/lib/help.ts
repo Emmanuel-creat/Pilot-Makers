@@ -937,6 +937,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/banque", label: "Ouvrir le rapprochement" },
   },
   {
+    slug: "lire-une-facture-d-achat",
+    category: "factures",
+    title: "Lire automatiquement une facture d'achat électronique",
+    summary: "Déposez la facture Factur-X ou XML d'un fournisseur : montants, date, numéro et fournisseur se remplissent seuls.",
+    steps: [
+      "Dans Notes de frais, choisissez le PDF de la facture dans « Photo du ticket » : le montant TTC, la TVA, la date et le fournisseur sont repris.",
+      "Dans un chantier, section Commandes, déposez la facture dans « Facture électronique » : le montant HT, la date et le numéro de facture sont repris pour le rapprochement.",
+      "Vérifiez les champs préremplis puis enregistrez comme d'habitude.",
+    ],
+    notes: [
+      "Formats lus : PDF Factur-X ou ZUGFeRD (le XML est joint au PDF), XML CII et XML UBL, ceux que les fournisseurs généralisent avec la facturation électronique obligatoire.",
+      "Une photo de ticket ou un PDF sans données jointes n'est pas lu : rien n'est deviné, les montants restent à saisir.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "lecture-factures-achat",
+    date: "2026-10-13",
+    title: "Factures d'achat lues automatiquement",
+    text: "Une facture fournisseur Factur-X ou XML remplit seule montants, date et numéro.",
+    href: "/aide/lire-une-facture-d-achat",
+  },
+  {
     id: "rapprochement-bancaire",
     date: "2026-10-13",
     title: "Rapprochement bancaire",
