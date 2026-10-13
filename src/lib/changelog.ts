@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "habilitations",
+    date: "2026-10-13",
+    title: "Habilitations suivies",
+    text: "Les habilitations et formations de l'équipe avec leur date de renouvellement, et un rappel un mois avant l'échéance.",
+    href: "/aide/habilitations-et-formations",
+  },
+  {
     id: "absences-planning",
     date: "2026-10-13",
     title: "Congés dans le planning",

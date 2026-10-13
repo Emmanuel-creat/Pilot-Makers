@@ -711,6 +711,19 @@ test("planning : congés saisis et affichés dans la grille", async ({ page }) =
   await expect(page.getByText("Aucune absence sur la période.")).toBeVisible();
 });
 
+test("équipe : habilitation avec échéance proposée", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/equipe");
+  await page.getByLabel("Habilitation ou formation").fill("Habilitation électrique");
+  await page.getByLabel("Obtenue le").fill("2025-03-15");
+  await expect(page.getByLabel("Valable jusqu'au")).toHaveValue("2028-03-15");
+  await page.getByLabel(/^Précision/).fill("B1V BR");
+  await page.getByRole("button", { name: "Enregistrer l'habilitation" }).click();
+  await expect(page.getByText("Habilitation enregistrée.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Habilitations de l'équipe" })).toContainText("Habilitation électrique (B1V BR)");
+  await audit(page, "habilitations");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

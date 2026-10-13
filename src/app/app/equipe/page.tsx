@@ -9,6 +9,11 @@ import { readPricing } from "@/lib/services/pricing";
 import { QualificationForm } from "./QualificationForm";
 import { can, JOB_FUNCTIONS } from "@/lib/services/context";
 import { FunctionForm } from "./FunctionForm";
+import { CertificationForm, DeleteCertification } from "./CertificationForm";
+import { listCertifications } from "@/lib/services/certifications";
+import { CERT_STATUSES, type CertStatus } from "@/lib/certifications";
+
+const CERT_TONE: Record<CertStatus, string> = { valide: "text-success", a_renouveler: "text-warning", expiree: "text-danger", permanente: "text-muted" };
 
 export const metadata = { title: "Équipe" };
 
@@ -18,7 +23,9 @@ const FUNCTION_OPTIONS = Object.entries(JOB_FUNCTIONS).map(([k, v]) => [k, v.lab
 
 export default async function TeamPage() {
   const ctx = await requirePageCtx();
-  const [members, orgs, org] = await Promise.all([listMembers(ctx), listUserOrgs(ctx), getOrganization(ctx)]);
+  const [members, orgs, org, certs] = await Promise.all([listMembers(ctx), listUserOrgs(ctx), getOrganization(ctx), listCertifications(ctx)]);
+  const canWrite = !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const manageTeam = can(ctx, "staff");
   const qualifications = readPricing(org.pricing).laborRates.map((r) => r.label);
   const max = ctx.entitlements.plan.maxUsers;
   const canInvite = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
@@ -38,13 +45,7 @@ export default async function TeamPage() {
                   {m.email}, depuis le {fmtDate(m.created_at)}
                 </div>
                 {canInvite && m.user_id !== ctx.userId ? (
-                  <FunctionForm
-                    userId={m.user_id}
-                    name={m.name}
-                    value={m.job_function ?? ""}
-                    options={FUNCTION_OPTIONS}
-                    ownerOnlyGerant={m.role === "owner"}
-                  />
+                  <FunctionForm userId={m.user_id} name={m.name} value={m.job_function ?? ""} options={FUNCTION_OPTIONS} ownerOnlyGerant={m.role === "owner"} />
                 ) : m.job_function ? (
                   <div className="text-xs text-muted">{JOB_FUNCTIONS[m.job_function].label}</div>
                 ) : null}
@@ -86,9 +87,36 @@ export default async function TeamPage() {
           ))}
         </dl>
         <p className="mt-2 text-xs text-muted">
-          Sans fonction précisée, le rôle s'applique : le propriétaire a tous les droits, dont l'abonnement ; un administrateur gère le profil, l'équipe et
-          les chantiers ; un membre prépare clients, catalogue et devis. La qualification (taux de l'onglet Tarifs) sert au coût des heures pointées.
+          Sans fonction précisée, le rôle s'applique : le propriétaire a tous les droits, dont l'abonnement ; un administrateur gère le profil, l'équipe et les
+          chantiers ; un membre prépare clients, catalogue et devis. La qualification (taux de l'onglet Tarifs) sert au coût des heures pointées.
         </p>
+      </Section>
+      <Section
+        title="Habilitations et formations"
+        description="Habilitation électrique, SST, travail en hauteur, CACES : les échéances sont suivies, avec un rappel un mois avant."
+      >
+        {certs.length ? (
+          <ul className="mb-4 divide-y divide-line text-sm" aria-label="Habilitations de l'équipe">
+            {certs.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <div>
+                    <span className="font-medium">{c.userName}</span> : {c.name}
+                    {c.note ? <span className="text-muted"> ({c.note})</span> : null}
+                  </div>
+                  <div className={`text-xs ${CERT_TONE[c.status]}`}>
+                    {CERT_STATUSES[c.status]}
+                    {c.validUntil ? `, ${c.status === "expiree" ? "depuis le" : "jusqu'au"} ${fmtDate(c.validUntil)}` : ""}
+                  </div>
+                </div>
+                {canWrite && (manageTeam || c.userId === ctx.userId) ? <DeleteCertification id={c.id} label={`${c.name} de ${c.userName}`} /> : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-4 text-sm text-muted">Aucune habilitation renseignée.</p>
+        )}
+        {canWrite ? <CertificationForm people={members.map((m) => ({ id: m.user_id, name: m.name }))} defaultUser={ctx.userId} canChoose={manageTeam} /> : null}
       </Section>
       {canInvite ? (
         <Section title="Inviter une personne" description="Elle reçoit un lien valable 7 jours.">

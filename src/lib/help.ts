@@ -1194,6 +1194,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/planning", label: "Planning" },
   },
   {
+    slug: "habilitations-et-formations",
+    category: "compte",
+    title: "Suivre les habilitations et formations de l'équipe",
+    summary: "Habilitation électrique, SST, travail en hauteur, CACES, AIPR : chaque échéance est suivie, avec un rappel avant expiration.",
+    steps: [
+      "Ouvrez Équipe, partie « Habilitations et formations ».",
+      "Choisissez la personne et l'habilitation : pour les plus courantes, la date de fin habituelle se remplit d'après la date d'obtention.",
+      "Vérifiez la date de fin sur l'attestation, ajoutez le niveau ou l'organisme, puis enregistrez.",
+    ],
+    notes: [
+      "Une habilitation passe à « À renouveler » deux mois avant son échéance, et une notification part un mois avant.",
+      "Chacun peut renseigner ses propres habilitations ; celles des autres demandent le droit de gérer l'équipe.",
+      "Laissez la date de fin vide pour une formation qui n'expire pas.",
+    ],
+    link: { href: "/app/equipe", label: "Équipe" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

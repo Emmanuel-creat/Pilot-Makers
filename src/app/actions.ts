@@ -10,6 +10,7 @@ import { addVehicle, assign, deleteAssignment, deleteVehicle, moveAssignment } f
 import { deleteJournalEntry, liftReserve, signReception } from "@/lib/services/job-site";
 import { releaseRetention } from "@/lib/services/warranties";
 import { addAbsence, deleteAbsence } from "@/lib/services/absences";
+import { addCertification, deleteCertification } from "@/lib/services/certifications";
 import { addTask, createJobFromQuote, deleteTask, setTaskProgress, updateJob } from "@/lib/services/jobs";
 import { createEndpoint, deleteEndpoint, sendTestWebhook, setEndpointActive } from "@/lib/services/webhooks";
 import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
@@ -837,6 +838,26 @@ export async function absenceAction(_: ActionState, fd: FormData): Promise<Actio
       );
     revalidatePath("/app/planning");
     return { ok: true, message: s(fd, "deleteId") ? "Absence retirée." : "Absence enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function certificationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    if (s(fd, "deleteId")) await withCtx((ctx) => deleteCertification(ctx, s(fd, "deleteId")));
+    else
+      await withCtx((ctx) =>
+        addCertification(ctx, {
+          userId: s(fd, "userId"),
+          name: s(fd, "name"),
+          obtainedOn: s(fd, "obtainedOn"),
+          validUntil: s(fd, "validUntil"),
+          note: s(fd, "note"),
+        }),
+      );
+    revalidatePath("/app/equipe");
+    return { ok: true, message: s(fd, "deleteId") ? "Habilitation retirée." : "Habilitation enregistrée." };
   } catch (e) {
     return toState(e);
   }

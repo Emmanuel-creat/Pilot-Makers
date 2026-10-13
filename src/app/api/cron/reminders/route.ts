@@ -5,6 +5,7 @@ import { runInvoiceReminders } from "@/lib/services/invoices";
 import { runReminders } from "@/lib/services/reminders";
 import { runSubcontractorReminders } from "@/lib/services/subcontractors";
 import { runWarrantyReminders } from "@/lib/services/warranties";
+import { runCertificationReminders } from "@/lib/services/certifications";
 
 /** À appeler régulièrement par une tâche planifiée, avec l'en-tête Authorization: Bearer CRON_SECRET. */
 export async function POST(req: Request) {
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
       invoices: await runInvoiceReminders(db),
       subcontractors: await runSubcontractorReminders(db),
       warranties: await runWarrantyReminders(db),
+      certifications: await runCertificationReminders(db),
     });
   } catch (e) {
     return errorResponse(e);
