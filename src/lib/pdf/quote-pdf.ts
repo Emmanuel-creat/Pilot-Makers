@@ -213,10 +213,11 @@ export async function renderQuotePdf(
   // Date fixe = date d'émission, pour que le même snapshot produise le même document.
   doc.setCreationDate(new Date(s.issuedAt));
   doc.setModificationDate(new Date(s.issuedAt));
+  const serif = s.font === "times";
   const f: Fonts = {
-    regular: await doc.embedFont(StandardFonts.Helvetica),
-    bold: await doc.embedFont(StandardFonts.HelveticaBold),
-    italic: await doc.embedFont(StandardFonts.HelveticaOblique),
+    regular: await doc.embedFont(serif ? StandardFonts.TimesRoman : StandardFonts.Helvetica),
+    bold: await doc.embedFont(serif ? StandardFonts.TimesRomanBold : StandardFonts.HelveticaBold),
+    italic: await doc.embedFont(serif ? StandardFonts.TimesRomanItalic : StandardFonts.HelveticaOblique),
   };
   const accent = s.template === "sobre" ? BLACK : hexToRgb(s.accentColor);
   const logo = await embedImage(doc, s.org.logo_data);
@@ -650,6 +651,10 @@ export async function renderQuotePdf(
   const footer = legalFooter(s);
   const total = w.pages.length;
   w.pages.forEach((p, i) => {
+    if (s.footerNote) {
+      const note = sanitize(s.footerNote, f.italic);
+      p.drawText(wrapText(note, f.italic, 7.5, CONTENT_W)[0] ?? "", { x: M.left, y: 45, size: 7.5, font: f.italic, color: GREY });
+    }
     const lines = wrapText(footer, f.regular, 7, CONTENT_W - 90);
     let fy = 34;
     for (const l of lines.slice(0, 2)) {

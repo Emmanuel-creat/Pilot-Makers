@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "personnaliser-le-pdf",
+    date: "2026-10-13",
+    title: "PDF à votre image",
+    text: "Police avec ou sans empattement, mise en page par défaut, mention en pied de page et aperçu immédiat sur votre dernier devis.",
+    href: "/aide/personnaliser-le-pdf",
+  },
+  {
     id: "feuille-de-route",
     date: "2026-10-13",
     title: "Feuille de route et votes",

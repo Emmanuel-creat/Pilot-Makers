@@ -143,6 +143,17 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <Showcase settings={await getShowcase(ctx)} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} />
       ) : tab === "historique" ? (
         <History ctxPromise={organizationHistory(ctx)} />
+      ) : tab === "apparence" ? (
+        <>
+          <p className="mb-4 text-sm text-muted">
+            Enregistrez vos choix puis{" "}
+            <a className="text-accent underline" href="/api/organization/apercu-pdf" target="_blank" rel="noopener">
+              ouvrez l&apos;aperçu de votre dernier devis
+            </a>{" "}
+            avec ce modèle.
+          </p>
+          <OrgForm key={tab} tab={tab} initial={values as Record<string, string | boolean | number | null>} canEdit={canEdit} />
+        </>
       ) : (
         <OrgForm key={tab} tab={tab} initial={values as Record<string, string | boolean | number | null>} canEdit={canEdit} />
       )}

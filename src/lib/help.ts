@@ -685,6 +685,24 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/feuille-de-route", label: "Ouvrir la feuille de route" },
   },
   {
+    slug: "personnaliser-le-pdf",
+    category: "devis",
+    title: "Personnaliser l'apparence du PDF",
+    summary: "Choisissez le modèle, la couleur, la police, la mise en page des nouveaux devis et une mention imprimée en bas de chaque page.",
+    steps: [
+      "Ouvrez Entreprise puis l'onglet Apparence.",
+      "Choisissez le modèle, la couleur principale et la police : Helvetica, sans empattement, ou Times, avec empattement.",
+      "Choisissez la mise en page proposée aux nouveaux devis : détaillée, récapitulatif en tête ou un lot par page.",
+      "Ajoutez si besoin une mention de pied de page, par exemple vos qualifications ou votre fédération.",
+      "Enregistrez, puis ouvrez l'aperçu : votre dernier devis s'affiche avec ces réglages.",
+    ],
+    notes: [
+      "Les devis déjà émis gardent leur apparence d'origine : le PDF figé à l'émission ne change jamais.",
+      "La mise en page reste modifiable devis par devis depuis l'éditeur.",
+    ],
+    link: { href: "/app/entreprise?onglet=apparence", label: "Ouvrir l'onglet Apparence" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

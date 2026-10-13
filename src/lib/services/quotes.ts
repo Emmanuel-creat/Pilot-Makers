@@ -339,8 +339,8 @@ export async function createQuote(ctx: Ctx, init: { customerId?: string | null; 
     const row = await one<{ id: string }>(
       tx,
       `INSERT INTO quotes (org_id, customer_id, author_id, title, description, site_line1, site_line2, site_postal_code, site_city,
-         validity_days, payment_terms, deposit_percent, template)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+         validity_days, payment_terms, deposit_percent, template, pdf_layout)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
       [
         ctx.orgId,
         init.customerId ?? null,
@@ -355,6 +355,7 @@ export async function createQuote(ctx: Ctx, init: { customerId?: string | null; 
         org.payment_terms,
         org.default_deposit_percent,
         org.quote_template,
+        ["detaille", "synthese", "lots"].includes(org.default_pdf_layout) ? org.default_pdf_layout : "detaille",
       ],
     );
     const id = row!.id;
@@ -627,6 +628,8 @@ export function buildSnapshot(args: {
     template: d.template || org.quote_template,
     ...(d.layout && d.layout !== "detaille" ? { layout: d.layout } : {}),
     accentColor: org.accent_color,
+    ...(org.pdf_font === "times" ? { font: "times" as const } : {}),
+    ...(org.pdf_footer_note?.trim() ? { footerNote: org.pdf_footer_note.trim() } : {}),
     watermark: Boolean(ctx.entitlements.plan.features.watermark),
     org: {
       trade_name: org.trade_name,
@@ -794,8 +797,8 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
 }
 
 /** PDF d'aperçu d'un brouillon, non enregistré et marqué « Aperçu ». */
-export async function previewPdf(ctx: Ctx, id: string): Promise<Uint8Array> {
-  const d = await getDraft(ctx, id);
+export async function previewPdf(ctx: Ctx, id: string, override?: QuoteDraft): Promise<Uint8Array> {
+  const d = override ?? (await getDraft(ctx, id));
   const org = await orgRow(ctx.db, ctx.orgId);
   const customer =
     (d.customerId ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null) ??
@@ -829,6 +832,15 @@ export async function previewPdf(ctx: Ctx, id: string): Promise<Uint8Array> {
   });
   snapshot.preview = true;
   return renderQuotePdf(snapshot);
+}
+
+/** Aperçu de l'apparence choisie dans Entreprise, sur le dernier devis de l'entreprise. */
+export async function appearancePreviewPdf(ctx: Ctx): Promise<Uint8Array> {
+  const last = await one<{ id: string }>(ctx.db, "SELECT id FROM quotes WHERE org_id=$1 ORDER BY created_at DESC LIMIT 1", [ctx.orgId]);
+  if (!last) throw notFound("Créez un premier devis pour voir l'aperçu de votre modèle");
+  const org = await orgRow(ctx.db, ctx.orgId);
+  const d = await getDraft(ctx, last.id);
+  return previewPdf(ctx, last.id, { ...d, template: org.quote_template, layout: d.sections.length > 1 ? (org.default_pdf_layout as PdfLayout) : d.layout });
 }
 
 /* ------------------------------------------------------------------ */

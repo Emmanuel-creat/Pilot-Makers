@@ -126,6 +126,10 @@ export interface QuoteSnapshot {
   /** Absent des versions émises avant les mises en page : détaillée */
   layout?: PdfLayout;
   accentColor: string;
+  /** Police choisie par l'entreprise ; absente pour Helvetica (devis antérieurs inchangés) */
+  font?: "times";
+  /** Mention libre de l'entreprise en pied de page */
+  footerNote?: string;
   watermark: boolean;
   org: {
     trade_name: string;

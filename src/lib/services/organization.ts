@@ -60,6 +60,11 @@ export interface Organization {
   default_deposit_percent: string;
   quote_template: string;
   accent_color: string;
+  /** Police du PDF : helvetica (sans empattement) ou times (avec empattement) */
+  pdf_font: string;
+  default_pdf_layout: string;
+  /** Mention libre en pied de page (labels, certifications, slogan) */
+  pdf_footer_note: string;
   mail_subject_template: string;
   mail_body_template: string;
   reminder_settings: Record<string, unknown>;
@@ -146,6 +151,9 @@ export const orgSchema = z.object({
   default_validity_days: z.number().int().min(1).max(365).optional(),
   default_deposit_percent: text(10),
   quote_template: z.enum(["classique", "moderne", "sobre"]).optional(),
+  pdf_font: z.enum(["helvetica", "times"]).optional(),
+  default_pdf_layout: z.enum(["detaille", "synthese", "lots"]).optional(),
+  pdf_footer_note: text(200),
   accent_color: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/)

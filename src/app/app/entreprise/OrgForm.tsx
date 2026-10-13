@@ -76,6 +76,19 @@ const TABS: { key: string; label: string; fields: FieldDef[] }[] = [
       { k: "signature_data", label: "Signature ou cachet", type: "image" },
       { k: "quote_template", label: "Modèle de PDF", type: "select", options: [["classique", "Classique"], ["moderne", "Moderne"], ["sobre", "Sobre"]] },
       { k: "accent_color", label: "Couleur principale", type: "color" },
+      { k: "pdf_font", label: "Police du PDF", type: "select", options: [["helvetica", "Helvetica (sans empattement)"], ["times", "Times (avec empattement)"]] },
+      {
+        k: "default_pdf_layout",
+        label: "Mise en page des nouveaux devis",
+        type: "select",
+        options: [["detaille", "Détaillée"], ["synthese", "Récapitulatif en tête"], ["lots", "Un lot par page"]],
+      },
+      {
+        k: "pdf_footer_note",
+        label: "Mention en pied de page",
+        wide: true,
+        hint: "Imprimée en bas de chaque page. Ex. : Artisan certifié RGE Qualibat, membre de la Capeb",
+      },
     ],
   },
   {
