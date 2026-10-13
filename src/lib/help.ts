@@ -414,6 +414,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers", label: "Voir les chantiers" },
   },
   {
+    slug: "commander-aux-fournisseurs",
+    category: "devis",
+    title: "Commander aux fournisseurs et rapprocher leurs factures",
+    summary: "Bons de commande préparés depuis le devis signé, réception des livraisons, contrôle de la facture.",
+    steps: [
+      "Ouvrez le chantier et touchez « Préparer les commandes depuis le devis » : une commande est créée par fournisseur du catalogue, avec les fournitures et la sous-traitance du devis.",
+      "Ajustez les quantités et les prix, précisez le fournisseur et la date de livraison, puis téléchargez le bon de commande en PDF pour l'envoyer.",
+      "Marquez la commande comme envoyée. À chaque livraison, saisissez la quantité reçue au total : la commande passe en « Reçue en partie » puis « Reçue ».",
+      "À réception de la facture, saisissez son montant HT : il est comparé à la marchandise reçue et ajouté aux achats du chantier.",
+    ],
+    notes: [
+      "Une ligne déjà commandée n'est pas reprise une seconde fois. Une facture est jugée conforme à 1 euro ou 1 % près.",
+      "Le fournisseur de chaque article se renseigne dans le catalogue.",
+    ],
+    link: { href: "/app/chantiers", label: "Voir les chantiers" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

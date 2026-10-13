@@ -13,6 +13,17 @@ import { createApiKey, revokeApiKey } from "@/lib/services/api-keys";
 import { addEntry, deleteEntry, reviewEntries, setMemberQualification, startTimer, stopTimer } from "@/lib/services/timesheets";
 import { formatMinutes } from "@/lib/services/timesheet-calc";
 import { addPurchase, deletePurchase, setBudgetThreshold } from "@/lib/services/job-costs";
+import {
+  cancelOrder,
+  createOrder,
+  deleteLine,
+  prepareOrders,
+  receiveOrder,
+  recordSupplierInvoice,
+  saveLine,
+  sendOrder,
+  updateOrder,
+} from "@/lib/services/purchase-orders";
 import { getDb } from "@/lib/db";
 import { HttpError, unauthorized } from "@/lib/http";
 import {
@@ -958,6 +969,122 @@ export async function budgetThresholdAction(_: ActionState, fd: FormData): Promi
     await withCtx((ctx) => setBudgetThreshold(ctx, jobId, s(fd, "percent")));
     revalidatePath(`/app/chantiers/${jobId}`);
     return { ok: true, message: "Seuil d'alerte enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Commandes fournisseurs ------------------------------------------- */
+
+const orderPath = (jobId: string, orderId?: string) => `/app/chantiers/${jobId}` + (orderId ? `/commandes/${orderId}` : "");
+
+export async function prepareOrdersAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const jobId = s(fd, "jobId");
+  let ids: string[];
+  try {
+    ids = await withCtx((ctx) => prepareOrders(ctx, jobId));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(orderPath(jobId));
+  if (ids.length === 1) redirect(orderPath(jobId, ids[0]));
+  return { ok: true, message: `${ids.length} commandes préparées, une par fournisseur.` };
+}
+
+export async function createOrderAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const jobId = s(fd, "jobId");
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createOrder(ctx, jobId, s(fd, "supplier")));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(orderPath(jobId, id));
+}
+
+export async function updateOrderAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "orderId");
+    await withCtx((ctx) =>
+      updateOrder(ctx, id, {
+        supplier: s(fd, "supplier"),
+        supplierEmail: s(fd, "supplierEmail"),
+        deliveryDate: s(fd, "deliveryDate"),
+        deliveryAddress: s(fd, "deliveryAddress"),
+        notes: s(fd, "notes"),
+      }),
+    );
+    revalidatePath(orderPath(s(fd, "jobId"), id));
+    return { ok: true, message: "Commande enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveOrderLineAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "orderId");
+    await withCtx((ctx) =>
+      saveLine(ctx, id, {
+        id: s(fd, "lineId"),
+        label: s(fd, "label"),
+        reference: s(fd, "reference"),
+        unit: s(fd, "unit") || "u",
+        quantity: s(fd, "quantity"),
+        unitCost: s(fd, "unitCost"),
+      }),
+    );
+    revalidatePath(orderPath(s(fd, "jobId"), id));
+    return { ok: true, message: "Ligne enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteOrderLineAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "orderId");
+    await withCtx((ctx) => deleteLine(ctx, id, s(fd, "lineId")));
+    revalidatePath(orderPath(s(fd, "jobId"), id));
+    return { ok: true, message: "Ligne supprimée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function orderStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "orderId");
+    const send = s(fd, "decision") === "envoyer";
+    await withCtx((ctx) => (send ? sendOrder(ctx, id) : cancelOrder(ctx, id)));
+    revalidatePath(orderPath(s(fd, "jobId")), "layout");
+    return { ok: true, message: send ? "Commande marquée envoyée. Téléchargez le bon pour le transmettre au fournisseur." : "Commande annulée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function receiveOrderAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "orderId");
+    const received: Record<string, string> = {};
+    for (const [k, v] of fd.entries()) if (k.startsWith("recu_") && typeof v === "string") received[k.slice(5)] = v;
+    const status = await withCtx((ctx) => receiveOrder(ctx, id, received));
+    revalidatePath(orderPath(s(fd, "jobId")), "layout");
+    return { ok: true, message: status === "recu" ? "Commande reçue en totalité." : status === "recu_partiel" ? "Réception partielle enregistrée." : "Réception enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function supplierInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "orderId");
+    const r = await withCtx((ctx) => recordSupplierInvoice(ctx, id, { date: s(fd, "date"), amount: s(fd, "amount"), reference: s(fd, "reference") }));
+    revalidatePath(orderPath(s(fd, "jobId")), "layout");
+    return r.matching === "conforme"
+      ? { ok: true, message: "Facture rapprochée : conforme à la marchandise reçue." }
+      : { ok: true, message: "Facture enregistrée, mais son montant ne correspond pas à la marchandise reçue : vérifiez l'écart." };
   } catch (e) {
     return toState(e);
   }

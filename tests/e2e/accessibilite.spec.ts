@@ -230,3 +230,33 @@ test("chantier : achat affecté et comparaison des coûts", async ({ page }) => 
   await page.getByText("Détail ligne par ligne").click();
   await audit(page, "coûts du chantier");
 });
+
+test("chantier : commande fournisseur, réception et rapprochement de la facture", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Commandes fournisseurs" })).toBeVisible();
+  await page.getByRole("button", { name: "Commande vide" }).click();
+  await page.waitForURL(/\/commandes\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Désignation").fill("Receveur extra-plat");
+  await page.getByLabel("Qté").fill("2");
+  await page.getByLabel("Prix unit. HT").fill("120");
+  await page.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByText("Total HT : 240,00")).toBeVisible();
+  await page.getByLabel("Fournisseur", { exact: true }).fill("Négoce du Rhône");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Commande enregistrée.")).toBeVisible();
+  await audit(page, "commande brouillon");
+  await page.getByRole("button", { name: "Marquer comme envoyée" }).click();
+  await expect(page.getByRole("heading", { name: "Réception" })).toBeVisible();
+  await page.getByLabel(/Receveur extra-plat/).fill("2");
+  await page.getByRole("button", { name: "Enregistrer la réception" }).click();
+  await expect(page.getByText("Commande reçue en totalité.")).toBeVisible();
+  await page.getByLabel("Montant HT (euros)").fill("240");
+  await page.getByRole("button", { name: "Rapprocher la facture" }).click();
+  await expect(page.getByText("Facture conforme")).toBeVisible();
+  await audit(page, "commande reçue et facture rapprochée");
+  const pdf = await page.request.get(page.url().replace(/\/app\/chantiers\/[^/]+\/commandes\//, "/api/orders/") + "/pdf");
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+});

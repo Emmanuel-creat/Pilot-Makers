@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "commandes-fournisseurs",
+    date: "2026-10-13",
+    title: "Commandes aux fournisseurs",
+    text: "Bons de commande préparés depuis le devis signé, suivi des livraisons et facture fournisseur comparée à la marchandise reçue.",
+    href: "/app/chantiers",
+  },
+  {
     id: "couts-chantier",
     date: "2026-10-13",
     title: "Marge réelle des chantiers",

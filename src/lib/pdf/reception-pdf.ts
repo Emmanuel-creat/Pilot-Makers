@@ -30,19 +30,19 @@ export interface LiftedReserve {
   note: string;
 }
 
-const A4 = { w: 595.28, h: 841.89 };
-const LEFT = 48;
-const WIDTH = A4.w - 2 * LEFT;
-const GREY = rgb(0.38, 0.4, 0.44);
-const BLACK = rgb(0.1, 0.11, 0.13);
-const LINE = rgb(0.8, 0.82, 0.85);
+export const A4 = { w: 595.28, h: 841.89 };
+export const LEFT = 48;
+export const WIDTH = A4.w - 2 * LEFT;
+export const GREY = rgb(0.38, 0.4, 0.44);
+export const BLACK = rgb(0.1, 0.11, 0.13);
+export const LINE = rgb(0.8, 0.82, 0.85);
 
 export const fr = (iso: string) => {
   const [y, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${y}`;
 };
 
-class Page {
+export class Page {
   page!: PDFPage;
   y = 0;
   constructor(

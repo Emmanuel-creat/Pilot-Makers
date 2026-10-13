@@ -15,6 +15,8 @@ import { formatEuros } from "@/lib/calc/format";
 import { jobCosts, listPurchases, PURCHASE_CATEGORIES } from "@/lib/services/job-costs";
 import { parisDate } from "@/lib/services/quotes";
 import { DeletePurchase, PurchaseForm, ThresholdForm } from "./CostForms";
+import { listOrders, ORDER_STATUSES } from "@/lib/services/purchase-orders";
+import { PrepareOrders } from "./OrderForms";
 
 const DECISIONS = { sans_reserve: "sans réserve", avec_reserves: "avec réserves", refus: "refusée" } as const;
 const when = (d: Date) => new Date(d).toLocaleString("fr-FR", { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" });
@@ -33,6 +35,7 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const showCosts = ctx.role !== "member" && !!ctx.entitlements.plan.features.margin;
   const [costs, purchases] = showCosts ? await Promise.all([jobCosts(ctx, id), listPurchases(ctx, id)]) : [null, []];
+  const orders = ctx.role !== "member" ? await listOrders(ctx, id) : null;
   const address = [job.site_line1, job.site_line2, [job.site_postal_code, job.site_city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return (
     <div className="mx-auto max-w-5xl">
@@ -358,6 +361,32 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
                 />
               ) : null}
             </div>
+          </Section>
+        </div>
+      ) : null}
+      {orders ? (
+        <div className="mt-6">
+          <Section title="Commandes fournisseurs" description="Fournitures et sous-traitance du devis, commandées, reçues puis rapprochées de la facture.">
+            {orders.length ? (
+              <ul className="mb-4 divide-y divide-line text-sm">
+                {orders.map((o) => (
+                  <li key={o.id}>
+                    <Link href={`/app/chantiers/${job.id}/commandes/${o.id}`} className="flex items-center justify-between gap-2 py-2 hover:bg-surface-2">
+                      <span className="min-w-0">
+                        <span className="font-medium">{o.number}</span>
+                        <span className="block truncate text-xs text-muted">
+                          {o.supplier || "Fournisseur à préciser"} · {ORDER_STATUSES[o.status]}
+                        </span>
+                      </span>
+                      <span className="tabular shrink-0">{formatEuros(o.total_cents)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mb-4 text-sm text-muted">Aucune commande pour ce chantier.</p>
+            )}
+            {canEdit ? <PrepareOrders jobId={job.id} hasQuote={!!job.quote_id} /> : null}
           </Section>
         </div>
       ) : null}
