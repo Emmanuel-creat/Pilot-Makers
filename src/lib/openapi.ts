@@ -1,7 +1,7 @@
 /** Description OpenAPI 3.1 de l'API publique v1, servie sur /api/v1/openapi.json et reprise dans la page d'aide. */
 
 export interface ApiEndpoint {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "DELETE";
   path: string;
   summary: string;
   write?: boolean;
@@ -71,6 +71,20 @@ export const API_ENDPOINTS: ApiEndpoint[] = [
     query: [{ name: "status", description: "a_planifier, en_cours, termine, receptionne" }],
   },
   { method: "GET", path: "/api/v1/jobs/{id}", summary: "Fiche chantier avec ses tâches" },
+  { method: "GET", path: "/api/v1/webhooks", summary: "Abonnements créés avec cette clé et événements disponibles" },
+  {
+    method: "POST",
+    path: "/api/v1/webhooks",
+    summary: "S'abonner à un événement (url ou target_url, event ou events) : renvoie la clé de signature",
+    write: true,
+  },
+  { method: "DELETE", path: "/api/v1/webhooks/{id}", summary: "Se désabonner", write: true },
+  {
+    method: "GET",
+    path: "/api/v1/webhooks/samples",
+    summary: "Exemples de contenu de chaque événement",
+    query: [{ name: "event", description: "quote.accepted, invoice.paid ou customer.created" }],
+  },
 ];
 
 export function openApiSpec(origin: string) {

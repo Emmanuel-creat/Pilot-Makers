@@ -17,6 +17,14 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "automatisation",
+    date: "2026-10-13",
+    title: "Zapier, Make et n8n",
+    text: "Vos outils d'automatisation s'abonnent eux-mêmes aux devis signés, factures payées et nouveaux clients, et se désabonnent seuls.",
+    href: "/aide/automatiser-zapier-make-n8n",
+    feature: "api_publique",
+  },
+  {
     id: "api-publique",
     date: "2026-10-13",
     title: "API publique",

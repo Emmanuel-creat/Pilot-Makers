@@ -76,6 +76,8 @@ export async function revokeApiKey(ctx: Ctx, id: string) {
   if (!isUuid(id)) throw notFound("Clé introuvable");
   const r = await ctx.db.query("UPDATE api_keys SET revoked_at=now() WHERE id=$1 AND org_id=$2 AND revoked_at IS NULL RETURNING id", [id, ctx.orgId]);
   if (!r.length) throw notFound("Clé introuvable");
+  // Les abonnements créés par les outils d'automatisation avec cette clé disparaissent avec elle.
+  await ctx.db.query("DELETE FROM webhook_endpoints WHERE api_key_id=$1 AND org_id=$2", [id, ctx.orgId]);
   await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "api_key.revoke", data: { id }, ip: ctx.ip });
 }
 

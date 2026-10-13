@@ -69,7 +69,7 @@ Les tests couvrent les calculs (arrondis, remises, TVA multiples, franchise, lim
 
 ## API publique
 
-Les administrateurs créent des clés d'accès dans Entreprise, onglet API (lecture, ou lecture et écriture). Chaque requête porte `Authorization: Bearer pm_...` ; limite de 120 requêtes par minute et par clé. Adresses sous `/api/v1` (clients, devis et leurs PDF, factures et leurs PDF, catalogue, chantiers), description OpenAPI 3.1 sur `/api/v1/openapi.json`. Une clé agit au nom de l'administrateur qui l'a créée : elle cesse de fonctionner s'il quitte l'entreprise ou perd son rôle. Seule l'empreinte SHA-256 de la clé est enregistrée.
+Les administrateurs créent des clés d'accès dans Entreprise, onglet API (lecture, ou lecture et écriture). Chaque requête porte `Authorization: Bearer pm_...` ; limite de 120 requêtes par minute et par clé. Adresses sous `/api/v1` (clients, devis et leurs PDF, factures et leurs PDF, catalogue, chantiers), description OpenAPI 3.1 sur `/api/v1/openapi.json`. Une clé agit au nom de l'administrateur qui l'a créée : elle cesse de fonctionner s'il quitte l'entreprise ou perd son rôle. Seule l'empreinte SHA-256 de la clé est enregistrée. Les outils d'automatisation (Zapier, Make, n8n) s'abonnent aux événements avec `POST /api/v1/webhooks` et se désabonnent avec `DELETE /api/v1/webhooks/{id}` ; une réponse 410 à un envoi retire l'abonnement.
 
 ## Activation progressive des nouveautés
 

@@ -7,7 +7,7 @@ import { FormMessage, Submit } from "@/components/forms/Submit";
 import { Icon } from "@/components/Icon";
 import { Notice } from "@/components/ui";
 
-type Endpoint = { id: string; url: string; events: string[]; active: boolean };
+type Endpoint = { id: string; url: string; events: string[]; active: boolean; origin: string };
 type Delivery = {
   id: string;
   event: string;
@@ -93,6 +93,7 @@ export function Webhooks({
                   <div className="text-xs text-muted">
                     {e.events.map((k) => events[k] ?? k).join(", ")}
                     {e.active ? "" : " (suspendue)"}
+                    {e.origin ? ` · créée par un outil d'automatisation (${e.origin})` : ""}
                   </div>
                 </div>
                 {canEdit ? (

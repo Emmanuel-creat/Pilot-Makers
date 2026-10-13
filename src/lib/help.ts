@@ -369,6 +369,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/entreprise?onglet=api", label: "Ouvrir l'onglet API" },
   },
   {
+    slug: "automatiser-zapier-make-n8n",
+    category: "compte",
+    title: "Automatiser avec Zapier, Make ou n8n",
+    summary: "Déclencher un scénario quand un devis est signé, une facture payée ou un client créé.",
+    steps: [
+      "Créez une clé « Lecture et écriture » dans Entreprise, onglet API, et collez-la dans votre outil (en-tête « Authorization: Bearer »).",
+      "Pour déclencher un scénario, l'outil s'abonne à un événement avec POST /api/v1/webhooks (adresse de réception et événement). Pilot-Makers lui envoie ensuite chaque événement, signé.",
+      "Pour agir dans Pilot-Makers (créer un client, ajouter une prestation, lire un devis ou télécharger un PDF), utilisez les adresses /api/v1 avec un module HTTP.",
+      "Quand vous arrêtez le scénario, l'outil se désabonne. Révoquer la clé retire aussi tous ses abonnements.",
+    ],
+    notes: ["Des exemples de données pour préparer un scénario sont disponibles sur /api/v1/webhooks/samples."],
+    link: { href: "/app/entreprise?onglet=api", label: "Ouvrir l'onglet API" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

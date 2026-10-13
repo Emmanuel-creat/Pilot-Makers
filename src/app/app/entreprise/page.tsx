@@ -99,7 +99,13 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <Webhooks
           canEdit={canEdit}
           events={WEBHOOK_EVENTS}
-          endpoints={(await listEndpoints(ctx)).map((e) => ({ id: e.id, url: e.url, events: e.events, active: e.active }))}
+          endpoints={(await listEndpoints(ctx)).map((e) => ({
+            id: e.id,
+            url: e.url,
+            events: e.events,
+            active: e.active,
+            origin: e.api_key_id ? [e.label, `clé d'API « ${e.api_key_name ?? ""} »`].filter(Boolean).join(", ") : "",
+          }))}
           deliveries={(await listDeliveries(ctx)).map((d) => ({
             id: d.id,
             event: d.event,

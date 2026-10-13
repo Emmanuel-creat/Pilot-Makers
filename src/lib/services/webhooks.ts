@@ -24,7 +24,7 @@ export const WEBHOOK_EVENTS = {
 } as const;
 export type WebhookEvent = keyof typeof WEBHOOK_EVENTS;
 
-export const WEBHOOK_MAX_ENDPOINTS = 5;
+export const WEBHOOK_MAX_ENDPOINTS = 25;
 export const WEBHOOK_MAX_ATTEMPTS = 8;
 const TIMEOUT_MS = 10_000;
 
@@ -87,17 +87,24 @@ export interface WebhookEndpoint {
   events: WebhookEvent[];
   active: boolean;
   created_at: Date;
+  label: string;
+  /** Abonnement créé par un outil d'automatisation avec cette clé d'API */
+  api_key_id: string | null;
+  api_key_name: string | null;
 }
 
 const endpointSchema = z.object({
   url: z.string().trim().min(1, "Adresse requise").max(500),
   events: z.array(z.enum(Object.keys(WEBHOOK_EVENTS) as [WebhookEvent, ...WebhookEvent[]])).min(1, "Choisissez au moins un événement"),
+  label: z.string().trim().max(80).optional().default(""),
 });
 
 export async function listEndpoints(ctx: Ctx): Promise<WebhookEndpoint[]> {
-  return ctx.db.query<WebhookEndpoint>("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1 ORDER BY created_at", [
-    ctx.orgId,
-  ]);
+  return ctx.db.query<WebhookEndpoint>(
+    `SELECT e.id, e.url, e.events, e.active, e.created_at, e.label, e.api_key_id, k.name AS api_key_name
+     FROM webhook_endpoints e LEFT JOIN api_keys k ON k.id=e.api_key_id WHERE e.org_id=$1 ORDER BY e.created_at`,
+    [ctx.orgId],
+  );
 }
 
 /** Crée l'abonnement et renvoie la clé de signature, affichée une seule fois. */
@@ -111,12 +118,11 @@ export async function createEndpoint(ctx: Ctx, raw: unknown) {
   const count = await one<{ n: unknown }>(ctx.db, "SELECT count(*) AS n FROM webhook_endpoints WHERE org_id=$1", [ctx.orgId]);
   if (num(count?.n) >= WEBHOOK_MAX_ENDPOINTS) throw conflict(`${WEBHOOK_MAX_ENDPOINTS} adresses au plus`);
   const secret = `whsec_${randomToken(24)}`;
-  const row = await one<{ id: string }>(ctx.db, "INSERT INTO webhook_endpoints (org_id, url, events, secret) VALUES ($1,$2,$3,$4) RETURNING id", [
-    ctx.orgId,
-    url,
-    [...new Set(p.data.events)],
-    seal(secret),
-  ]);
+  const row = await one<{ id: string }>(
+    ctx.db,
+    "INSERT INTO webhook_endpoints (org_id, url, events, secret, label, api_key_id) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id",
+    [ctx.orgId, url, [...new Set(p.data.events)], seal(secret), p.data.label, ctx.apiKey?.id ?? null],
+  );
   await audit(ctx.db, {
     orgId: ctx.orgId,
     userId: ctx.userId,
@@ -194,8 +200,10 @@ export async function deliverWebhooks(db: Database, opts: { now?: Date; fetchImp
     url: string;
     secret: string;
     active: boolean;
+    endpoint_id: string;
+    api_key_id: string | null;
   }>(
-    `SELECT d.id, d.org_id, d.event, d.payload, d.attempts, e.url, e.secret, e.active
+    `SELECT d.id, d.org_id, d.event, d.payload, d.attempts, e.url, e.secret, e.active, d.endpoint_id, e.api_key_id
      FROM webhook_deliveries d JOIN webhook_endpoints e ON e.id=d.endpoint_id
      WHERE d.delivered_at IS NULL AND d.failed_at IS NULL AND d.next_attempt_at <= $1 ${opts.orgId ? "AND d.org_id=$3" : ""}
      ORDER BY d.next_attempt_at LIMIT $2`,
@@ -229,6 +237,21 @@ export async function deliverWebhooks(db: Database, opts: { now?: Date; fetchImp
     } catch (e) {
       error = (e as Error).name === "TimeoutError" ? "Délai de réponse dépassé (10 s)" : `Envoi impossible : ${(e as Error).message}`.slice(0, 300);
     }
+    if (status === 410) {
+      // 410 Gone : l'outil a supprimé son abonnement. Celui d'un outil d'automatisation est retiré, une adresse saisie à la main est suspendue.
+      failed++;
+      if (d.api_key_id) await db.query("DELETE FROM webhook_endpoints WHERE id=$1", [d.endpoint_id]);
+      else {
+        await db.query("UPDATE webhook_endpoints SET active=false WHERE id=$1", [d.endpoint_id]);
+        await db.query("UPDATE webhook_deliveries SET attempts=$2, last_status=410, last_error=$3, failed_at=$4 WHERE id=$1", [
+          d.id,
+          attempts,
+          "Adresse supprimée par le destinataire (HTTP 410) : envois suspendus",
+          now,
+        ]);
+      }
+      continue;
+    }
     if (!error) {
       delivered++;
       await db.query("UPDATE webhook_deliveries SET attempts=$2, delivered_at=$3, last_status=$4, last_error='' WHERE id=$1", [
@@ -254,6 +277,49 @@ export async function deliverWebhooks(db: Database, opts: { now?: Date; fetchImp
 }
 
 /** Événement de test vers une adresse, envoyé immédiatement. */
+/** Exemple de contenu pour chaque événement, pour configurer un outil d'automatisation avant le premier envoi réel. */
+export const WEBHOOK_SAMPLES: Record<WebhookEvent, Record<string, unknown>> = {
+  "quote.accepted": {
+    quote_id: "4f1c2b9e-0000-4000-8000-000000000001",
+    number: "D-2026-0042",
+    version: 1,
+    title: "Rénovation de salle de bains",
+    customer_id: "4f1c2b9e-0000-4000-8000-000000000002",
+    customer_name: "Claire Dubois",
+    total_ht_cents: 845000,
+    total_ttc_cents: 929500,
+    accepted_via: "lien sécurisé",
+  },
+  "invoice.paid": {
+    invoice_id: "4f1c2b9e-0000-4000-8000-000000000003",
+    number: "F-2026-0017",
+    kind: "final",
+    customer_id: "4f1c2b9e-0000-4000-8000-000000000002",
+    customer_name: "Claire Dubois",
+    total_ttc_cents: 929500,
+    amount_due_cents: 929500,
+    paid_cents: 929500,
+  },
+  "customer.created": {
+    customer_id: "4f1c2b9e-0000-4000-8000-000000000002",
+    type: "particulier",
+    name: "Claire Dubois",
+    email: "claire.dubois@exemple.fr",
+    phone: "0612345678",
+    city: "Lyon",
+  },
+};
+
+export function webhookSamples() {
+  return Object.entries(WEBHOOK_SAMPLES).map(([type, data]) => ({
+    id: "00000000-0000-4000-8000-000000000000",
+    type,
+    label: WEBHOOK_EVENTS[type as WebhookEvent],
+    created_at: "2026-10-13T08:00:00.000Z",
+    data,
+  }));
+}
+
 export async function sendTestWebhook(ctx: Ctx, endpointId: string, fetchImpl?: Fetch) {
   requireRole(ctx, "admin");
   const n = await enqueueWebhook(ctx.db, ctx.orgId, "ping", { message: "Test de réception depuis Pilot-Makers" }, endpointId);

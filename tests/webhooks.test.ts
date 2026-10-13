@@ -13,7 +13,9 @@ import {
   retryDelayMs,
   sendTestWebhook,
   setEndpointActive,
+  listEndpoints,
   WEBHOOK_MAX_ATTEMPTS,
+  WEBHOOK_MAX_ENDPOINTS,
 } from "@/lib/services/webhooks";
 import { completeProfile, freshDb, line, makeCustomer, signUp } from "./helpers";
 
@@ -139,7 +141,8 @@ describe("webhooks", () => {
       status: 403,
     });
     await expect(createEndpoint(ctx, { url: "https://hooks.exemple.fr/x", events: [] })).rejects.toMatchObject({ status: 400 });
-    for (let i = 0; i < 4; i++) await createEndpoint(ctx, { url: `https://hooks.exemple.fr/n${i}`, events: ["invoice.paid"] });
+    const existing = (await listEndpoints(ctx)).length;
+    for (let i = 0; i < WEBHOOK_MAX_ENDPOINTS - existing; i++) await createEndpoint(ctx, { url: `https://hooks.exemple.fr/n${i}`, events: ["invoice.paid"] });
     await expect(createEndpoint(ctx, { url: "https://hooks.exemple.fr/trop", events: ["invoice.paid"] })).rejects.toMatchObject({ status: 409 });
   });
 });

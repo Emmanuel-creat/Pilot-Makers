@@ -4,7 +4,7 @@
  * (droits, lecture seule, validations), au nom de l'administrateur qui a créé la clé.
  */
 
-import { conflict, notFound } from "@/lib/http";
+import { conflict, isUuid, notFound } from "@/lib/http";
 import { requireScope } from "./api-keys";
 import { createItem, getItem, searchItems } from "./catalog";
 import type { Ctx } from "./context";
@@ -13,6 +13,7 @@ import { createCustomer, getCustomer, searchCustomers } from "./customers";
 import { getInvoice, getInvoicePdf, listInvoices } from "./invoices";
 import { getJob, listJobs } from "./jobs";
 import { getDraft, getQuoteRow, getVersion, listQuotes, listVersions } from "./quotes";
+import { createEndpoint, listEndpoints, WEBHOOK_EVENTS, webhookSamples } from "./webhooks";
 
 export async function apiMe(ctx: Ctx) {
   const org = await ctx.db.query<{ trade_name: string; legal_name: string; siren: string }>(
@@ -94,4 +95,40 @@ export async function apiListJobs(ctx: Ctx, f: { status?: string }) {
 export async function apiGetJob(ctx: Ctx, id: string) {
   const job = await getJob(ctx, id);
   return job;
+}
+
+/* Abonnements des outils d'automatisation (modèle « REST hooks » de Zapier, Make et n8n) */
+
+export async function apiListSubscriptions(ctx: Ctx) {
+  const all = await listEndpoints(ctx);
+  return {
+    data: all
+      .filter((e) => e.api_key_id === ctx.apiKey?.id)
+      .map((e) => ({ id: e.id, url: e.url, events: e.events, label: e.label, active: e.active, created_at: e.created_at })),
+    events: WEBHOOK_EVENTS,
+  };
+}
+
+/** Abonnement : l'outil fournit son adresse de réception ; la clé de signature n'est renvoyée qu'ici. */
+export async function apiSubscribe(ctx: Ctx, body: Record<string, unknown>) {
+  requireScope(ctx, "write");
+  const events = Array.isArray(body.events) ? body.events : typeof body.event === "string" ? [body.event] : [];
+  const url = typeof body.url === "string" ? body.url : typeof body.target_url === "string" ? body.target_url : "";
+  const r = await createEndpoint(ctx, { url, events, label: typeof body.label === "string" ? body.label : "" });
+  return { id: r.id, secret: r.secret, url, events };
+}
+
+/** Désabonnement : une clé ne retire que les abonnements qu'elle a créés. */
+export async function apiUnsubscribe(ctx: Ctx, id: string) {
+  requireScope(ctx, "write");
+  if (!isUuid(id)) throw notFound("Abonnement introuvable");
+  const r = await ctx.db.query("DELETE FROM webhook_endpoints WHERE id=$1 AND org_id=$2 AND api_key_id=$3 RETURNING id", [id, ctx.orgId, ctx.apiKey?.id ?? null]);
+  if (!r.length) throw notFound("Abonnement introuvable");
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "webhook.delete", target: id, data: { key: ctx.apiKey?.id }, ip: ctx.ip });
+  return { deleted: true };
+}
+
+export function apiSamples(event?: string) {
+  const all = webhookSamples();
+  return { data: event ? all.filter((s) => s.type === event) : all };
 }

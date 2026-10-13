@@ -95,6 +95,24 @@ export function ApiKeys({ keys, endpoints, canEdit }: { keys: Key[]; endpoints: 
         )}
       </section>
 
+      <section className="card space-y-3 p-4 text-sm">
+        <h2 className="font-semibold">Outils d'automatisation : Zapier, Make, n8n</h2>
+        <p className="text-muted">
+          Ces outils s'abonnent eux-mêmes aux événements (devis signé, facture payée, client créé) avec une clé en lecture et écriture, puis se
+          désabonnent quand vous arrêtez le scénario. Leurs abonnements apparaissent dans l'onglet Webhooks et disparaissent si la clé est révoquée.
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-muted">
+          <li>
+            Abonnement : <code className="font-mono">POST /api/v1/webhooks</code> avec <code className="font-mono">target_url</code> et{" "}
+            <code className="font-mono">event</code> ; désabonnement : <code className="font-mono">DELETE /api/v1/webhooks/&#123;id&#125;</code>.
+          </li>
+          <li>
+            Exemples de données pour préparer un scénario : <code className="font-mono">GET /api/v1/webhooks/samples</code>.
+          </li>
+          <li>Make et n8n : module « HTTP » avec l'en-tête Authorization, ou module « Webhook » relié à l'onglet Webhooks.</li>
+        </ul>
+      </section>
+
       <section className="card p-4">
         <h2 className="mb-3 text-sm font-semibold">Adresses disponibles</h2>
         <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Adresses de l'API">
