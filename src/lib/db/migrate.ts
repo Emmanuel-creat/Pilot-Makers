@@ -31,6 +31,7 @@ import { sql as m029 } from "./migrations/029_couts_chantier";
 import { sql as m030 } from "./migrations/030_commandes_fournisseurs";
 import { sql as m031 } from "./migrations/031_abonnement_agenda";
 import { sql as m032 } from "./migrations/032_sous_traitants";
+import { sql as m033 } from "./migrations/033_notes_de_frais";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -66,6 +67,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "030_commandes_fournisseurs", sql: m030 },
   { id: "031_abonnement_agenda", sql: m031 },
   { id: "032_sous_traitants", sql: m032 },
+  { id: "033_notes_de_frais", sql: m033 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

@@ -15,6 +15,7 @@ export default async function MorePage() {
     ["/app/chantiers", "Chantiers", "hammer"],
     ["/app/planning", "Planning", "calendar"],
     ["/app/pointage", "Pointage", "clock"],
+    ["/app/frais", "Notes de frais", "note"],
     ...(ctx.role !== "member" ? [["/app/sous-traitants", "Sous-traitants", "shield"]] : []),
     ["/app/demandes", "Demandes", "inbox"],
     ["/app/rapports", "Rapports", "chart"],

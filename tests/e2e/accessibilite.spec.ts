@@ -301,3 +301,36 @@ test("sous-traitants : fiche, attestation et vigilance sur le chantier", async (
   await page.getByRole("button", { name: "Ajouter au chantier" }).click();
   await expect(page.getByText("Obligation de vigilance")).toBeVisible();
 });
+
+test("notes de frais : ticket photographié puis validation et remboursement", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/frais");
+  await page.getByLabel("Photo du ticket").setInputFiles({
+    name: "ticket.jpg",
+    mimeType: "image/jpeg",
+    buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46]),
+  });
+  await page.getByLabel("Montant TTC (euros)").fill("23,40");
+  await page.getByLabel("Dont TVA").fill("2,13");
+  await page.getByLabel("Commerçant").fill("Relais des Artisans");
+  await page.getByRole("button", { name: "Envoyer la note de frais" }).click();
+  await expect(page.getByText("Note envoyée pour validation.")).toBeVisible();
+  await expect(page.getByText("Relais des Artisans").first()).toBeVisible();
+  await audit(page, "notes de frais");
+  await page.goto("/app/frais?vue=equipe");
+  await page
+    .getByRole("checkbox", { name: /Relais des Artisans/ })
+    .first()
+    .check();
+  await page.getByRole("button", { name: /^Valider/ }).click();
+  await expect(page.getByText(/note\(s\) validée\(s\)/)).toBeVisible();
+  await page
+    .getByRole("checkbox", { name: /Relais des Artisans/ })
+    .first()
+    .check();
+  await page.getByRole("button", { name: "Remboursé" }).click();
+  await expect(page.getByText(/marquée\(s\) remboursée\(s\)/)).toBeVisible();
+  await audit(page, "validation des notes de frais");
+  const csv = await page.request.get(`/api/expenses/export?mois=${new Date().toISOString().slice(0, 7)}`);
+  expect(await csv.text()).toContain("Relais des Artisans");
+});

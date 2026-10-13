@@ -23,6 +23,7 @@ import {
 import { appUrl } from "@/lib/services/mail";
 import { addEntry, deleteEntry, reviewEntries, setMemberQualification, startTimer, stopTimer } from "@/lib/services/timesheets";
 import { formatMinutes } from "@/lib/services/timesheet-calc";
+import { deleteExpense, reviewExpenses } from "@/lib/services/expenses";
 import { addPurchase, deletePurchase, setBudgetThreshold } from "@/lib/services/job-costs";
 import {
   cancelOrder,
@@ -1035,6 +1036,30 @@ export async function reviewEntriesAction(_: ActionState, fd: FormData): Promise
     revalidatePath("/app/pointage");
     const verb = decision === "valide" ? "validé(s)" : decision === "refuse" ? "refusé(s)" : "rouvert(s)";
     return { ok: true, message: `${r.updated} pointage(s) ${verb}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+/* Notes de frais --------------------------------------------------- */
+
+export async function deleteExpenseAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteExpense(ctx, s(fd, "id")));
+    revalidatePath("/app/frais");
+    return { ok: true, message: "Note de frais supprimée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function reviewExpensesAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const decision = s(fd, "decision") as "valide" | "refuse" | "soumis" | "rembourse";
+    const r = await withCtx((ctx) => reviewExpenses(ctx, fd.getAll("ids").map(String), decision, s(fd, "note")));
+    revalidatePath("/app/frais");
+    const verb = { valide: "validée(s)", refuse: "refusée(s)", soumis: "rouverte(s)", rembourse: "marquée(s) remboursée(s)" }[decision] ?? "traitée(s)";
+    return { ok: true, message: `${r.updated} note(s) ${verb}.` };
   } catch (e) {
     return toState(e);
   }

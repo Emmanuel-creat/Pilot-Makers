@@ -72,6 +72,10 @@ export async function exportAccountData(ctx: Ctx) {
       "SELECT id, subcontractor_id, kind, label, valid_until, file_name, file_type, file_sha256, uploaded_at FROM subcontractor_documents WHERE org_id=$1",
     ),
     jobSubcontractors: await q("SELECT * FROM job_subcontractors WHERE org_id=$1"),
+    expenses: await q(
+      `SELECT id, user_id, job_id, expense_date, merchant, category, amount_ttc_cents, vat_cents, payment, note, photo_type, photo_sha256, status,
+         review_note, reviewed_by, reviewed_at, reimbursed_at, created_at FROM expenses WHERE org_id=$1 ORDER BY expense_date`,
+    ),
     // Les secrets de signature ne sont jamais exportés.
     webhookEndpoints: await q("SELECT id, url, events, active, created_at FROM webhook_endpoints WHERE org_id=$1"),
   };
@@ -132,6 +136,7 @@ const CSV_TABLES: [string, string][] = [
   ["sous-traitants", "subcontractors"],
   ["documents-sous-traitants", "subcontractorDocuments"],
   ["sous-traitants-chantiers", "jobSubcontractors"],
+  ["notes-de-frais", "expenses"],
 ];
 
 const README = `Export complet Pilot-Makers

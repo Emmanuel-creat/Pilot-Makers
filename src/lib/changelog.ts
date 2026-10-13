@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "notes-de-frais",
+    date: "2026-10-13",
+    title: "Notes de frais par photo",
+    text: "Le ticket photographié sur le chantier, validé par l'encadrement, ajouté aux coûts du chantier, remboursé et exporté pour la comptabilité.",
+    href: "/app/frais",
+  },
+  {
     id: "sous-traitants",
     date: "2026-10-13",
     title: "Suivi des sous-traitants",

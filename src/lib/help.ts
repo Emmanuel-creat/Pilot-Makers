@@ -465,6 +465,23 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/sous-traitants", label: "Ouvrir les sous-traitants" },
   },
   {
+    slug: "notes-de-frais",
+    category: "demarrer",
+    title: "Envoyer et valider les notes de frais",
+    summary: "Le ticket photographié sur le téléphone, validé par l'encadrement, remboursé et exporté pour la comptabilité.",
+    steps: [
+      "Ouvrez « Notes de frais », photographiez le ticket et indiquez le montant TTC, la TVA si elle figure sur le ticket et la catégorie.",
+      "Rattachez la dépense au chantier concerné et précisez si vous l'avez avancée ou payée avec la carte de l'entreprise.",
+      "Le gérant ou un administrateur ouvre l'onglet « Équipe », coche les notes et les valide, ou les refuse avec une raison.",
+      "Une fois le virement fait, il coche les notes et touche « Remboursé ». L'export CSV du mois part à la comptabilité.",
+    ],
+    notes: [
+      "Une note validée et rattachée à un chantier s'ajoute à ses achats, pour son montant hors taxes : la marge réelle en tient compte.",
+      "Une note refusée peut être supprimée puis renvoyée corrigée. Une note remboursée se conserve.",
+    ],
+    link: { href: "/app/frais", label: "Ouvrir les notes de frais" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
