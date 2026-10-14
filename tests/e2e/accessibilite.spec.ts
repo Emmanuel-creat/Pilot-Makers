@@ -1552,6 +1552,29 @@ test("réseau : recommandations entre métiers complémentaires", async ({ page 
   await audit(page, "recommandations du réseau");
 });
 
+test("réseau : achat groupé avec paliers de prix", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/reseaux");
+  await page.locator('a[href^="/app/catalogue/reseaux/"]:visible').first().click();
+  await page.waitForURL(/\/app\/catalogue\/reseaux\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Achats groupés" }).click();
+  await page.waitForURL(/\/achats$/);
+  await page.getByLabel("Produit").fill("Plaques de plâtre BA13");
+  await page.getByLabel("Fournisseur").fill("Négoce du Rhône");
+  await page.getByLabel("Unité").fill("u");
+  await page.getByLabel("Prix de base HT (€)").fill("8");
+  await page.getByLabel("Palier 1 : quantité minimale").fill("100");
+  await page.getByLabel("Palier 1 : prix unitaire HT").fill("7");
+  const d = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+  await page.getByLabel("Date limite des engagements").fill(d);
+  await page.getByRole("button", { name: "Ouvrir l'achat groupé" }).click();
+  await expect(page.getByTestId("achats-groupes")).toContainText("Plaques de plâtre BA13 chez Négoce du Rhône");
+  await page.getByLabel("Ma quantité (u)").first().fill("120");
+  await page.getByRole("button", { name: "M'engager" }).first().click();
+  await expect(page.getByText("Votre engagement : 120 u").first()).toBeVisible();
+  await audit(page, "achats groupés du réseau");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

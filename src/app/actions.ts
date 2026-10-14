@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { closeGroupPurchase, commitQuantity, createGroupPurchase } from "@/lib/services/group-buying";
 import { answerRecommendation, sendRecommendation } from "@/lib/services/network-recommendations";
 import { closePost, createPost, replyToPost } from "@/lib/services/network-board";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
@@ -3125,4 +3126,44 @@ export async function recommendationAnswerAction(_: ActionState, fd: FormData): 
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function groupPurchaseCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const networkId = s(fd, "networkId");
+  try {
+    await withCtx((ctx) =>
+      createGroupPurchase(ctx, networkId, {
+        title: s(fd, "title"),
+        supplier: s(fd, "supplier"),
+        unit: s(fd, "unit"),
+        deadline: s(fd, "deadline"),
+        basePrice: s(fd, "basePrice"),
+        tiers: [0, 1, 2, 3].map((i) => ({ minQty: s(fd, `tierQty${i}`), price: s(fd, `tierPrice${i}`) })),
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/reseaux/${networkId}/achats`);
+  return { ok: true, message: "Achat groupé ouvert : les membres du réseau sont prévenus." };
+}
+
+export async function groupPurchaseCommitAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const networkId = await withCtx((ctx) => commitQuantity(ctx, s(fd, "id"), s(fd, "quantity")));
+    revalidatePath(`/app/catalogue/reseaux/${networkId}/achats`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Engagement enregistré." };
+}
+
+export async function groupPurchaseCloseAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => closeGroupPurchase(ctx, s(fd, "id"), s(fd, "cancel") === "1"));
+    revalidatePath(`/app/catalogue/reseaux/${r.networkId}/achats`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Achat groupé clos." };
 }

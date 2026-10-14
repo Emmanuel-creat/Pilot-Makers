@@ -44,6 +44,9 @@ export default async function NetworkPage({ params, searchParams }: { params: Pr
             <Link href={`/app/catalogue/reseaux/${n.id}/recommandations`} className="btn-secondary">
               <Icon name="send" size={16} /> Recommandations{pending ? ` (${pending})` : ""}
             </Link>
+            <Link href={`/app/catalogue/reseaux/${n.id}/achats`} className="btn-secondary">
+              <Icon name="truck" size={16} /> Achats groupés
+            </Link>
             <Link href={`/app/catalogue/reseaux/${n.id}/bourse`} className="btn-secondary">
               <Icon name="team" size={16} /> Bourse aux missions et matériaux
             </Link>

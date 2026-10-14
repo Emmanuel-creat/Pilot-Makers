@@ -2040,6 +2040,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "achats-groupes",
+    category: "catalogue",
+    title: "Regrouper ses achats avec les artisans de son réseau",
+    summary: "Ouvrez un achat groupé chez un fournisseur : les quantités des membres s'additionnent pour atteindre ses paliers de prix.",
+    steps: [
+      "Dans votre réseau d'artisans, ouvrez Achats groupés puis indiquez le produit, le fournisseur, l'unité et son prix de base.",
+      "Ajoutez les paliers dégressifs négociés : à partir de telle quantité, tel prix unitaire hors taxe. Fixez la date limite des engagements.",
+      "Les membres du réseau sont prévenus et engagent leur quantité. Chacun voit le prix actuel, ce qui manque pour le palier suivant et son économie.",
+      "Une quantité de 0 retire l'engagement. Après la date limite, les engagements sont clos.",
+      "L'organisateur clôt l'achat au palier atteint, ce qui prévient les participants, puis télécharge le récapitulatif CSV à transmettre au fournisseur.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

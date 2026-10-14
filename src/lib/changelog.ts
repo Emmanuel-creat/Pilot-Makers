@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "achats-groupes",
+    date: "2026-10-14",
+    title: "Achats groupés entre artisans du réseau",
+    text: "Additionnez vos quantités avec les membres de votre réseau pour atteindre les paliers de prix d'un fournisseur, puis transmettez-lui le récapitulatif.",
+    href: "/aide/achats-groupes",
+  },
+  {
     id: "recommandations-entre-metiers",
     date: "2026-10-14",
     title: "Recommandations entre métiers complémentaires",
