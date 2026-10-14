@@ -44,6 +44,7 @@ export interface Job {
   longitude: number | null;
   geo_source: "" | "adresse" | "gps";
   geo_label: string;
+  outdoor_work: string;
 }
 
 export interface JobTask {
@@ -76,6 +77,7 @@ function mapJob(r: Record<string, unknown>): Job {
     longitude: r.longitude == null ? null : Number(r.longitude),
     geo_source: (r.geo_source ?? "") as Job["geo_source"],
     geo_label: String(r.geo_label ?? ""),
+    outdoor_work: String(r.outdoor_work ?? ""),
   };
 }
 

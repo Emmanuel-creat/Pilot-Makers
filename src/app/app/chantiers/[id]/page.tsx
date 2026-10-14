@@ -36,7 +36,8 @@ import { listJobWaste } from "@/lib/services/waste";
 import { WasteSection } from "./WasteSection";
 import { listJobRentals } from "@/lib/services/rentals";
 import { RentalSection } from "./RentalSection";
-import { doeNotesAction } from "@/app/actions";
+import { doeNotesAction, outdoorWorkAction } from "@/app/actions";
+import { isOutdoorWork, OUTDOOR_WORKS } from "@/lib/weather";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
 
@@ -180,6 +181,35 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           <div className="mt-4 border-t border-line pt-4">
             <h3 className="mb-2 text-sm font-semibold">Emplacement</h3>
             <JobLocation jobId={job.id} located={job.latitude !== null} source={job.geo_source} label={job.geo_label} canEdit={canEdit} />
+          </div>
+          <div className="mt-4 border-t border-line pt-4">
+            <h3 className="mb-2 text-sm font-semibold">Travaux extérieurs</h3>
+            {canEdit ? (
+              <ActionForm action={outdoorWorkAction} className="flex flex-wrap items-end gap-2">
+                <input type="hidden" name="jobId" value={job.id} />
+                <div className="min-w-0 flex-1">
+                  <label className="label" htmlFor="outdoor-work">
+                    Surveiller la météo pour
+                  </label>
+                  <select id="outdoor-work" name="outdoorWork" className="field" defaultValue={job.outdoor_work}>
+                    <option value="">Travaux en intérieur, pas de suivi</option>
+                    {Object.entries(OUTDOOR_WORKS).map(([k, w]) => (
+                      <option key={k} value={k}>
+                        {w.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Submit className="btn-secondary">Enregistrer</Submit>
+              </ActionForm>
+            ) : (
+              <p className="text-sm text-muted">{isOutdoorWork(job.outdoor_work) ? OUTDOOR_WORKS[job.outdoor_work].label : "Travaux en intérieur"}</p>
+            )}
+            {job.outdoor_work ? (
+              <Link href="/app/chantiers/meteo" className="link mt-2 inline-flex min-h-6 items-center text-sm">
+                Voir la météo des chantiers
+              </Link>
+            ) : null}
           </div>
         </Section>
       </div>

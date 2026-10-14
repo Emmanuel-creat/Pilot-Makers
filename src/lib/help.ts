@@ -1774,6 +1774,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "meteo-chantiers",
+    category: "regles",
+    title: "Suivre la météo des chantiers extérieurs",
+    summary: "Alertes de pluie, de vent et de gel sur les jours planifiés, et décalage proposé vers une période favorable.",
+    steps: [
+      "Sur la fiche du chantier, choisissez le type de travaux extérieurs : maçonnerie, toiture, peinture de façade, terrassement ou autre. Chaque type a ses propres seuils, par exemple pas de béton sous 2 °C ni de toiture avec des rafales de 50 km/h.",
+      "La page Chantiers, puis Météo, montre les prévisions à 10 jours au dépôt et, pour chaque chantier extérieur, les jours planifiés qui tombent mal et pourquoi.",
+      "Quand une période favorable de même durée existe, le bouton Décaler déplace toutes les affectations à venir du chantier. Les conflits éventuels sont signalés dans le planning.",
+      "Les prévisions viennent d'Open-Meteo, à la position du chantier si elle est connue, sinon à celle de l'entreprise.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -15,6 +15,7 @@ const env = {
   APP_SECRET: process.env.APP_SECRET ?? "secret-de-test-pour-le-parcours-navigateur",
   APP_URL: `http://localhost:${port}`,
   REQUIRE_ADMIN_2FA: "0",
+  WEATHER: process.env.WEATHER ?? "demo",
 };
 const seed = spawnSync("node_modules/.bin/tsx", ["scripts/seed.ts"], { env, stdio: "inherit" });
 if (seed.status !== 0) process.exit(seed.status ?? 1);

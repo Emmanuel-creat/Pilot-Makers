@@ -1255,6 +1255,21 @@ test("stock : scanner un code-barres et l'associer", async ({ page }) => {
   await expect(page.locator('[data-testid="scan-stock"], [data-testid="scan-catalogue"]').first()).toBeVisible();
 });
 
+test("chantier : météo des travaux extérieurs", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Surveiller la météo pour").selectOption("maconnerie");
+  await page.getByLabel("Surveiller la météo pour").locator("xpath=ancestor::form").getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByLabel("Surveiller la météo pour")).toHaveValue("maconnerie");
+  await page.getByRole("link", { name: "Voir la météo des chantiers" }).click();
+  await page.waitForURL(/\/app\/chantiers\/meteo$/);
+  await expect(page.getByRole("heading", { name: "Chantiers extérieurs" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Prévisions au dépôt" })).toBeVisible();
+  await audit(page, "météo des chantiers");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

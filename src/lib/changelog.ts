@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "meteo-chantiers",
+    date: "2026-10-14",
+    title: "Météo des chantiers extérieurs",
+    text: "Pluie, vent et gel contrôlés sur les jours planifiés selon le type de travaux, avec un décalage proposé vers la première période favorable.",
+    href: "/aide/meteo-chantiers",
+  },
+  {
     id: "codes-barres",
     date: "2026-10-14",
     title: "Lecture des codes-barres",

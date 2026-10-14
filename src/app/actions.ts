@@ -98,6 +98,7 @@ import { applyProposal } from "@/lib/services/auto-planning";
 import { markWatchRead } from "@/lib/services/regulatory-watch";
 import { saveProductInfo } from "@/lib/services/product-info";
 import { assignCode } from "@/lib/services/barcode";
+import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2721,4 +2722,31 @@ export async function barcodeAssignAction(_: ActionState, fd: FormData): Promise
   revalidatePath("/app/stock/scanner");
   revalidatePath("/app/stock");
   return { ok: true, message: "Code associé à l'article." };
+}
+
+export async function outdoorWorkAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const jobId = s(fd, "jobId");
+  try {
+    await withCtx((ctx) => setOutdoorWork(ctx, jobId, s(fd, "outdoorWork")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/chantiers/${jobId}`);
+  revalidatePath("/app/chantiers/meteo");
+  return { ok: true, message: "Type de travaux enregistré." };
+}
+
+export async function weatherShiftAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let r: { moved: number; conflicts: number };
+  try {
+    r = await withCtx((ctx) => shiftJob(ctx, { jobId: s(fd, "jobId"), shift: s(fd, "shift") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/chantiers/meteo");
+  revalidatePath("/app/planning");
+  return {
+    ok: true,
+    message: r.conflicts ? `Chantier décalé : ${r.conflicts} conflit${r.conflicts > 1 ? "s" : ""} à vérifier dans le planning.` : "Chantier décalé dans le planning.",
+  };
 }

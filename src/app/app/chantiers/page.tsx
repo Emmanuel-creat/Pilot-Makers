@@ -23,6 +23,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             <Link href="/app/carte" className="btn-secondary">
               <Icon name="pin" size={16} /> Carte
             </Link>
+            <Link href="/app/chantiers/meteo" className="btn-secondary">
+              <Icon name="cloud" size={16} /> Météo
+            </Link>
             <Link href="/app/avis" className="btn-secondary">
               <Icon name="star" size={16} /> Avis clients
             </Link>
