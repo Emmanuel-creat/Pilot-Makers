@@ -43,5 +43,14 @@
     "fix": "Sur écran tactile, cases à cocher, boutons radio et boutons en forme de lien ont une cible d'au moins 24 points.",
     "file": "tests/e2e/telephones.spec.ts",
     "test": "${phone.name} : écrans principaux en portrait"
+  },
+  {
+    "id": "R-006",
+    "date": "2026-10-14",
+    "kind": "test",
+    "title": "Le test des échéanciers échouait certaines nuits : au passage à l'heure d'hiver, ajouter onze fois 24 heures après minuit tombait encore le même jour à Paris.",
+    "fix": "Le test vérifie le retard deux jours après l'échéance, quelle que soit l'heure et le changement d'heure.",
+    "file": "tests/echeanciers.test.ts",
+    "test": "établit un échéancier sur le reste à payer et juge le retard échéance par échéance"
   }
 ]

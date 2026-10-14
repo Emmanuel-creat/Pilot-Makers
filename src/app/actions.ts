@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { acceptAnswer, answerQuestion, askQuestion, report as reportCommunity, toggleVote } from "@/lib/services/community";
 import { decideBenefit, requestBenefit } from "@/lib/services/pricing-benefits";
 import { setTeamLocale } from "@/lib/services/team-day";
 import { quoteFromDiagnosis, saveDiagnosis } from "@/lib/services/energy-diagnoses";
@@ -3284,4 +3285,58 @@ export async function benefitDecisionAction(_: ActionState, fd: FormData): Promi
   }
   revalidatePath("/admin/offres");
   return { ok: true, message: "Décision enregistrée" };
+}
+
+export async function communityAskAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => askQuestion(ctx, { topic: s(fd, "topic"), title: s(fd, "title"), body: s(fd, "body") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/entraide");
+  redirect(`/app/entraide/${id}`);
+}
+
+export async function communityAnswerAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "questionId");
+  try {
+    await withCtx((ctx) => answerQuestion(ctx, id, { body: s(fd, "body") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/entraide/${id}`);
+  return { ok: true, message: "Réponse publiée, merci pour le coup de main" };
+}
+
+export async function communityVoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => toggleVote(ctx, s(fd, "answerId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/entraide/${s(fd, "questionId")}`);
+  return { ok: true, message: "" };
+}
+
+export async function communityAcceptAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => acceptAnswer(ctx, s(fd, "questionId"), s(fd, "answerId") || null));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/entraide/${s(fd, "questionId")}`);
+  return { ok: true, message: "" };
+}
+
+export async function communityReportAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let hidden = false;
+  try {
+    const kind = s(fd, "kind") === "question" ? "question" : "reponse";
+    hidden = (await withCtx((ctx) => reportCommunity(ctx, kind, s(fd, "id"), { reason: s(fd, "reason") }))).hidden;
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/entraide");
+  return { ok: true, message: hidden ? "Signalement enregistré : le message est masqué en attendant la modération" : "Signalement enregistré, merci" };
 }

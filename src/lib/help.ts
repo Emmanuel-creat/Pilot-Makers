@@ -2175,6 +2175,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "entraide-artisans",
+    category: "compte",
+    title: "Entraide entre artisans",
+    summary: "Posez une question de technique, de normes ou de gestion : les confrères répondent, vous retenez la réponse qui vous a aidé.",
+    steps: [
+      "Ouvrez Entraide depuis Plus, ou ajoutez la brique au menu. Choisissez un thème et formulez la question en une phrase, avec les précisions utiles.",
+      "Les messages sont signés par le métier et le département, jamais par le nom de l'entreprise. Téléphone et e-mail sont refusés : la communauté sert à s'entraider, pas à démarcher.",
+      "Votez Utile sur les réponses qui aident (une voix par personne, pas sur votre propre entreprise). L'auteur retient la meilleure réponse : elle passe en tête et la question est marquée résolue.",
+      "Une notification prévient l'auteur à chaque nouvelle réponse. Un message signalé par trois personnes différentes est masqué en attendant la modération.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

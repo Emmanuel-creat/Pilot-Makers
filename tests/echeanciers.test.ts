@@ -81,7 +81,7 @@ describe("échéanciers de paiement", () => {
     // La facture d'origine est inchangée ; seul le retard suit l'échéancier.
     expect(now.due_date).toBe(before.due_date);
     expect(invoiceStatus(now, parisDate(days(5)))).toBe("partial");
-    expect(invoiceStatus(now, parisDate(days(11)))).toBe("overdue");
+    expect(invoiceStatus(now, parisDate(days(12)))).toBe("overdue");
 
     const msg = defaultInvoiceMessage(now, await getOrganization(ctx));
     expect(msg.body).toContain("échéance 1");

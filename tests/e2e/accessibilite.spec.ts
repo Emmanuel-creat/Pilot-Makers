@@ -1719,6 +1719,26 @@ test("abonnement : demande de tarif créateur", async ({ page }) => {
   await audit(page, "tarifs préférentiels");
 });
 
+test("entraide : question publiée puis réponse", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Entraide entre artisans" }).click();
+  await page.waitForURL(/\/app\/entraide$/);
+  await audit(page, "entraide");
+  const title = `Quel joint pour une douche à l'italienne ${Date.now().toString(36)} ?`;
+  await page.getByLabel("Thème", { exact: true }).first().selectOption("technique");
+  await page.getByLabel("Votre question").fill(title);
+  await page.getByRole("button", { name: "Publier la question" }).click();
+  await page.waitForURL(/\/app\/entraide\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: title })).toBeVisible();
+  await page.getByLabel("Votre réponse").fill("Un joint époxy, plus étanche et facile à entretenir.");
+  await page.getByRole("button", { name: "Publier la réponse" }).click();
+  await expect(page.getByTestId("reponses-entraide")).toContainText("joint époxy");
+  await page.getByRole("button", { name: "Retenir cette réponse" }).click();
+  await expect(page.getByText("Réponse retenue par l'auteur")).toBeVisible();
+  await audit(page, "question d'entraide");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

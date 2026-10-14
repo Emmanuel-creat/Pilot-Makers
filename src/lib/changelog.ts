@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "entraide-artisans",
+    date: "2026-10-14",
+    title: "Entraide entre artisans",
+    text: "Questions et réponses entre confrères sur la technique, les normes et la gestion, avec votes et réponse retenue. Signature par métier et département, sans nom.",
+    href: "/app/entraide",
+  },
+  {
     id: "tarifs-apprentis-createurs",
     date: "2026-10-14",
     title: "Tarifs apprentis et créateurs",
