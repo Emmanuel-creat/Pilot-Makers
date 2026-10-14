@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "equilibre-de-charge",
+    date: "2026-10-14",
+    title: "Équilibre de charge de l'équipe",
+    text: "Alerte quand une personne est surchargée et propositions pour confier ses affectations à un collègue libre.",
+    href: "/aide/equilibre-de-charge",
+  },
+  {
     id: "score-de-sante",
     date: "2026-10-14",
     title: "Score de santé partageable",

@@ -1883,6 +1883,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "equilibre-de-charge",
+    category: "regles",
+    title: "Repérer une surcharge et mieux répartir les chantiers",
+    summary: "L'occupation de chaque personne sur quatre semaines, les alertes de surcharge et des réaffectations proposées en un clic.",
+    steps: [
+      "Dans Planning, ouvrez Équilibre : chaque personne de l'équipe affiche ses jours planifiés sur ses jours ouvrés de présence, sur les quatre semaines à venir.",
+      "Une personne est en surcharge si elle est affectée à deux chantiers le même jour, pendant une absence, plus de 15 jours ouvrés d'affilée ou si son planning est plein.",
+      "L'écart entre la personne la plus chargée et la moins chargée indique si la répartition est équitable.",
+      "Les réaffectations proposées confient une affectation à venir à la personne la moins chargée qui est présente et libre sur toute la période.",
+      "Le bouton Confier déplace l'affectation dans le planning, comme un glisser-déposer : vous pouvez toujours la remettre ensuite.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

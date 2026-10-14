@@ -852,6 +852,7 @@ export async function moveAssignmentAction(_: ActionState, fd: FormData): Promis
     const [resourceType, resourceId] = s(fd, "resource").split(":");
     const r = await withCtx((ctx) => moveAssignment(ctx, s(fd, "id"), { resourceType, resourceId, start: s(fd, "start") }));
     revalidatePath("/app/planning");
+    revalidatePath("/app/planning/equilibre");
     return r.conflicts.length ? { ok: true, message: `Déplacé, en conflit avec : ${r.conflicts.join(", ")}.` } : { ok: true, message: "Déplacé." };
   } catch (e) {
     return toState(e);

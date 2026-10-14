@@ -1408,6 +1408,15 @@ test("rapports : score de santé et lien de partage en lecture seule", async ({ 
   await expect(page.getByTestId("liens-score")).toContainText("Révoqué");
 });
 
+test("planning : équilibre de charge de l'équipe", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/planning");
+  await page.getByRole("link", { name: "Équilibre" }).click();
+  await expect(page.getByRole("heading", { name: "Équilibre de charge" })).toBeVisible();
+  await expect(page.getByTestId("charge-equipe")).toContainText("jours");
+  await audit(page, "équilibre de charge");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

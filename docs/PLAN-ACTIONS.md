@@ -293,3 +293,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 130 (14/10/2026) : ligne 230 (plans 2D importés en image avec prise de mesures à l'écran : étalonnage sur une cote, surfaces, longueurs, surfaces de murs avec déductions, comptages, relevés enregistrés et ajoutés au devis ; PDF et DWG à exporter en image).
 - Vague 131 (14/10/2026) : ligne 417 (simulateur de décisions : embauche, hausse de prix avec perte de volume supportable, achat de véhicule, à partir des 12 derniers mois).
 - Vague 132 (14/10/2026) : ligne 387 (score de santé de l'entreprise sur sept indicateurs, note de A à E, liens de partage en lecture seule limités dans le temps et révocables).
+- Vague 133 (14/10/2026) : ligne 372 (équilibre de charge : occupation de chaque personne sur quatre semaines, alertes de surcharge, écart de répartition et réaffectations proposées vers la personne libre la moins chargée).
