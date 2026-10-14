@@ -38,6 +38,7 @@ import { WinOdds } from "./WinOdds";
 import { TenderBox } from "./TenderBox";
 import { QuoteRisk } from "./QuoteRisk";
 import { CarbonBalance } from "./CarbonBalance";
+import { LivePrices } from "./LivePrices";
 import { ProductSheets } from "./ProductSheets";
 import { hasFeature } from "@/lib/services/features";
 import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
@@ -135,6 +136,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
             <Icon name="note" size={16} /> Ouvrir le métré
           </Link>
         </section>
+        <LivePrices ctx={ctx} quoteId={id} />
         <TenderBox ctx={ctx} quoteId={id} />
         <WinOdds ctx={ctx} quoteId={id} />
         <QuoteRisk ctx={ctx} quoteId={id} />
@@ -634,6 +636,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
               </ul>
             </section>
           ) : null}
+          <LivePrices ctx={ctx} quoteId={id} />
           <TenderBox ctx={ctx} quoteId={id} />
           <WinOdds ctx={ctx} quoteId={id} />
           <QuoteRisk ctx={ctx} quoteId={id} />

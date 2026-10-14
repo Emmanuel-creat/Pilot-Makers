@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { applyLivePrices } from "@/lib/services/live-pricing";
 import { addBiosourcedVariant } from "@/lib/services/biosourced";
 import { saveMatchingProfile } from "@/lib/services/matching";
 import { reopenMonth, verifyMonth } from "@/lib/services/continuous-accounting";
@@ -3391,4 +3392,19 @@ export async function biosourcedVariantAction(_: ActionState, fd: FormData): Pro
   revalidatePath(`/app/devis/${quoteId}`);
   revalidatePath(`/app/devis/${quoteId}/biosource`);
   return { ok: true, message: "Variante ajoutée en option, prix à compléter dans le devis" };
+}
+
+export async function livePricesAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const quoteId = s(fd, "quoteId");
+  let r: { revised: boolean; updated: number };
+  try {
+    r = await withCtx((ctx) => applyLivePrices(ctx, quoteId, fd.getAll("lineIds").map(String)));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/devis/${quoteId}`);
+  return {
+    ok: true,
+    message: `${r.updated} prix actualisé${r.updated > 1 ? "s" : ""}${r.revised ? " : le devis repasse en brouillon, émettez puis renvoyez la nouvelle version" : ""}`,
+  };
 }

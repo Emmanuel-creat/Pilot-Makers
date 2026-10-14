@@ -2223,6 +2223,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "devis-vivant",
+    category: "devis",
+    title: "Devis vivant : des prix à jour jusqu'à la signature",
+    summary: "Quand un tarif fournisseur ou un prix du catalogue change, le devis non signé le signale ; vous décidez de reprendre ou non le nouveau prix.",
+    steps: [
+      "Sur un devis non signé, le cadre Prix du catalogue modifiés liste les lignes dont le prix ou le coût a changé depuis leur ajout, avec l'écart en pourcentage.",
+      "Décochez les lignes à garder telles quelles, puis Actualiser les prix cochés. Rien ne change sans votre accord.",
+      "Si le devis est déjà émis ou envoyé, il repasse en brouillon : émettez la nouvelle version et renvoyez-la. Le client n'est jamais engagé sur un prix qu'il n'a pas vu.",
+      "Les prix fournisseurs dont la date de validité est dépassée sont signalés pour être reconfirmés. Une fois le devis signé, ses prix ne suivent plus le catalogue.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

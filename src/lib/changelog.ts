@@ -17,6 +17,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-vivant",
+    date: "2026-10-14",
+    title: "Devis vivant",
+    text: "Un tarif fournisseur change avant la signature ? Le devis le signale et reprend le nouveau prix si vous le décidez, avec une nouvelle version pour le client.",
+  },
+  {
     id: "alternatives-biosourcees",
     date: "2026-10-14",
     title: "Alternatives biosourcées dans le devis",
