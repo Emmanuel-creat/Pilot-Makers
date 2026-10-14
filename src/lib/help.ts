@@ -1695,6 +1695,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/clients/campagnes", label: "Ouvrir les campagnes" },
   },
   {
+    slug: "presentation-tablette",
+    category: "devis",
+    title: "Présenter le devis sur tablette chez le client",
+    summary: "Le devis émis, écran par écran, en grands caractères, jusqu'à la signature sur place.",
+    steps: [
+      "Sur un devis émis, cliquez sur « Présenter sur tablette ».",
+      "Faites défiler les écrans avec les boutons, les flèches du clavier ou en glissant le doigt : couverture, un écran par lot, photos, puis récapitulatif.",
+      "Sur le récapitulatif, cochez les options qui intéressent le client pour voir le total, puis faites signer sur l'écran.",
+    ],
+    notes: ["Les coûts, marges, commentaires internes et métrés ne sont jamais affichés. Le bouton « Plein écran » masque le navigateur."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

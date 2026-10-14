@@ -469,6 +469,11 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                   </button>
                 </form>
               ) : null}
+              {current ? (
+                <Link href={`/presentation/${id}`} className="btn-ghost w-full justify-start text-sm">
+                  <Icon name="eye" size={16} /> Présenter sur tablette
+                </Link>
+              ) : null}
               {status === "accepted" && !draft.amendment && can(ctx, "billing") ? (
                 <Link href={`/app/devis/${id}/decompte`} className="btn-ghost w-full justify-start text-sm">
                   <Icon name="chart" size={16} /> Décompte général

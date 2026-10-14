@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "presentation-tablette",
+    date: "2026-10-14",
+    title: "Présentation du devis sur tablette",
+    text: "Présentez le devis chez le client écran par écran, ajoutez ses options au total et faites signer sur place, sans jamais montrer vos coûts.",
+    href: "/aide/presentation-tablette",
+  },
+  {
     id: "campagnes-anciens-clients",
     date: "2026-10-14",
     title: "Campagnes e-mail vers les anciens clients",

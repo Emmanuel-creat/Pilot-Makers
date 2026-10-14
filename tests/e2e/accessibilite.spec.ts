@@ -1223,6 +1223,20 @@ test("devis : signature du client sur l'écran de l'artisan", async ({ page }) =
   await issue.getByRole("button", { name: "Émettre" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^D-\d{4}-\d{4}$/);
 
+  // Présentation sur tablette avant la signature
+  await page.getByRole("link", { name: "Présenter sur tablette" }).click();
+  await page.waitForURL(/\/presentation\/[0-9a-f-]{36}$/);
+  await expect(page.getByText("Écran 1 sur 3")).toBeVisible();
+  await audit(page, "présentation : couverture");
+  await page.getByRole("button", { name: "Suivant" }).click();
+  await expect(page.getByText("Pose de carrelage au sol")).toBeVisible();
+  await page.getByRole("button", { name: "Suivant" }).click();
+  await expect(page.getByTestId("presentation-total")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Faire signer sur place" })).toBeVisible();
+  await audit(page, "présentation : récapitulatif");
+  await page.getByRole("link", { name: "Quitter la présentation" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+
   await page.getByRole("button", { name: "Faire signer sur place" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Nom et prénom du signataire").fill("Claire Dubois");
