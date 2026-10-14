@@ -77,6 +77,7 @@ import { setMonthlyReport } from "@/lib/services/monthly-report";
 import { hideReview, replyReview, requestReview } from "@/lib/services/reviews";
 import { cancelVisit, saveVisitSettings } from "@/lib/services/visits";
 import { saveDoeNotes } from "@/lib/services/doe";
+import { saveSafetyPlan } from "@/lib/services/safety";
 import {
   cancelQuote,
   createAmendment,
@@ -2102,6 +2103,27 @@ export async function doeNotesAction(_: ActionState, fd: FormData): Promise<Acti
     await withCtx((ctx) => saveDoeNotes(ctx, jobId, s(fd, "notes")));
     revalidatePath(`/app/chantiers/${jobId}`);
     return { ok: true, message: "Conseils d'entretien enregistrés." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function safetyPlanAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) =>
+      saveSafetyPlan(ctx, jobId, {
+        risks: fd.getAll("risks").map(String),
+        buildingYear: s(fd, "buildingYear"),
+        manager: s(fd, "manager"),
+        firstAider: s(fd, "firstAider"),
+        hospital: s(fd, "hospital"),
+        meetingPoint: s(fd, "meetingPoint"),
+        instructions: s(fd, "instructions"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${jobId}/securite`);
+    return { ok: true, message: "Plan de prévention enregistré." };
   } catch (e) {
     return toState(e);
   }

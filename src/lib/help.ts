@@ -1438,6 +1438,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Les fiches techniques viennent des documents joints aux articles du catalogue. Avant la réception, le dossier est marqué provisoire."],
   },
   {
+    slug: "plan-de-prevention",
+    category: "devis",
+    title: "Préparer le plan de prévention d'un chantier",
+    summary: "Risques, mesures, secours et liste d'émargement, prêts à afficher.",
+    steps: [
+      "Sur la fiche du chantier, cliquez sur « Plan de prévention » : les risques sont proposés d'après les travaux du devis.",
+      "Cochez ou décochez les risques, indiquez le responsable, le sauveteur secouriste, l'hôpital le plus proche et l'année de construction du bâtiment.",
+      "Enregistrez, puis téléchargez le plan à afficher : chaque personne qui intervient le lit et le signe avant de commencer.",
+    ],
+    notes: [
+      "Pour un bâtiment construit avant 1997, le plan rappelle le repérage amiante avant travaux ; avant 1949, le constat plomb. Les autres entreprises du chantier y figurent pour organiser la coactivité.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

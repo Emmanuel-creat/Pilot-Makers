@@ -91,11 +91,16 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
           </>
         }
         actions={
-          address ? (
-            <a className="btn-secondary" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">
-              <Icon name="pin" size={16} /> Voir sur la carte
-            </a>
-          ) : null
+          <div className="flex flex-wrap gap-2">
+            <Link className="btn-secondary" href={`/app/chantiers/${job.id}/securite`}>
+              <Icon name="shield" size={16} /> Plan de prévention
+            </Link>
+            {address ? (
+              <a className="btn-secondary" href={`https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`} target="_blank" rel="noreferrer">
+                <Icon name="pin" size={16} /> Voir sur la carte
+              </a>
+            ) : null}
+          </div>
         }
       />
 

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "plan-de-prevention",
+    date: "2026-10-14",
+    title: "Plan de prévention du chantier",
+    text: "Les risques du chantier proposés d'après les travaux, avec mesures, protections, secours et liste d'émargement, en un document à afficher.",
+    href: "/aide/plan-de-prevention",
+  },
+  {
     id: "dossier-ouvrages-executes",
     date: "2026-10-13",
     title: "Dossier des ouvrages exécutés",

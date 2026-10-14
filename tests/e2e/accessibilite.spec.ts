@@ -937,6 +937,24 @@ test("chantier : dossier des ouvrages exécutés", async ({ page }) => {
   expect((await res.body()).subarray(0, 5).toString()).toBe("%PDF-");
 });
 
+test("chantier : plan de prévention à afficher", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Plan de prévention" }).click();
+  await expect(page.getByRole("heading", { name: "Plan de prévention", level: 1 })).toBeVisible();
+  await page.getByRole("checkbox", { name: /Chute de hauteur/ }).check();
+  await page.getByLabel("Sauveteur secouriste du travail").fill("Julie Morel");
+  await page.getByLabel("Année de construction du bâtiment").fill("1975");
+  await page.getByRole("button", { name: "Enregistrer le plan" }).click();
+  await expect(page.getByText("Plan de prévention enregistré.")).toBeVisible();
+  await expect(page.getByText(/Repérage amiante avant travaux \(permis/)).toBeVisible();
+  await audit(page, "plan de prévention");
+  const res = await page.request.get(page.url().replace(/\/app\/chantiers\/([^/]+)\/securite$/, "/api/jobs/$1/prevention"));
+  expect(res.headers()["content-type"]).toBe("application/pdf");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
