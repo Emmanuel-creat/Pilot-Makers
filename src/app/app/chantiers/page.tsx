@@ -20,6 +20,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
         subtitle="Créés depuis les devis acceptés : tâches, avancement et informations d'accès."
         actions={
           <>
+            <Link href="/app/carte" className="btn-secondary">
+              <Icon name="pin" size={16} /> Carte
+            </Link>
             <Link href="/app/avis" className="btn-secondary">
               <Icon name="star" size={16} /> Avis clients
             </Link>

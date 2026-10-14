@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "carte-chantiers-clients",
+    date: "2026-10-14",
+    title: "Carte des chantiers et des clients",
+    text: "Visualisez vos chantiers par état et vos clients sur une carte, avec la répartition des chantiers par distance au dépôt.",
+    href: "/aide/carte-chantiers-clients",
+  },
+  {
     id: "decompte-general",
     date: "2026-10-14",
     title: "Décompte général définitif",

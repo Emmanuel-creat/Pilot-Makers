@@ -1165,6 +1165,17 @@ test("équipe : parcours de formation des apprentis", async ({ page }) => {
   await audit(page, "parcours des apprentis");
 });
 
+test("carte des chantiers et des clients", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.getByRole("link", { name: "Carte", exact: true }).click();
+  await page.waitForURL(/\/app\/carte$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Carte des chantiers et des clients");
+  await audit(page, "carte");
+  await page.getByRole("link", { name: "Clients", exact: true }).last().click();
+  await page.waitForURL(/vue=clients/);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

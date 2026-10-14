@@ -276,3 +276,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 113 (14/10/2026) : ligne 368 (déclarations de congés payés du bâtiment préparées depuis les pointages, export pour la caisse)
 - Vague 114 (14/10/2026) : ligne 370 (parcours de formation des apprentis : tuteur, diplôme, jours d'école, compétences par rubrique validées par niveau, priorités et alerte de fin de contrat)
 - Vague 115 (14/10/2026) : ligne 206 (décompte général définitif : marché et avenants acceptés, factures sans double compte des acomptes, retenue, pénalités, règlements et solde, figé à l'envoi puis accepté ou contesté ; les situations de travaux existaient déjà)
+- Vague 116 (14/10/2026) : ligne 413 (carte des chantiers et des clients dessinée sans service de tuiles, localisation par lots des adresses, filtres, liens vers les fiches et répartition des chantiers par distance au dépôt)

@@ -91,6 +91,7 @@ import { ensureReferralCode, markReferralRewarded, saveReferralSettings } from "
 import { markDeclarationSent, saveDeclaration, saveLeaveFundSettings } from "@/lib/services/leave-fund";
 import { addSkill, createApprentice, deleteApprentice, deleteSkill, setSkillLevel, updateApprentice } from "@/lib/services/apprentices";
 import { savePenalties, setFinalAccountStatus } from "@/lib/services/final-account";
+import { locateAll } from "@/lib/services/map";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2592,6 +2593,17 @@ export async function setFinalAccountStatusAction(_: ActionState, fd: FormData):
       projet: "Décompte repassé en projet.",
     };
     return { ok: true, message: msg[status] ?? "Décompte mis à jour." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function locateAllAction(_: ActionState, _fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => locateAll(ctx));
+    revalidatePath("/app/carte");
+    if (!r.tried) return { ok: true, message: "Toutes les adresses sont déjà localisées." };
+    return { ok: true, message: `${r.found} adresse${r.found > 1 ? "s" : ""} localisée${r.found > 1 ? "s" : ""} sur ${r.tried}.` };
   } catch (e) {
     return toState(e);
   }

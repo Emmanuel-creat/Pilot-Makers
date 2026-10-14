@@ -19,6 +19,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         subtitle={`${rows.length} client${rows.length > 1 ? "s" : ""}${archived ? " archivé(s)" : ""}`}
         actions={
           <>
+            <Link href="/app/carte?vue=clients" className="btn-secondary">
+              <Icon name="pin" size={16} /> Carte
+            </Link>
             <Link href="/app/clients/parrainage" className="btn-secondary">
               <Icon name="users" size={16} /> Parrainage
             </Link>

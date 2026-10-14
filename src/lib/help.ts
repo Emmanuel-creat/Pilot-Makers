@@ -1666,6 +1666,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "carte-chantiers-clients",
+    category: "clients",
+    title: "Voir ses chantiers et ses clients sur une carte",
+    summary: "Où vous intervenez, la distance de vos chantiers au dépôt et l'accès direct à chaque fiche.",
+    steps: [
+      "Depuis Chantiers ou Clients, cliquez sur « Carte ».",
+      "Cliquez sur « Localiser les adresses manquantes » : les adresses des chantiers, des clients et de l'entreprise sont placées par le service public d'adresses.",
+      "Filtrez chantiers ou clients, cliquez sur un point pour ouvrir sa fiche, et consultez la répartition des chantiers par distance au dépôt.",
+    ],
+    notes: ["Une adresse incomplète ou imprécise n'est pas placée : corrigez-la sur la fiche, ou relevez la position depuis le chantier avec le téléphone."],
+    link: { href: "/app/carte", label: "Ouvrir la carte" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
