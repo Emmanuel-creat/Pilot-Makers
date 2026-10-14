@@ -1749,6 +1749,30 @@ test("comptabilité : contrôle des mois au fil de l'eau", async ({ page }) => {
   await audit(page, "comptabilité au fil de l'eau");
 });
 
+test("mise en relation : un particulier trouve un artisan", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/demandes");
+  await page.getByRole("link", { name: "Demandes de particuliers" }).click();
+  await page.waitForURL(/\/app\/demandes\/mise-en-relation$/);
+  await page.getByLabel("Recevoir des demandes de particuliers").check();
+  await page.getByLabel("Carrelage et faïence").check();
+  await page.getByLabel("Départements d'intervention").fill("69, 01");
+  await page.getByLabel("Demandes acceptées par semaine").fill("50");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Réception active")).toBeVisible();
+  await audit(page, "réglages de mise en relation");
+  await page.goto("/trouver-un-artisan");
+  await page.getByLabel("Type de travaux").selectOption("carrelage");
+  await page.getByLabel("Code postal des travaux").fill("69003");
+  await page.getByLabel("Vos travaux").fill("Poser du carrelage dans une cuisine de 15 m², dépose de l'ancien sol comprise.");
+  await page.getByLabel("Nom et prénom").fill("Lucie Bernard");
+  await page.getByLabel("E-mail").fill("lucie.bernard@exemple.fr");
+  await page.getByLabel(/J'accepte que ma demande/).check();
+  await audit(page, "trouver un artisan");
+  await page.getByRole("button", { name: "Trouver un artisan" }).click();
+  await expect(page.getByRole("status")).toContainText("Demande transmise");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { saveMatchingProfile } from "@/lib/services/matching";
 import { reopenMonth, verifyMonth } from "@/lib/services/continuous-accounting";
 import { acceptAnswer, answerQuestion, askQuestion, report as reportCommunity, toggleVote } from "@/lib/services/community";
 import { decideBenefit, requestBenefit } from "@/lib/services/pricing-benefits";
@@ -3360,4 +3361,21 @@ export async function monthReopenAction(_: ActionState, fd: FormData): Promise<A
   }
   revalidatePath("/app/comptabilite/continu");
   return { ok: true, message: "Mois rouvert" };
+}
+
+export async function matchingProfileAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      saveMatchingProfile(ctx, {
+        enabled: fd.get("enabled") === "on",
+        trades: fd.getAll("trades").map(String),
+        departments: s(fd, "departments"),
+        weeklyCap: s(fd, "weeklyCap"),
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/demandes/mise-en-relation");
+  return { ok: true, message: "Réglages enregistrés" };
 }

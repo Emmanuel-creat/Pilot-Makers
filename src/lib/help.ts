@@ -2199,6 +2199,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "demandes-de-particuliers",
+    category: "devis",
+    title: "Recevoir des demandes de particuliers",
+    summary: "Les particuliers décrivent leurs travaux sur la page Trouver un artisan ; chaque demande part vers trois entreprises au plus de leur département.",
+    steps: [
+      "Ouvrez Demandes puis Demandes de particuliers. Cochez les types de travaux acceptés, indiquez vos départements (ex. 69, 01, 38) et le nombre de demandes que vous acceptez par semaine.",
+      "L'activation exige le SIREN et l'assurance professionnelle dans le profil de l'entreprise : les particuliers ne sont mis en relation qu'avec des entreprises identifiées et assurées.",
+      "Chaque demande est transmise à trois entreprises au plus, d'abord à celles qui en ont reçu le moins récemment et sous leur plafond. Il n'y a ni enchère ni achat de contacts.",
+      "La demande arrive dans vos demandes avec la source Plateforme de mise en relation, avec un e-mail et une notification. Recontactez le particulier sous 48 heures : il a été prévenu.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

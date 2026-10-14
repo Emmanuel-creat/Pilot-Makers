@@ -30,6 +30,11 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       <PageHeader
         title="Demandes"
         subtitle={`${open.length} à suivre${closed.length ? `, ${won} gagnée${won > 1 ? "s" : ""} sur ${closed.length} terminée${closed.length > 1 ? "s" : ""}` : ""}`}
+        actions={
+          <Link href="/app/demandes/mise-en-relation" className="btn-secondary">
+            <Icon name="users" size={16} /> Demandes de particuliers
+          </Link>
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">

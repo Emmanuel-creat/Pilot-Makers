@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "demandes-de-particuliers",
+    date: "2026-10-14",
+    title: "Des demandes de particuliers, sans contacts payants",
+    text: "Les particuliers décrivent leurs travaux sur la page Trouver un artisan. Chaque demande est transmise à trois entreprises au plus de leur département, réparties équitablement.",
+    href: "/app/demandes/mise-en-relation",
+  },
+  {
     id: "comptabilite-au-fil-de-l-eau",
     date: "2026-10-14",
     title: "La comptabilité au fil de l'eau",
