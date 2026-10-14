@@ -32,6 +32,11 @@ export async function CarbonBalance({ ctx, quoteId }: { ctx: Ctx; quoteId: strin
           ))}
         </ul>
       ) : null}
+      <p className="text-xs">
+        <Link className="link inline-flex min-h-6 items-center" href={`/app/devis/${quoteId}/biosource`}>
+          Alternatives biosourcées et cycle de vie
+        </Link>
+      </p>
       {b.unknown.length ? (
         <p className="text-xs text-muted">
           Sans donnée : {b.unknown.join(", ")}. Renseignez l&apos;empreinte des articles depuis le{" "}

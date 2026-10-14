@@ -17,6 +17,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "alternatives-biosourcees",
+    date: "2026-10-14",
+    title: "Alternatives biosourcées dans le devis",
+    text: "Fibre de bois, ouate, chanvre, liège, fenêtres bois, peintures végétales : comparées sur 50 ans et proposées en option en un clic.",
+  },
+  {
     id: "demandes-de-particuliers",
     date: "2026-10-14",
     title: "Des demandes de particuliers, sans contacts payants",

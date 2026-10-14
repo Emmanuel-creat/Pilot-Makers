@@ -1773,6 +1773,14 @@ test("mise en relation : un particulier trouve un artisan", async ({ page }) => 
   await expect(page.getByRole("status")).toContainText("Demande transmise");
 });
 
+test("devis : alternatives biosourcées", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis?q=D-2026-0001");
+  await page.goto((await page.locator("a:visible", { hasText: "D-2026-0001" }).first().getAttribute("href"))! + "/biosource");
+  await expect(page.getByRole("heading", { name: "Alternatives biosourcées" })).toBeVisible();
+  await audit(page, "alternatives biosourcées");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

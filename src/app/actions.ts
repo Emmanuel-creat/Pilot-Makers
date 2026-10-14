@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { addBiosourcedVariant } from "@/lib/services/biosourced";
 import { saveMatchingProfile } from "@/lib/services/matching";
 import { reopenMonth, verifyMonth } from "@/lib/services/continuous-accounting";
 import { acceptAnswer, answerQuestion, askQuestion, report as reportCommunity, toggleVote } from "@/lib/services/community";
@@ -3378,4 +3379,16 @@ export async function matchingProfileAction(_: ActionState, fd: FormData): Promi
   }
   revalidatePath("/app/demandes/mise-en-relation");
   return { ok: true, message: "Réglages enregistrés" };
+}
+
+export async function biosourcedVariantAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const quoteId = s(fd, "quoteId");
+  try {
+    await withCtx((ctx) => addBiosourcedVariant(ctx, quoteId, s(fd, "lineId"), s(fd, "alternativeId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/devis/${quoteId}`);
+  revalidatePath(`/app/devis/${quoteId}/biosource`);
+  return { ok: true, message: "Variante ajoutée en option, prix à compléter dans le devis" };
 }

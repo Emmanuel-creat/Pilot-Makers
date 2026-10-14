@@ -2211,6 +2211,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "alternatives-biosourcees",
+    category: "devis",
+    title: "Proposer une alternative biosourcée",
+    summary: "Pour l'isolation, les fenêtres, les peintures, les parquets, les enduits et les sols souples, le devis propose des matériaux biosourcés comparés sur 50 ans.",
+    steps: [
+      "Dans le devis, sous le bilan carbone, ouvrez Alternatives biosourcées et cycle de vie.",
+      "Chaque ligne concernée affiche les alternatives : émissions sur 50 ans en comptant les remplacements, gain par rapport à la solution prévue, carbone stocké dans le matériau, écart de prix indicatif sur la fourniture et fin de vie.",
+      "Proposer en option ajoute la variante juste après la ligne d'origine, avec le conseil de mise en œuvre. Complétez le prix : le client compare et choisit.",
+      "Les valeurs sont des ordres de grandeur. Pour un chiffrage environnemental précis, renseignez l'empreinte de vos articles depuis la fiche FDES du fabricant.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
