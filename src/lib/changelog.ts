@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "comptabilite-au-fil-de-l-eau",
+    date: "2026-10-14",
+    title: "La comptabilité au fil de l'eau",
+    text: "Chaque mois terminé est contrôlé (banque, notes de frais, justificatifs) puis marqué vérifié. Quand tout l'exercice l'est, la clôture tient en un jour.",
+    href: "/app/comptabilite/continu",
+  },
+  {
     id: "entraide-artisans",
     date: "2026-10-14",
     title: "Entraide entre artisans",

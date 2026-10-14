@@ -2187,6 +2187,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "comptabilite-au-fil-de-l-eau",
+    category: "factures",
+    title: "Tenir la comptabilité au fil de l'eau",
+    summary: "Chaque mois terminé, quatre contrôles puis une vérification : la clôture de l'exercice tient ensuite en un jour.",
+    steps: [
+      "Ouvrez Comptabilité puis Au fil de l'eau. Chaque mois de l'exercice affiche ses contrôles : relevé bancaire importé, mouvements rapprochés, notes de frais validées, photo de chaque ticket.",
+      "Un contrôle en anomalie mène directement à la page qui le corrige, avec le nombre d'éléments à reprendre.",
+      "Quand un mois terminé ne signale plus rien, marquez-le vérifié. Cochez la TVA du mois si elle est déclarée et laissez une note pour l'expert-comptable si besoin.",
+      "Une pièce oubliée ? Rouvrez le mois, corrigez, puis vérifiez-le à nouveau. Quand tous les mois sont vérifiés, il ne reste que les points de préparation du bilan.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

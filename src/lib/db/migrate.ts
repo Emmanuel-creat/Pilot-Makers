@@ -113,6 +113,7 @@ import { sql as m111 } from "./migrations/111_diagnostics_energie";
 import { sql as m112 } from "./migrations/112_langue_equipe";
 import { sql as m113 } from "./migrations/113_tarifs_preferentiels";
 import { sql as m114 } from "./migrations/114_entraide";
+import { sql as m115 } from "./migrations/115_comptabilite_continue";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -230,6 +231,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "112_langue_equipe", sql: m112 },
   { id: "113_tarifs_preferentiels", sql: m113 },
   { id: "114_entraide", sql: m114 },
+  { id: "115_comptabilite_continue", sql: m115 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

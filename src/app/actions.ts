@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { reopenMonth, verifyMonth } from "@/lib/services/continuous-accounting";
 import { acceptAnswer, answerQuestion, askQuestion, report as reportCommunity, toggleVote } from "@/lib/services/community";
 import { decideBenefit, requestBenefit } from "@/lib/services/pricing-benefits";
 import { setTeamLocale } from "@/lib/services/team-day";
@@ -3339,4 +3340,24 @@ export async function communityReportAction(_: ActionState, fd: FormData): Promi
   }
   revalidatePath("/app/entraide");
   return { ok: true, message: hidden ? "Signalement enregistré : le message est masqué en attendant la modération" : "Signalement enregistré, merci" };
+}
+
+export async function monthVerifyAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => verifyMonth(ctx, s(fd, "month"), { vatDeclared: fd.get("vatDeclared") === "on", note: s(fd, "note") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/comptabilite/continu");
+  return { ok: true, message: "Mois vérifié" };
+}
+
+export async function monthReopenAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => reopenMonth(ctx, s(fd, "month")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/comptabilite/continu");
+  return { ok: true, message: "Mois rouvert" };
 }

@@ -1739,6 +1739,16 @@ test("entraide : question publiée puis réponse", async ({ page }) => {
   await audit(page, "question d'entraide");
 });
 
+test("comptabilité : contrôle des mois au fil de l'eau", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/comptabilite");
+  await page.getByRole("link", { name: /Au fil de l'eau/ }).click();
+  await page.waitForURL(/\/app\/comptabilite\/continu$/);
+  await expect(page.getByTestId("mois-comptables").locator("li").first()).toBeVisible();
+  await expect(page.getByText(/mois vérifiés? sur 12/)).toBeVisible();
+  await audit(page, "comptabilité au fil de l'eau");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

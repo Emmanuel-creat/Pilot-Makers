@@ -53,6 +53,9 @@ export default async function AccountingPage() {
         <Tile href="/app/comptabilite/bilan" icon="calendar" title="Préparation du bilan">
           Points de clôture de l&apos;exercice et dossier pour l&apos;expert-comptable.
         </Tile>
+        <Tile href="/app/comptabilite/continu" icon="check" title="Au fil de l'eau">
+          Contrôle de chaque mois terminé pour clôturer l&apos;exercice en un jour.
+        </Tile>
       </div>
 
       <section className="card mt-6 p-5" aria-labelledby="fec-titre">
