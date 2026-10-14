@@ -97,6 +97,7 @@ import { saveYearEnd } from "@/lib/services/year-end";
 import { applyProposal } from "@/lib/services/auto-planning";
 import { markWatchRead } from "@/lib/services/regulatory-watch";
 import { saveProductInfo } from "@/lib/services/product-info";
+import { assignCode } from "@/lib/services/barcode";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2708,4 +2709,16 @@ export async function saveProductInfoAction(_: ActionState, fd: FormData): Promi
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function barcodeAssignAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const [target, id] = s(fd, "article").split(":");
+  try {
+    await withCtx((ctx) => assignCode(ctx, { target, id: id ?? "", code: s(fd, "code") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/stock/scanner");
+  revalidatePath("/app/stock");
+  return { ok: true, message: "Code associé à l'article." };
 }

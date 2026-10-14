@@ -36,9 +36,14 @@ export default async function StockPage() {
         title="Stock"
         subtitle={`Dépôt${s.vehicles.length ? ` et ${s.vehicles.length} véhicule${s.vehicles.length > 1 ? "s" : ""}` : ""}${s.valueCents !== null ? `, valeur au coût d'achat : ${formatEuros(s.valueCents)}` : ""}.`}
         actions={
-          <Link href="/app/parc" className="btn-secondary">
-            <Icon name="truck" size={16} /> Véhicules
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/app/stock/scanner" className="btn-secondary">
+              <Icon name="eye" size={16} /> Scanner un article
+            </Link>
+            <Link href="/app/parc" className="btn-secondary">
+              <Icon name="truck" size={16} /> Véhicules
+            </Link>
+          </div>
         }
       />
       <div className="space-y-6">

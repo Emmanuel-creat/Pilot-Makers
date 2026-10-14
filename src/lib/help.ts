@@ -1763,6 +1763,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Le délai se compte en jours ouvrés, de la commande à la livraison."],
   },
   {
+    slug: "scanner-codes-barres",
+    category: "catalogue",
+    title: "Scanner le code-barres d'un produit",
+    summary: "Retrouver un article par son code-barres au dépôt ou chez le fournisseur, et l'enregistrer en stock.",
+    steps: [
+      "Depuis Stock, ouvrez Scanner un article. Sur téléphone ou tablette, le bouton Scanner avec la caméra lit les codes EAN et UPC des emballages quand le navigateur le permet. Sinon, tapez le code ou utilisez une douchette, qui le saisit à votre place.",
+      "Le code est cherché dans votre catalogue (code-barres, référence ou référence fournisseur), dans les articles suivis en stock et dans les tarifs fournisseurs importés. La clé de contrôle est vérifiée pour signaler une erreur de saisie.",
+      "Pour un article en stock, enregistrez tout de suite une entrée ou un inventaire au dépôt. Si le code n'est rattaché à rien, associez-le à un article du stock ou du catalogue : il sera retrouvé directement au prochain scan.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

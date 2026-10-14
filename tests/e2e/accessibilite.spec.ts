@@ -1238,6 +1238,23 @@ test("veille réglementaire annoncée sur le tableau de bord", async ({ page }) 
   await expect(unread).toHaveCount(before - 1);
 });
 
+test("stock : scanner un code-barres et l'associer", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/stock");
+  await page.getByRole("link", { name: "Scanner un article" }).click();
+  await page.waitForURL(/\/app\/stock\/scanner$/);
+  await page.getByLabel("Code-barres ou référence").fill("4006381333931");
+  await page.getByRole("button", { name: "Rechercher" }).click();
+  await expect(page.getByTestId("code-lu")).toContainText("EAN-13");
+  await audit(page, "scanner un article");
+  const assign = page.getByRole("button", { name: "Associer" });
+  if (await assign.count()) {
+    await page.getByLabel("Article", { exact: true }).selectOption({ index: 0 });
+    await assign.click();
+  }
+  await expect(page.locator('[data-testid="scan-stock"], [data-testid="scan-catalogue"]').first()).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

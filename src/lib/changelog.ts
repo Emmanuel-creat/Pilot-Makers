@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "codes-barres",
+    date: "2026-10-14",
+    title: "Lecture des codes-barres",
+    text: "Scannez un produit à la caméra ou à la douchette pour le retrouver dans le catalogue, le stock et les tarifs fournisseurs, et enregistrer une entrée en stock.",
+    href: "/aide/scanner-codes-barres",
+  },
+  {
     id: "fiches-produits",
     date: "2026-10-14",
     title: "Fiches produits enrichies",
