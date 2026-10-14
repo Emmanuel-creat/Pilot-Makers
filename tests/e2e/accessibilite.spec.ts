@@ -1283,6 +1283,23 @@ test("rapports : repères anonymes après participation", async ({ page }) => {
   await audit(page, "repères anonymes");
 });
 
+test("parc : demande de financement d'équipement", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/parc");
+  await page.getByRole("link", { name: "Financer un équipement" }).click();
+  await page.waitForURL(/\/app\/parc\/financement$/);
+  await audit(page, "financement");
+  await page.getByLabel("Équipement").fill("Fourgon 3,5 t");
+  await page.getByLabel("Montant HT (€)").fill("32000");
+  await page.getByLabel("Apport (€)").fill("2000");
+  await page.getByRole("button", { name: "Créer la demande" }).click();
+  await page.waitForURL(/\/app\/parc\/financement\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("mensualite")).toContainText("Mensualité retenue");
+  await audit(page, "demande de financement");
+  const pdf = await page.request.get(page.url().replace("/app/parc/financement/", "/api/financement/") + "/pdf");
+  expect(pdf.headers()["content-type"]).toBe("application/pdf");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

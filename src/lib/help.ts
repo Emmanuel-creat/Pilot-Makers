@@ -1798,6 +1798,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "financement-equipement",
+    category: "compte",
+    title: "Préparer une demande de financement d'équipement",
+    summary: "Simuler les mensualités d'un véhicule ou d'une machine et produire le dossier pour la banque ou le loueur.",
+    steps: [
+      "Dans Véhicules et outillage, ouvrez Financer un équipement et décrivez le besoin : équipement, fournisseur, montant HT, apport, formule (crédit-bail, location avec option d'achat, prêt ou location longue durée) et durée.",
+      "Sans taux connu, un taux indicatif selon la formule est appliqué ; remplacez-le par celui de l'offre reçue. La simulation compare les durées de 24 à 72 mois et indique le poids de la mensualité dans votre chiffre d'affaires.",
+      "Le Dossier PDF reprend l'identité de l'entreprise, le chiffre d'affaires facturé des trois dernières années, l'équipement et la simulation. Joignez-y vos bilans et le devis du fournisseur.",
+      "Suivez ensuite la demande : envoyée, accordée ou refusée.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -27,9 +27,14 @@ export default async function FleetPage() {
         title="Véhicules et outillage"
         subtitle="Contrôles techniques, entretiens et vérifications périodiques, avec un rappel quinze jours avant chaque échéance."
         actions={
-          <Link href="/app/stock" className="btn-secondary">
-            <Icon name="box" size={16} /> Stock du dépôt et des véhicules
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/app/stock" className="btn-secondary">
+              <Icon name="box" size={16} /> Stock du dépôt et des véhicules
+            </Link>
+            <Link href="/app/parc/financement" className="btn-secondary">
+              <Icon name="euro" size={16} /> Financer un équipement
+            </Link>
+          </div>
         }
       />
       {late.length ? (

@@ -100,6 +100,7 @@ import { saveProductInfo } from "@/lib/services/product-info";
 import { assignCode } from "@/lib/services/barcode";
 import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { setBenchmarkOptin } from "@/lib/services/benchmark";
+import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2761,4 +2762,51 @@ export async function benchmarkOptinAction(_: ActionState, fd: FormData): Promis
   }
   revalidatePath("/app/rapports/reperes");
   return { ok: true, message: on ? "Participation enregistrée." : "Participation arrêtée." };
+}
+
+const financingFields = (fd: FormData) => ({
+  label: s(fd, "label"),
+  category: s(fd, "category"),
+  supplier: s(fd, "supplier"),
+  quoteRef: s(fd, "quoteRef"),
+  amount: s(fd, "amount"),
+  down: s(fd, "down"),
+  kind: s(fd, "kind"),
+  months: s(fd, "months"),
+  rate: s(fd, "rate"),
+  residual: s(fd, "residual"),
+  purpose: s(fd, "purpose"),
+  lender: s(fd, "lender"),
+});
+
+export async function financingSaveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "id");
+  let saved: string;
+  try {
+    saved = await withCtx((ctx) => saveFinancing(ctx, id || null, financingFields(fd)));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/parc/financement");
+  if (!id) redirect(`/app/parc/financement/${saved}`);
+  revalidatePath(`/app/parc/financement/${id}`);
+  return { ok: true, message: "Demande enregistrée." };
+}
+
+export async function financingStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "id");
+  try {
+    await withCtx((ctx) => setFinancingStatus(ctx, id, s(fd, "status")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/parc/financement/${id}`);
+  revalidatePath("/app/parc/financement");
+  return { ok: true, message: "Statut mis à jour." };
+}
+
+export async function financingDeleteAction(fd: FormData) {
+  await withCtx((ctx) => deleteFinancing(ctx, s(fd, "id")));
+  revalidatePath("/app/parc/financement");
+  redirect("/app/parc/financement");
 }

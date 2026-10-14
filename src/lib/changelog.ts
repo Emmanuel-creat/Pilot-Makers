@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "financement-equipement",
+    date: "2026-10-14",
+    title: "Financement d'équipement",
+    text: "Simulez les mensualités d'un véhicule ou d'une machine et générez le dossier de demande pour votre banque ou un loueur.",
+    href: "/aide/financement-equipement",
+  },
+  {
     id: "reperes-anonymes",
     date: "2026-10-14",
     title: "Repères anonymes",
