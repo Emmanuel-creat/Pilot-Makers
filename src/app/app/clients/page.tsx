@@ -19,6 +19,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         subtitle={`${rows.length} client${rows.length > 1 ? "s" : ""}${archived ? " archivé(s)" : ""}`}
         actions={
           <>
+            <Link href="/app/clients/parrainage" className="btn-secondary">
+              <Icon name="users" size={16} /> Parrainage
+            </Link>
             <a href="/api/customers/export" className="btn-secondary">
               <Icon name="download" size={16} /> Exporter
             </a>
@@ -66,7 +69,10 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               <li key={c.id}>
                 <Link href={`/app/clients/${c.id}`} className="flex items-center gap-4 px-4 py-3 hover:bg-surface-2">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
-                    {customerDisplayName(c).replace(/^(Mme|M\.)\s+/, "").slice(0, 1).toUpperCase()}
+                    {customerDisplayName(c)
+                      .replace(/^(Mme|M\.)\s+/, "")
+                      .slice(0, 1)
+                      .toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{customerDisplayName(c)}</div>

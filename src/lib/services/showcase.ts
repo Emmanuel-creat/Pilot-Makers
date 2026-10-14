@@ -11,6 +11,7 @@ import { notifyOrg } from "./push";
 import { cleanHours, DAYS, parseDayHours } from "@/lib/business-listing";
 import type { Hours, ListingSource } from "@/lib/business-listing";
 import { z } from "zod";
+import { referrerForCode } from "./referrals";
 import { one } from "@/lib/db";
 import type { Queryable } from "@/lib/db";
 import { badRequest, conflict, notFound } from "@/lib/http";
@@ -246,6 +247,8 @@ const leadSchema = z.object({
   consent: bool,
   /** Champ invisible : rempli seulement par les robots */
   website: z.string().default(""),
+  /** Code de parrainage du client qui a recommandé l'entreprise */
+  parrain: z.string().max(40).default(""),
 });
 
 /** Demande de devis déposée sur la vitrine : elle arrive dans les demandes de l'entreprise, qui est prévenue par e-mail. */
@@ -266,15 +269,18 @@ export async function requestFromShowcase(db: Queryable & { transaction: Ctx["db
   if (!s) throw notFound("Page introuvable");
   // Un robot remplit le champ caché : la demande est ignorée sans le lui dire.
   if (l.website) return { ok: true };
+  const referrer = l.parrain ? await referrerForCode(db, s.org_id, l.parrain) : null;
   await db.transaction(async (tx) => {
-    await tx.query(`INSERT INTO leads (org_id, name, email, phone, city, description, source, next_action) VALUES ($1,$2,$3,$4,$5,$6,'site',$7)`, [
+    await tx.query(`INSERT INTO leads (org_id, name, email, phone, city, description, source, next_action, referrer_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [
       s.org_id,
       l.name,
       l.email.toLowerCase(),
       l.phone,
       l.city,
       l.description,
+      referrer ? "recommandation" : "site",
       "Recontacter le demandeur",
+      referrer?.customerId ?? null,
     ]);
     if (s.email) {
       await sendMail(tx, {
@@ -282,7 +288,7 @@ export async function requestFromShowcase(db: Queryable & { transaction: Ctx["db
         kind: "notification",
         to: s.email,
         subject: `Nouvelle demande de devis : ${l.name}`,
-        body: `${l.name}${l.city ? ` (${l.city})` : ""} a déposé une demande sur votre page vitrine :\n\n${l.description}\n\n${[l.phone, l.email].filter(Boolean).join(" ; ")}\n\n${appUrl("/app/demandes")}`,
+        body: `${l.name}${l.city ? ` (${l.city})` : ""} a déposé une demande sur votre page vitrine${referrer ? ", recommandé par l'un de vos clients" : ""} :\n\n${l.description}\n\n${[l.phone, l.email].filter(Boolean).join(" ; ")}\n\n${appUrl("/app/demandes")}`,
       });
     }
     await notifyOrg(tx, s.org_id, { title: `Nouvelle demande de devis : ${l.name}`, body: l.description.slice(0, 140), url: "/app/demandes" });

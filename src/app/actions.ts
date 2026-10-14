@@ -87,6 +87,7 @@ import { collectReturn, createReturn, creditReturn, deleteReturn } from "@/lib/s
 import { applyCostCorrection } from "@/lib/services/price-review";
 import { switchSupplier } from "@/lib/services/supplier-compare";
 import { setItemCarbon } from "@/lib/services/carbon";
+import { ensureReferralCode, markReferralRewarded, saveReferralSettings } from "@/lib/services/referrals";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2420,6 +2421,39 @@ export async function setItemCarbonAction(_: ActionState, fd: FormData): Promise
     const grams = await withCtx((ctx) => setItemCarbon(ctx, id, { kg: s(fd, "kg"), source: s(fd, "source") || undefined }));
     revalidatePath(`/app/catalogue/${id}`);
     return { ok: true, message: grams == null ? "Empreinte effacée." : "Empreinte enregistrée : elle compte dans le bilan carbone des devis." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveReferralSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) =>
+      saveReferralSettings(ctx, { enabled: s(fd, "enabled") === "1", referrerReward: s(fd, "referrerReward"), refereeReward: s(fd, "refereeReward") }),
+    );
+    revalidatePath("/app/clients", "layout");
+    return { ok: true, message: r.enabled ? "Programme de parrainage actif." : "Programme de parrainage enregistré, inactif." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function createReferralCodeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "customerId");
+    await withCtx((ctx) => ensureReferralCode(ctx, id));
+    revalidatePath(`/app/clients/${id}`);
+    return { ok: true, message: "Lien de parrainage créé." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function rewardReferralAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => markReferralRewarded(ctx, s(fd, "leadId")));
+    revalidatePath("/app/clients", "layout");
+    return { ok: true, message: `Récompense de ${r.referrerName} notée comme remise.` };
   } catch (e) {
     return toState(e);
   }

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "parrainage",
+    date: "2026-10-14",
+    title: "Parrainage entre clients",
+    text: "Donnez à vos clients satisfaits un lien personnel vers votre vitrine, suivez leurs recommandations et la récompense une fois le devis signé.",
+    href: "/aide/parrainage",
+  },
+  {
     id: "bilan-carbone",
     date: "2026-10-14",
     title: "Bilan carbone du devis",

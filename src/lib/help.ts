@@ -1606,6 +1606,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["La main-d'oeuvre, les déplacements et les options ne comptent pas dans le bilan. Les ordres de grandeur sont signalés comme indicatifs."],
   },
   {
+    slug: "parrainage",
+    category: "clients",
+    title: "Faire recommander l'entreprise par vos clients",
+    summary: "Un lien personnel par client parrain, et une récompense quand le devis du filleul est signé.",
+    steps: [
+      "Dans Clients, « Parrainage », activez le programme et indiquez la récompense du parrain et l'avantage du nouveau client.",
+      "Sur la fiche d'un client satisfait, cliquez sur « Créer le lien de parrainage » et transmettez-lui ce lien vers votre page vitrine.",
+      "La demande déposée par ce lien arrive dans vos demandes, marquée comme recommandation. Une fois le devis du filleul signé, notez la récompense remise.",
+    ],
+    notes: ["Votre page vitrine doit être publiée. Le visiteur voit seulement qu'il vient de la part d'un client, jamais son nom."],
+    link: { href: "/app/clients/parrainage", label: "Ouvrir le parrainage" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

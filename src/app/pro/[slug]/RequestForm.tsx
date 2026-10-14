@@ -5,8 +5,8 @@ import { apiFetch, ApiError } from "@/components/editor/api";
 import { Icon } from "@/components/Icon";
 
 /** Formulaire de demande de devis : la demande arrive dans le suivi des demandes de l'entreprise. */
-export function RequestForm({ slug, orgName }: { slug: string; orgName: string }) {
-  const [f, setF] = useState({ name: "", phone: "", email: "", city: "", description: "", consent: false, website: "" });
+export function RequestForm({ slug, orgName, referral }: { slug: string; orgName: string; referral?: string }) {
+  const [f, setF] = useState({ name: "", phone: "", email: "", city: "", description: "", consent: false, website: "", parrain: referral ?? "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);

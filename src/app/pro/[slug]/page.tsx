@@ -7,6 +7,7 @@ import { appUrl } from "@/lib/services/mail";
 import { publicShowcase } from "@/lib/services/showcase";
 import { labelsHeadline } from "@/lib/labels";
 import { RequestForm } from "./RequestForm";
+import { referralOffer } from "@/lib/services/referrals";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +23,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 /** Vitrine publique d'une entreprise, générée depuis son profil et ses chantiers. */
-export default async function ShowcasePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ShowcasePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ parrain?: string }> }) {
   const { slug } = await params;
+  const sp = await searchParams;
   const p = await publicShowcase(await getDb(), slug);
   if (!p) notFound();
+  const offer = await referralOffer(await getDb(), slug, sp.parrain);
   const website = p.website && /^https?:\/\//.test(p.website) ? p.website : p.website ? `https://${p.website}` : "";
   const ld = businessJsonLd({ ...p, url: appUrl(`/pro/${p.slug}`), logoUrl: null, website: p.website });
   return (
@@ -197,7 +200,16 @@ export default async function ShowcasePage({ params }: { params: Promise<{ slug:
           <h2 id="demande-titre" className="mb-3 font-semibold">
             Demander un devis
           </h2>
-          <RequestForm slug={p.slug} orgName={p.name} />
+          {offer ? (
+            <p className="mb-3 flex items-start gap-2 rounded-md bg-success-soft p-3 text-sm" data-testid="offre-parrainage">
+              <Icon name="star" size={16} className="mt-0.5 shrink-0 text-success" />
+              <span>
+                Vous venez de la part d&apos;un client de {p.name}
+                {offer.refereeReward ? ` : ${offer.refereeReward}, une fois votre devis signé.` : "."}
+              </span>
+            </p>
+          ) : null}
+          <RequestForm slug={p.slug} orgName={p.name} referral={offer?.code} />
         </section>
       </main>
       <footer className="flex items-center justify-center gap-2 pb-8 text-xs text-muted">

@@ -13,6 +13,11 @@ import type { QuoteStatus } from "@/lib/services/quote-types";
 import { archiveCustomerAction } from "@/app/actions";
 import { EditCustomer } from "./EditCustomer";
 import { PortalLink } from "./PortalLink";
+import { CreateReferralCode } from "../parrainage/ReferralForms";
+import { REFERRAL_STATES } from "@/lib/referral";
+import { customerReferrals, getReferralSettings } from "@/lib/services/referrals";
+import { getShowcase } from "@/lib/services/showcase";
+import { appUrl } from "@/lib/services/mail";
 import { portalLinkInfo } from "@/lib/services/client-space";
 
 export const metadata = { title: "Client" };
@@ -21,6 +26,13 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const ctx = await requirePageCtx();
   const c = await getCustomer(ctx, id).catch(() => notFound());
+  const [refSettings, refShowcase, refList] = await Promise.all([getReferralSettings(ctx), getShowcase(ctx), customerReferrals(ctx, id)]);
+  const referral = {
+    settings: refSettings,
+    showcase: refShowcase,
+    list: refList,
+    code: (c as typeof c & { referral_code?: string | null }).referral_code ?? null,
+  };
   const quotes = await ctx.db.query<{ id: string; number: string | null; title: string; status: QuoteStatus; total_ttc_cents: unknown; updated_at: Date }>(
     "SELECT id, number, title, status, total_ttc_cents, updated_at FROM quotes WHERE customer_id=$1 AND org_id=$2 ORDER BY updated_at DESC",
     [id, ctx.orgId],
@@ -101,7 +113,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
             {invoices.length ? (
               <p className="mt-3 border-t border-line pt-3 text-xs text-muted">
                 Habitude de paiement : <span className="font-medium text-ink">{PAYER_PROFILES[payer.profile]}</span>
-                {payer.invoices ? `, retard moyen de ${payer.averageDelay} jour${payer.averageDelay > 1 ? "s" : ""} sur ${payer.invoices} facture${payer.invoices > 1 ? "s" : ""} soldée${payer.invoices > 1 ? "s" : ""}` : ""}
+                {payer.invoices
+                  ? `, retard moyen de ${payer.averageDelay} jour${payer.averageDelay > 1 ? "s" : ""} sur ${payer.invoices} facture${payer.invoices > 1 ? "s" : ""} soldée${payer.invoices > 1 ? "s" : ""}`
+                  : ""}
                 . Les relances automatiques en tiennent compte.
               </p>
             ) : null}
@@ -160,6 +174,40 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               lastUsed={portal.lastUsed ? fmtDate(portal.lastUsed) : null}
               canEdit={!ctx.entitlements.readOnly && !ctx.supportAccess}
             />
+          </section>
+          <section className="card p-4" data-testid="parrainage-client">
+            <h2 className="mb-1 text-sm font-semibold">Parrainage</h2>
+            {referral.settings.enabled && referral.showcase.enabled ? (
+              <div className="space-y-2 text-sm">
+                <p className="text-xs text-muted">
+                  Le client recommande l&apos;entreprise par ce lien : {referral.settings.referrerReward} une fois le devis signé.
+                </p>
+                {referral.code ? (
+                  <p className="font-mono text-xs break-all select-all" data-testid="lien-parrainage">
+                    {appUrl(`/pro/${referral.showcase.slug}?parrain=${referral.code}`)}
+                  </p>
+                ) : !ctx.entitlements.readOnly && !ctx.supportAccess ? (
+                  <CreateReferralCode customerId={c.id} />
+                ) : null}
+                {referral.list.length ? (
+                  <ul className="space-y-1 text-xs">
+                    {referral.list.map((x) => (
+                      <li key={x.leadId} className="flex justify-between gap-2">
+                        <span>{x.name}</span>
+                        <span className="text-muted">{REFERRAL_STATES[x.state]}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-xs text-muted">
+                {referral.settings.enabled ? "Publiez votre page vitrine pour créer des liens de parrainage." : "Programme inactif."}{" "}
+                <Link className="link" href="/app/clients/parrainage">
+                  Réglages du parrainage
+                </Link>
+              </p>
+            )}
           </section>
           <section className="card p-4">
             <h2 className="mb-2 text-sm font-semibold">Historique des devis</h2>

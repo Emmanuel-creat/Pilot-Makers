@@ -1281,6 +1281,29 @@ test("vitrine : page publique publiée puis demande de devis reçue", async ({ p
   await embedded.close();
 });
 
+test("clients : parrainage par lien personnel vers la vitrine", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/clients/parrainage");
+  await page.getByLabel("Programme de parrainage actif").check();
+  await page.getByRole("button", { name: "Enregistrer le programme" }).click();
+  await expect(page.getByText("Programme de parrainage actif.")).toBeVisible();
+  await audit(page, "parrainage");
+  await page.goto("/app/clients");
+  await page.locator('a[href^="/app/clients/"][href*="-"]').first().click();
+  await page.waitForURL(/\/app\/clients\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Créer le lien de parrainage" }).click();
+  const link = page.getByTestId("lien-parrainage");
+  await expect(link).toContainText("?parrain=");
+  await audit(page, "fiche client avec parrainage");
+  const url = new URL((await link.textContent())!.trim());
+  const visitor = await browser.newContext({ locale: "fr-FR" });
+  const vp = await visitor.newPage();
+  await vp.goto(url.pathname + url.search);
+  await expect(vp.getByTestId("offre-parrainage")).toContainText("Vous venez de la part d'un client");
+  await audit(vp, "vitrine avec parrainage");
+  await visitor.close();
+});
+
 test("catalogue : fichier de prix fournisseur et alerte de marge", async ({ page }) => {
   await login(page);
   await page.goto("/app/catalogue/nouveau");
