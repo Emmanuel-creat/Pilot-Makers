@@ -92,6 +92,7 @@ import { markDeclarationSent, saveDeclaration, saveLeaveFundSettings } from "@/l
 import { addSkill, createApprentice, deleteApprentice, deleteSkill, setSkillLevel, updateApprentice } from "@/lib/services/apprentices";
 import { savePenalties, setFinalAccountStatus } from "@/lib/services/final-account";
 import { locateAll } from "@/lib/services/map";
+import { deleteCampaign, saveCampaign, sendCampaign } from "@/lib/services/campaigns";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2607,4 +2608,43 @@ export async function locateAllAction(_: ActionState, _fd: FormData): Promise<Ac
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function saveCampaignAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "id");
+  let saved: string;
+  try {
+    const raw = Object.fromEntries([...fd.entries()].filter(([, v]) => typeof v === "string"));
+    saved = await withCtx((ctx) => saveCampaign(ctx, id || null, raw));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/clients/campagnes");
+  if (id) {
+    revalidatePath(`/app/clients/campagnes/${id}`);
+    return { ok: true, message: "Campagne enregistrée." };
+  }
+  redirect(`/app/clients/campagnes/${saved}`);
+}
+
+export async function sendCampaignAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    const r = await withCtx((ctx) => sendCampaign(ctx, id));
+    revalidatePath(`/app/clients/campagnes/${id}`);
+    revalidatePath("/app/clients/campagnes");
+    return { ok: true, message: `Campagne envoyée à ${r.sent} client${r.sent > 1 ? "s" : ""} sur ${r.recipients}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteCampaignAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteCampaign(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/clients/campagnes");
+  redirect("/app/clients/campagnes");
 }

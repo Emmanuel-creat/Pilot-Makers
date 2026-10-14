@@ -1176,6 +1176,21 @@ test("carte des chantiers et des clients", async ({ page }) => {
   await page.waitForURL(/vue=clients/);
 });
 
+test("clients : campagne d'entretien vers les anciens clients", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/clients");
+  await page.getByRole("link", { name: "Campagnes" }).click();
+  await page.waitForURL(/\/app\/clients\/campagnes$/);
+  await audit(page, "campagnes");
+  await page.getByLabel("Dernière facture il y a au moins (mois)").fill("");
+  await page.getByLabel("Et au plus (mois)").fill("");
+  await page.getByRole("button", { name: "Créer et prévisualiser" }).click();
+  await page.waitForURL(/\/app\/clients\/campagnes\/[0-9a-f-]{36}$/);
+  await expect(page.getByText("Aperçu du message")).toBeVisible();
+  await expect(page.getByText(/Pour ne plus recevoir ses offres/)).toBeVisible();
+  await audit(page, "campagne");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -1679,6 +1679,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/carte", label: "Ouvrir la carte" },
   },
   {
+    slug: "campagnes-anciens-clients",
+    category: "clients",
+    title: "Relancer ses anciens clients par e-mail",
+    summary: "Entretien annuel ou travaux de saison : un message personnel aux clients déjà servis, avec désinscription.",
+    steps: [
+      "Dans Clients, « Campagnes », choisissez un modèle : entretien annuel, travaux de saison ou message libre.",
+      "Ciblez les clients d'après leur dernière facture (par exemple entre 11 et 13 mois pour l'entretien annuel), leur type, une étiquette ou le code postal.",
+      "Vérifiez la liste des destinataires et l'aperçu du message, puis envoyez. Chaque client reçoit un e-mail personnel, une seule fois.",
+    ],
+    notes: [
+      "Le lien de désinscription est ajouté à chaque message ; un client désinscrit ne reçoit plus vos campagnes, mais toujours ses devis et factures.",
+      "Les campagnes s'adressent à vos clients pour des travaux du même type, comme le permet la prospection auprès de clients existants.",
+    ],
+    link: { href: "/app/clients/campagnes", label: "Ouvrir les campagnes" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

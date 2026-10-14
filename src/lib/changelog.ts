@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "campagnes-anciens-clients",
+    date: "2026-10-14",
+    title: "Campagnes e-mail vers les anciens clients",
+    text: "Rappelez l'entretien annuel ou les travaux de saison aux clients déjà servis, avec ciblage, aperçu et désinscription en un clic.",
+    href: "/aide/campagnes-anciens-clients",
+  },
+  {
     id: "carte-chantiers-clients",
     date: "2026-10-14",
     title: "Carte des chantiers et des clients",
