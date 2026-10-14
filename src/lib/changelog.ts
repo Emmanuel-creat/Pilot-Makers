@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "entretien-preventif",
+    date: "2026-10-14",
+    title: "Entretien préventif",
+    text: "Vos clients sont prévenus par e-mail avant l'échéance d'entretien de leurs équipements, et vous suivez toutes les échéances sur une page.",
+    href: "/aide/entretien-preventif",
+  },
+  {
     id: "carnet-de-logement",
     date: "2026-10-14",
     title: "Carnet de santé du logement",

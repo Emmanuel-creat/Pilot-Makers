@@ -1449,6 +1449,17 @@ test("clients : carnet de logement complété puis transmis", async ({ page, bro
   await anonCtx.close();
 });
 
+test("clients : entretiens préventifs des équipements", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/carnets");
+  await page.getByRole("link", { name: "Entretiens" }).click();
+  const list = page.getByTestId("entretiens");
+  await expect(list).toContainText("Chaudière à condensation");
+  await audit(page, "entretiens préventifs");
+  await list.getByRole("button", { name: "Entretien fait" }).first().click();
+  await expect(list).toContainText("dernier entretien le");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

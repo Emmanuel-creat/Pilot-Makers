@@ -13,6 +13,7 @@ const empty: AdviceSignals = {
   unbilled: { count: 0, cents: 0 },
   unreceivedJobs: 0,
   overloaded: null,
+  maintenanceDue: 0,
   weakIndicators: [],
 };
 

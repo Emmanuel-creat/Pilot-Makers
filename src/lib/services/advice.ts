@@ -10,13 +10,14 @@ import type { Ctx } from "./context";
 import { can, requirePermission, requireWritable } from "./context";
 import { healthFigures } from "./health-score";
 import { invoiceSummary } from "./invoices";
+import { maintenanceDueCount } from "./maintenance";
 import { parisDate } from "./quotes";
 
 export async function proactiveAdvice(ctx: Ctx, now = new Date()): Promise<Advice[]> {
   requirePermission(ctx, "billing");
   const today = parisDate(now);
   const in7 = parisDate(new Date(now.getTime() + 7 * 86_400_000));
-  const [inv, q, figures, balance, dismissed] = await Promise.all([
+  const [inv, q, figures, balance, dismissed, maintenanceDue] = await Promise.all([
     invoiceSummary(ctx),
     one<Record<string, unknown>>(
       ctx.db,
@@ -41,6 +42,7 @@ export async function proactiveAdvice(ctx: Ctx, now = new Date()): Promise<Advic
     healthFigures(ctx.db, ctx.orgId, now),
     can(ctx, "staff") ? teamBalance(ctx, now) : Promise.resolve(null),
     ctx.db.query<{ key: string }>("SELECT key FROM advice_dismissals WHERE org_id=$1 AND until >= $2", [ctx.orgId, today]),
+    maintenanceDueCount(ctx, now),
   ]);
   const hidden = new Set(dismissed.map((d) => d.key));
   return buildAdvice({
@@ -50,6 +52,7 @@ export async function proactiveAdvice(ctx: Ctx, now = new Date()): Promise<Advic
     unbilled: { count: Number(q?.unbilled ?? 0), cents: Number(q?.unbilled_cents ?? 0) },
     unreceivedJobs: Number(q?.unreceived ?? 0),
     overloaded: balance ? balance.overloaded : null,
+    maintenanceDue,
     weakIndicators: healthScore(figures).indicators,
   }).filter((a) => !hidden.has(a.key));
 }

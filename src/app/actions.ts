@@ -103,6 +103,7 @@ import { setBenchmarkOptin } from "@/lib/services/benchmark";
 import { createHealthShare, revokeHealthShare } from "@/lib/services/health-score";
 import { dismissAdvice } from "@/lib/services/advice";
 import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from "@/lib/services/home-records";
+import { recordMaintenance } from "@/lib/services/maintenance";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
@@ -2989,4 +2990,15 @@ export async function homeShareRevokeAction(_: ActionState, fd: FormData): Promi
   }
   revalidatePath(`/app/carnets/${id}`);
   return { ok: true, message: "Lien révoqué." };
+}
+
+export async function maintenanceDoneAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => recordMaintenance(ctx, s(fd, "id"), { date: s(fd, "date"), detail: s(fd, "detail") }));
+    revalidatePath("/app/carnets/entretiens");
+    revalidatePath(`/app/carnets/${r.recordId}`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Entretien enregistré dans le carnet." };
 }

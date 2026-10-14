@@ -1922,6 +1922,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "entretien-preventif",
+    category: "clients",
+    title: "Prévenir vos clients avant l'entretien de leurs équipements",
+    summary: "Les équipements notés dans les carnets de logement avec une fréquence d'entretien, leurs échéances et un e-mail au client 30 jours avant.",
+    steps: [
+      "Dans le carnet d'un logement, ajoutez l'équipement installé (chaudière, pompe à chaleur, ventilation) avec sa fréquence d'entretien en mois.",
+      "Dans Carnets, ouvrez Entretiens : chaque équipement affiche sa prochaine échéance, calculée depuis le dernier entretien ou l'installation.",
+      "Trente jours avant l'échéance, le client reçoit un e-mail l'invitant à prendre rendez-vous, une seule fois par échéance et jamais s'il a refusé vos messages.",
+      "Après le passage, cliquez sur Entretien fait : l'entretien s'ajoute au carnet et l'échéance suivante se recalcule.",
+      "Les entretiens à proposer apparaissent aussi dans les conseils du tableau de bord.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

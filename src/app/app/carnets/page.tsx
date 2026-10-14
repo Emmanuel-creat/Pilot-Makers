@@ -16,6 +16,11 @@ export default async function HomeRecordsPage({ searchParams }: { searchParams: 
         title="Carnets de logement"
         subtitle="Un carnet par adresse de chantier : travaux, équipements, entretiens, diagnostics et garanties, transmissible au propriétaire suivant."
         back={{ href: "/app/clients", label: "Clients" }}
+        actions={
+          <Link href="/app/carnets/entretiens" className="btn-secondary">
+            <Icon name="calendar" size={16} /> Entretiens
+          </Link>
+        }
       />
       {list.length ? (
         <ul className="card divide-y divide-border text-sm" data-testid="carnets">

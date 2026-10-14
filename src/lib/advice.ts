@@ -13,6 +13,7 @@ export interface AdviceSignals {
   unbilled: { count: number; cents: number };
   unreceivedJobs: number;
   overloaded: number | null;
+  maintenanceDue: number;
   weakIndicators: Indicator[];
 }
 
@@ -97,6 +98,15 @@ export function buildAdvice(s: AdviceSignals): Advice[] {
       title: `${s.overloaded} ${plural(s.overloaded, "personne surchargée", "personnes surchargées")} dans les quatre semaines`,
       detail: "Des réaffectations vers des collègues libres sont proposées.",
       href: "/app/planning/equilibre",
+      stakeCents: 0,
+      priority: 2,
+    });
+  if (s.maintenanceDue)
+    out.push({
+      key: "entretiens",
+      title: `Proposer ${s.maintenanceDue} ${plural(s.maintenanceDue, "entretien", "entretiens")} d'équipement`,
+      detail: "Des équipements notés dans les carnets de logement arrivent à l'échéance de leur entretien : autant de rendez-vous à caler.",
+      href: "/app/carnets/entretiens",
       stakeCents: 0,
       priority: 2,
     });
