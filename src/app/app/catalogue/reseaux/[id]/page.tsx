@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { pendingRecommendations } from "@/lib/services/network-recommendations";
 import { notFound } from "next/navigation";
 import { networkImportAction, networkLeaveAction, networkShareAction, networkUnshareAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
@@ -28,6 +29,7 @@ export default async function NetworkPage({ params, searchParams }: { params: Pr
   const others = n.items.filter((i) => !i.mine);
   const mine = n.items.filter((i) => i.mine);
   const shareable = n.myItems.filter((i) => !i.shared);
+  const pending = await pendingRecommendations(ctx);
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
@@ -38,9 +40,14 @@ export default async function NetworkPage({ params, searchParams }: { params: Pr
         }
         back={{ href: "/app/catalogue/reseaux", label: "Réseaux d'artisans" }}
         actions={
-          <Link href={`/app/catalogue/reseaux/${n.id}/bourse`} className="btn-secondary">
-            <Icon name="team" size={16} /> Bourse aux missions et matériaux
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/app/catalogue/reseaux/${n.id}/recommandations`} className="btn-secondary">
+              <Icon name="send" size={16} /> Recommandations{pending ? ` (${pending})` : ""}
+            </Link>
+            <Link href={`/app/catalogue/reseaux/${n.id}/bourse`} className="btn-secondary">
+              <Icon name="team" size={16} /> Bourse aux missions et matériaux
+            </Link>
+          </div>
         }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">

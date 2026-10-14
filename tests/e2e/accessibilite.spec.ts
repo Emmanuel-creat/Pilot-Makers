@@ -1290,7 +1290,7 @@ test("veille réglementaire annoncée sur le tableau de bord", async ({ page }) 
   await page.waitForURL(/\/app\/veille$/);
   await expect(page.getByTestId("veille-entree").first()).toBeVisible();
   await audit(page, "veille réglementaire");
-  const unread = page.getByRole("button", { name: "Marquer comme lu" });
+  const unread = page.getByRole("button", { name: "Marquer comme lu", exact: true });
   const before = await unread.count();
   await unread.first().click();
   await expect(unread).toHaveCount(before - 1);
@@ -1538,6 +1538,18 @@ test("réseau : bourse aux missions et matériaux", async ({ page }) => {
   await page.getByRole("button", { name: "Publier" }).click();
   await expect(page.getByTestId("bourse")).toContainText("Plaques de plâtre restantes");
   await audit(page, "bourse du réseau");
+});
+
+test("réseau : recommandations entre métiers complémentaires", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/reseaux");
+  await page.locator('a[href^="/app/catalogue/reseaux/"]:visible').first().click();
+  await page.waitForURL(/\/app\/catalogue\/reseaux\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: /^Recommandations/ }).click();
+  await page.waitForURL(/\/recommandations$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Recommandations");
+  await expect(page.getByText("Aucune recommandation reçue")).toBeVisible();
+  await audit(page, "recommandations du réseau");
 });
 
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {

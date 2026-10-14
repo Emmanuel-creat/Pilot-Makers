@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "recommandations-entre-metiers",
+    date: "2026-10-14",
+    title: "Recommandations entre métiers complémentaires",
+    text: "Transmettez un client à un confrère du réseau dont le métier complète le vôtre ; acceptée, la recommandation devient une demande entrante et vous suivez la signature.",
+    href: "/aide/recommandations-entre-metiers",
+  },
+  {
     id: "paiement-par-etapes",
     date: "2026-10-14",
     title: "Paiement par étape validée en photo",

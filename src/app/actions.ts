@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { answerRecommendation, sendRecommendation } from "@/lib/services/network-recommendations";
 import { closePost, createPost, replyToPost } from "@/lib/services/network-board";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
@@ -3089,6 +3090,38 @@ export async function stageInvoiceAction(_: ActionState, fd: FormData): Promise<
     revalidatePath(`/app/devis/${r.quoteId}/etapes`);
     revalidatePath("/app/factures");
     return { ok: true, message: `Facture ${r.number} émise pour cette étape.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function recommendAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const networkId = s(fd, "networkId");
+  try {
+    await withCtx((ctx) =>
+      sendRecommendation(ctx, networkId, {
+        toOrg: s(fd, "toOrg"),
+        customerName: s(fd, "customerName"),
+        email: s(fd, "email"),
+        phone: s(fd, "phone"),
+        city: s(fd, "city"),
+        need: s(fd, "need"),
+        consent: fd.get("consent") === "on",
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/reseaux/${networkId}/recommandations`);
+  return { ok: true, message: "Recommandation envoyée à votre confrère." };
+}
+
+export async function recommendationAnswerAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => answerRecommendation(ctx, s(fd, "id"), s(fd, "decision") === "accept", s(fd, "note")));
+    revalidatePath(`/app/catalogue/reseaux/${r.networkId}/recommandations`);
+    revalidatePath("/app/demandes");
+    return { ok: true, message: r.leadId ? "Recommandation acceptée : le client est dans vos demandes." : "Recommandation déclinée." };
   } catch (e) {
     return toState(e);
   }

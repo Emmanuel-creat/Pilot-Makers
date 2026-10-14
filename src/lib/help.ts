@@ -2027,6 +2027,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "recommandations-entre-metiers",
+    category: "clients",
+    title: "Recommander un client à un confrère d'un métier complémentaire",
+    summary: "Dans un réseau d'artisans, transmettez le client qui a besoin d'un autre métier et recevez ceux de vos confrères.",
+    steps: [
+      "Ouvrez votre réseau dans Catalogue, Réseaux d'artisans, puis Recommandations.",
+      "Choisissez le confrère : ceux dont le métier complète le vôtre (plombier et carreleur, électricien et plaquiste) apparaissent en premier.",
+      "Indiquez le client, un téléphone ou un e-mail, et son besoin. Cochez que le client a accepté que vous transmettiez ses coordonnées.",
+      "Votre confrère est prévenu. Il voit le besoin, puis les coordonnées une fois la recommandation acceptée : elle devient une demande entrante de source Recommandation.",
+      "Dans Envoyées, vous suivez la réponse et voyez quand votre confrère a signé un devis avec le client.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
