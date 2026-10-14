@@ -10,6 +10,8 @@ import { Composition } from "@/components/Composition";
 import { duplicateItemAction } from "@/app/actions";
 import { listCatalogDocuments } from "@/lib/services/datasheets";
 import { ItemDocuments } from "./ItemDocuments";
+import { CarbonForm } from "./CarbonForm";
+import { getItemCarbon } from "@/lib/services/carbon";
 
 export const metadata = { title: "Prestation" };
 
@@ -17,13 +19,14 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const ctx = await requirePageCtx();
   const it = await getItem(ctx, id).catch(() => notFound());
-  const [history, components, usedIn] = await Promise.all([
+  const [history, components, usedIn, carbon] = await Promise.all([
     priceHistory(ctx, id),
     listComponents(ctx.db, ctx.orgId, id),
     ctx.db.query<{ id: string; name: string }>(
       "SELECT c.id, c.name FROM catalog_components k JOIN catalog_items c ON c.id=k.parent_id WHERE k.child_id=$1 AND k.org_id=$2 ORDER BY c.name",
       [id, ctx.orgId],
     ),
+    getItemCarbon(ctx, id),
   ]);
   const input = itemToInput(it);
   return (
@@ -75,7 +78,9 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
           />
           <div className="mt-6 border-t border-line pt-5">
             <h2 className="mb-1 font-semibold">{it.kind === "ouvrage" ? "Composition de l'ouvrage" : "Ouvrage composé"}</h2>
-            <p className="mb-3 text-sm text-muted">Quantités pour 1 {it.unit}. Sur le devis, l'ouvrage reste une seule ligne et sa composition est reprise dans la description.</p>
+            <p className="mb-3 text-sm text-muted">
+              Quantités pour 1 {it.unit}. Sur le devis, l'ouvrage reste une seule ligne et sa composition est reprise dans la description.
+            </p>
             <Composition
               itemId={it.id}
               unit={it.unit}
@@ -89,23 +94,30 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
           </div>
           <ItemDocuments itemId={it.id} initial={await listCatalogDocuments(ctx, it.id)} />
         </div>
-        <aside className="card h-fit p-4">
-          <h2 className="mb-2 text-sm font-semibold">Historique des prix</h2>
-          {history.length === 0 ? <p className="text-sm text-muted">Aucune modification de prix.</p> : null}
-          <ul className="space-y-2 text-sm">
-            {history.map((h, i) => (
-              <li key={i} className="border-l-2 border-line pl-3">
-                <div className="tabular">
-                  {h.old_price4 !== null ? formatUnitPrice(h.old_price4) : "-"} <Icon name="right" size={12} className="inline" />{" "}
-                  {h.new_price4 !== null ? formatUnitPrice(h.new_price4) : "-"}
-                </div>
-                <div className="text-xs text-muted">
-                  {fmtDate(h.created_at, true)}
-                  {h.user_name ? ` par ${h.user_name}` : ""}
-                </div>
-              </li>
-            ))}
-          </ul>
+        <aside className="h-fit space-y-4">
+          <section className="card p-4">
+            <h2 className="mb-1 text-sm font-semibold">Empreinte carbone</h2>
+            <p className="mb-3 text-xs text-muted">Reprise dans le bilan carbone des devis qui utilisent cet article.</p>
+            <CarbonForm itemId={it.id} unit={it.unit} {...carbon} />
+          </section>
+          <section className="card p-4">
+            <h2 className="mb-2 text-sm font-semibold">Historique des prix</h2>
+            {history.length === 0 ? <p className="text-sm text-muted">Aucune modification de prix.</p> : null}
+            <ul className="space-y-2 text-sm">
+              {history.map((h, i) => (
+                <li key={i} className="border-l-2 border-line pl-3">
+                  <div className="tabular">
+                    {h.old_price4 !== null ? formatUnitPrice(h.old_price4) : "-"} <Icon name="right" size={12} className="inline" />{" "}
+                    {h.new_price4 !== null ? formatUnitPrice(h.new_price4) : "-"}
+                  </div>
+                  <div className="text-xs text-muted">
+                    {fmtDate(h.created_at, true)}
+                    {h.user_name ? ` par ${h.user_name}` : ""}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
         </aside>
       </div>
     </>

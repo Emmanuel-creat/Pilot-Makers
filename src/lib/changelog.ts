@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "bilan-carbone",
+    date: "2026-10-14",
+    title: "Bilan carbone du devis",
+    text: "Renseignez l'empreinte carbone de vos articles et retrouvez sur chaque devis le bilan de ses produits, avec les plus émetteurs.",
+    href: "/aide/bilan-carbone",
+  },
+  {
     id: "comparateur-fournisseurs",
     date: "2026-10-14",
     title: "Comparateur de fournisseurs",

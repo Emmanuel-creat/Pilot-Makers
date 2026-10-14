@@ -1132,6 +1132,19 @@ test("catalogue : comparateur de prix entre fournisseurs", async ({ page }) => {
   await audit(page, "comparateur de fournisseurs");
 });
 
+test("catalogue : empreinte carbone d'un article", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/nouveau");
+  await page.getByLabel("Nom de la prestation").fill(`Receveur extra-plat ${Date.now().toString(36)}`);
+  await page.getByLabel("Prix de vente HT (€)").fill("189");
+  await page.getByRole("button", { name: "Créer la prestation" }).click();
+  await page.waitForURL(/\/app\/catalogue\/[0-9a-f-]{36}$/);
+  await page.getByLabel(/Kg CO2e par/).fill("55");
+  await page.getByRole("button", { name: "Enregistrer l'empreinte" }).click();
+  await expect(page.getByText("Empreinte enregistrée")).toBeVisible();
+  await audit(page, "empreinte carbone");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

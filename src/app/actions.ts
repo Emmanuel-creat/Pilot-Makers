@@ -86,6 +86,7 @@ import { createGroup, deleteGroup, sendGroup } from "@/lib/services/order-groups
 import { collectReturn, createReturn, creditReturn, deleteReturn } from "@/lib/services/supplier-returns";
 import { applyCostCorrection } from "@/lib/services/price-review";
 import { switchSupplier } from "@/lib/services/supplier-compare";
+import { setItemCarbon } from "@/lib/services/carbon";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2408,6 +2409,17 @@ export async function switchSupplierAction(_: ActionState, fd: FormData): Promis
     const r = await withCtx((ctx) => switchSupplier(ctx, s(fd, "itemId"), s(fd, "offerId")));
     revalidatePath("/app/catalogue", "layout");
     return { ok: true, message: `${r.name} : acheté désormais chez ${r.supplier} à ${formatEuros(Math.round(r.newCost4 / 100))} HT.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function setItemCarbonAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "itemId");
+    const grams = await withCtx((ctx) => setItemCarbon(ctx, id, { kg: s(fd, "kg"), source: s(fd, "source") || undefined }));
+    revalidatePath(`/app/catalogue/${id}`);
+    return { ok: true, message: grams == null ? "Empreinte effacée." : "Empreinte enregistrée : elle compte dans le bilan carbone des devis." };
   } catch (e) {
     return toState(e);
   }

@@ -1594,6 +1594,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/catalogue/comparateur", label: "Ouvrir le comparateur" },
   },
   {
+    slug: "bilan-carbone",
+    category: "catalogue",
+    title: "Empreinte carbone des articles et bilan du devis",
+    summary: "Kilogrammes de CO2e par article, et total des produits de chaque devis.",
+    steps: [
+      "Sur la fiche d'un article du catalogue, partie « Empreinte carbone », saisissez les kilogrammes de CO2e par unité et leur source, de préférence la fiche FDES ou PEP du fabricant.",
+      "Pour les produits courants, un ordre de grandeur indicatif est proposé : utilisez-le en attendant la valeur du fabricant.",
+      "Sur chaque devis, la partie « Bilan carbone » additionne les produits, montre les plus émetteurs et liste les lignes sans donnée.",
+    ],
+    notes: ["La main-d'oeuvre, les déplacements et les options ne comptent pas dans le bilan. Les ordres de grandeur sont signalés comme indicatifs."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
