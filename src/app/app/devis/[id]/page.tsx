@@ -469,6 +469,11 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                   </button>
                 </form>
               ) : null}
+              {status === "accepted" && !draft.amendment && can(ctx, "billing") ? (
+                <Link href={`/app/devis/${id}/decompte`} className="btn-ghost w-full justify-start text-sm">
+                  <Icon name="chart" size={16} /> Décompte général
+                </Link>
+              ) : null}
               {versions.length > 1 ? (
                 <Link href={`/app/devis/${id}/comparer`} className="btn-ghost w-full justify-start text-sm">
                   <Icon name="compare" size={16} /> Comparer les versions

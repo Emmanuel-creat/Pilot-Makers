@@ -1651,6 +1651,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/equipe/apprentis", label: "Ouvrir les parcours" },
   },
   {
+    slug: "decompte-general",
+    category: "factures",
+    title: "Établir le décompte général définitif",
+    summary: "Le récapitulatif du marché en fin de chantier : avenants, factures, retenue, pénalités, règlements et solde.",
+    steps: [
+      "Une fois la facture de solde émise, ouvrez le devis accepté et cliquez sur « Décompte général ».",
+      "Vérifiez le montant du marché avec ses avenants acceptés, les factures émises et les règlements reçus. Saisissez les éventuelles pénalités avec leur motif.",
+      "Imprimez le décompte, transmettez-le au client puis cliquez sur « Figer et marquer comme envoyé ». Notez ensuite son acceptation ou sa contestation.",
+    ],
+    notes: [
+      "Les acomptes déduits de la facture de solde ne sont comptés qu'une fois ; les avoirs sont retirés.",
+      "Les délais de réponse du client dépendent de votre contrat (norme NF P03-001 ou CCAG pour les marchés publics).",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

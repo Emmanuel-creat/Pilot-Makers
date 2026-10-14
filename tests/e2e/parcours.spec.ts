@@ -183,6 +183,16 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await page.goto("/app/factures");
   await expect(page.getByRole("row", { name: new RegExp(`${final}.*Payée`) })).toBeVisible();
   await expect(page.getByRole("row", { name: new RegExp(`${deposit}.*acompte`) })).toBeVisible();
+
+  // 8. Décompte général définitif : récapitulatif du marché, figé à l'envoi puis accepté.
+  await page.goto(quoteUrl);
+  await page.getByRole("link", { name: "Décompte général" }).click();
+  await page.waitForURL(/\/decompte$/);
+  await expect(page.getByTestId("decompte-general")).toContainText("Montant du marché TTC");
+  await page.getByRole("button", { name: "Figer et marquer comme envoyé" }).click();
+  await expect(page.getByText("Envoyé au client", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Le client l'a accepté" }).click();
+  await expect(page.getByText("Accepté par le client", { exact: true })).toBeVisible();
 });
 
 test("espace client : lien personnel, documents et message", async ({ page, browser }) => {

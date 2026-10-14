@@ -90,6 +90,7 @@ import { setItemCarbon } from "@/lib/services/carbon";
 import { ensureReferralCode, markReferralRewarded, saveReferralSettings } from "@/lib/services/referrals";
 import { markDeclarationSent, saveDeclaration, saveLeaveFundSettings } from "@/lib/services/leave-fund";
 import { addSkill, createApprentice, deleteApprentice, deleteSkill, setSkillLevel, updateApprentice } from "@/lib/services/apprentices";
+import { savePenalties, setFinalAccountStatus } from "@/lib/services/final-account";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2562,6 +2563,35 @@ export async function deleteSkillAction(_: ActionState, fd: FormData): Promise<A
     await withCtx((ctx) => deleteSkill(ctx, s(fd, "skillId")));
     revalidatePath(`/app/equipe/apprentis/${s(fd, "apprenticeId")}`);
     return { ok: true, message: "Compétence retirée du parcours." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveFinalAccountPenaltiesAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "quoteId");
+    await withCtx((ctx) => savePenalties(ctx, id, s(fd, "amount"), s(fd, "note")));
+    revalidatePath(`/app/devis/${id}/decompte`);
+    return { ok: true, message: "Pénalités enregistrées." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function setFinalAccountStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "quoteId");
+    const status = s(fd, "status");
+    await withCtx((ctx) => setFinalAccountStatus(ctx, id, status, s(fd, "note")));
+    revalidatePath(`/app/devis/${id}/decompte`);
+    const msg: Record<string, string> = {
+      envoye: "Décompte figé et marqué comme envoyé.",
+      accepte: "Acceptation du client notée.",
+      conteste: "Contestation du client notée.",
+      projet: "Décompte repassé en projet.",
+    };
+    return { ok: true, message: msg[status] ?? "Décompte mis à jour." };
   } catch (e) {
     return toState(e);
   }

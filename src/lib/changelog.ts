@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "decompte-general",
+    date: "2026-10-14",
+    title: "Décompte général définitif",
+    text: "En fin de chantier, récapitulez le marché, ses avenants, les factures, la retenue de garantie, les pénalités et les règlements jusqu'au solde, puis suivez la réponse du client.",
+    href: "/aide/decompte-general",
+  },
+  {
     id: "parcours-apprentis",
     date: "2026-10-14",
     title: "Parcours de formation des apprentis",
