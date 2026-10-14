@@ -51,11 +51,11 @@ export default async function HealthPage() {
             <ActionForm action={healthShareCreateAction} className="flex flex-wrap items-end gap-3">
               <label className="text-sm">
                 <span className="mb-1 block font-medium">Destinataire</span>
-                <input name="label" className="input" maxLength={120} placeholder="Banque, assureur" />
+                <input name="label" className="field" maxLength={120} placeholder="Banque, assureur" />
               </label>
               <label className="text-sm">
                 <span className="mb-1 block font-medium">Durée</span>
-                <select name="days" className="input" defaultValue="30">
+                <select name="days" className="field" defaultValue="30">
                   <option value="7">7 jours</option>
                   <option value="30">30 jours</option>
                   <option value="90">90 jours</option>

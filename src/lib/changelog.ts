@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "carnet-de-logement",
+    date: "2026-10-14",
+    title: "Carnet de santé du logement",
+    text: "L'historique des travaux, équipements et garanties de chaque adresse, transmissible par un lien au propriétaire suivant.",
+    href: "/aide/carnet-de-logement",
+  },
+  {
     id: "conseils-proactifs",
     date: "2026-10-14",
     title: "Conseils proactifs",

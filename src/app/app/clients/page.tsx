@@ -22,6 +22,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             <Link href="/app/carte?vue=clients" className="btn-secondary">
               <Icon name="pin" size={16} /> Carte
             </Link>
+            <Link href="/app/carnets" className="btn-secondary">
+              <Icon name="home" size={16} /> Carnets
+            </Link>
             <Link href="/app/clients/campagnes" className="btn-secondary">
               <Icon name="mail" size={16} /> Campagnes
             </Link>

@@ -1909,6 +1909,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "carnet-de-logement",
+    category: "clients",
+    title: "Tenir et transmettre le carnet de santé d'un logement",
+    summary: "Un carnet par adresse de chantier : travaux, équipements, entretiens, diagnostics et garanties, transmissible au propriétaire suivant.",
+    steps: [
+      "Dans Clients, ouvrez Carnets : chaque adresse de chantier a son carnet, même si elle a été saisie de deux façons différentes.",
+      "Les chantiers apparaissent d'eux-mêmes, datés par leur réception, avec les garanties de parfait achèvement, biennale et décennale.",
+      "Ajoutez un équipement installé, un entretien, un diagnostic ou des travaux faits par un autre professionnel, avec marque, garantie fabricant et fréquence d'entretien.",
+      "Le bloc Garanties en cours récapitule ce qui protège encore le logement et jusqu'à quand.",
+      "Pour une vente, créez un lien valable un an : il montre l'adresse, l'historique et les garanties, sans montant ni nom du client. Révoquez-le à tout moment.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

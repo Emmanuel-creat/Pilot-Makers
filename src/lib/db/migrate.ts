@@ -99,6 +99,7 @@ import { sql as m097 } from "./migrations/097_reseaux";
 import { sql as m098 } from "./migrations/098_metres";
 import { sql as m099 } from "./migrations/099_score_sante";
 import { sql as m100 } from "./migrations/100_conseils";
+import { sql as m101 } from "./migrations/101_carnet_logement";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -202,6 +203,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "098_metres", sql: m098 },
   { id: "099_score_sante", sql: m099 },
   { id: "100_conseils", sql: m100 },
+  { id: "101_carnet_logement", sql: m101 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

@@ -102,6 +102,7 @@ import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { setBenchmarkOptin } from "@/lib/services/benchmark";
 import { createHealthShare, revokeHealthShare } from "@/lib/services/health-score";
 import { dismissAdvice } from "@/lib/services/advice";
+import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from "@/lib/services/home-records";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
@@ -2935,4 +2936,57 @@ export async function adviceDismissAction(_: ActionState, fd: FormData): Promise
   revalidatePath("/app/conseils");
   revalidatePath("/app");
   return { ok: true, message: "Conseil masqué pour 30 jours." };
+}
+
+export async function homeEntryAddAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "recordId");
+  try {
+    await withCtx((ctx) =>
+      addHomeEntry(ctx, id, {
+        date: s(fd, "date"),
+        kind: s(fd, "kind"),
+        label: s(fd, "label"),
+        detail: s(fd, "detail"),
+        brand: s(fd, "brand"),
+        warrantyUntil: s(fd, "warrantyUntil"),
+        maintenanceMonths: s(fd, "maintenanceMonths"),
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/carnets/${id}`);
+  return { ok: true, message: "Ajouté au carnet." };
+}
+
+export async function homeEntryDeleteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteHomeEntry(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/carnets/${s(fd, "recordId")}`);
+  return { ok: true, message: "Entrée retirée." };
+}
+
+export async function homeShareAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "recordId");
+  try {
+    const token = await withCtx((ctx) => shareHomeRecord(ctx, id, Number(s(fd, "days")) || 365));
+    revalidatePath(`/app/carnets/${id}`);
+    return { ok: true, message: `Lien de transmission créé. Copiez-le maintenant, il ne sera plus affiché : ${appUrl(`/carnet/${token}`)}` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function homeShareRevokeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "recordId");
+  try {
+    await withCtx((ctx) => revokeHomeShare(ctx, id));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/carnets/${id}`);
+  return { ok: true, message: "Lien révoqué." };
 }

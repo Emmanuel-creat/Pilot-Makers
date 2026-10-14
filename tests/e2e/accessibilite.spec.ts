@@ -1424,6 +1424,31 @@ test("tableau de bord : conseils proactifs", async ({ page }) => {
   await audit(page, "conseils");
 });
 
+test("clients : carnet de logement complété puis transmis", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/clients");
+  await page.getByRole("link", { name: "Carnets", exact: true }).click();
+  await expect(page.getByTestId("carnets")).toBeVisible();
+  await audit(page, "carnets de logement");
+  await page.getByTestId("carnets").getByRole("link").first().click();
+  await expect(page.getByRole("heading", { name: "Historique du logement" })).toBeVisible();
+  await page.getByLabel("Intitulé").fill("Chaudière à condensation");
+  await page.getByLabel("Entretien tous les (mois)").fill("12");
+  await page.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByTestId("frise-logement")).toContainText("Chaudière à condensation");
+  await audit(page, "carnet de logement");
+  await page.getByRole("button", { name: "Créer un lien valable un an" }).click();
+  const notice = page.getByText(/Copiez-le maintenant/);
+  await expect(notice).toBeVisible();
+  const url = (await notice.textContent())!.match(/\/carnet\/[A-Za-z0-9_-]+/)![0];
+  const anonCtx = await browser.newContext();
+  const anon = await anonCtx.newPage();
+  await anon.goto(url);
+  await expect(anon.getByTestId("frise-logement")).toContainText("Chaudière à condensation");
+  await audit(anon, "carnet transmis");
+  await anonCtx.close();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

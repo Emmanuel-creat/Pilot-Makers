@@ -58,6 +58,9 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
         subtitle={`Client depuis le ${fmtDate(c.created_at)}`}
         actions={
           <>
+            <Link href={`/app/carnets?client=${c.id}`} className="btn-secondary">
+              <Icon name="home" size={16} /> Carnets de logement
+            </Link>
             <Link href={`/app/devis/nouveau?client=${c.id}`} className="btn-primary">
               <Icon name="plus" size={16} /> Nouveau devis
             </Link>
