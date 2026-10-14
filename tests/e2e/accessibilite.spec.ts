@@ -1123,6 +1123,15 @@ test("devis : devis similaires gagnés ou perdus", async ({ page }) => {
   await audit(page, "devis similaires");
 });
 
+test("catalogue : comparateur de prix entre fournisseurs", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/tarifs-fournisseurs");
+  await page.getByRole("link", { name: "Comparer les fournisseurs" }).click();
+  await page.waitForURL(/\/app\/catalogue\/comparateur$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Comparateur de fournisseurs");
+  await audit(page, "comparateur de fournisseurs");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

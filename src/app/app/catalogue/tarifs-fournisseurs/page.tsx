@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { can } from "@/lib/services/context";
@@ -14,6 +16,13 @@ export default async function SupplierPricesPage() {
         title="Tarifs fournisseurs"
         back={{ href: "/app/catalogue", label: "Catalogue" }}
         subtitle="Mettez à jour vos prix d'achat depuis le fichier de prix de votre négoce. Vos prix de vente ne changent pas sans vous."
+        actions={
+          can(ctx, "costs") ? (
+            <Link href="/app/catalogue/comparateur" className="btn-secondary">
+              <Icon name="compare" size={16} /> Comparer les fournisseurs
+            </Link>
+          ) : null
+        }
       />
       {can(ctx, "costs") ? (
         <SupplierImport suppliers={await catalogSuppliers(ctx)} />

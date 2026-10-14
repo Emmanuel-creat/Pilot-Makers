@@ -1578,6 +1578,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["La ressemblance tient aux mots des lignes et du titre, et à la proximité des montants. Notez les motifs de refus pour affiner la comparaison."],
   },
   {
+    slug: "comparateur-fournisseurs",
+    category: "catalogue",
+    title: "Comparer les prix de vos fournisseurs",
+    summary: "Le même produit chez chaque négoce, et l'économie possible sur un an.",
+    steps: [
+      "Dans Catalogue, « Tarifs fournisseurs », importez le fichier de prix de chacun de vos négoces.",
+      "Cliquez sur « Comparer les fournisseurs » : pour chaque article du catalogue, les offres des autres tarifs sont classées de la moins chère à la plus chère.",
+      "Quand une offre est moins chère, « Acheter chez » change le fournisseur, la référence et le prix d'achat de l'article. Vos prix de vente ne bougent pas.",
+    ],
+    notes: [
+      "Un même produit est reconnu par son code EAN, sinon par sa désignation et son unité : vérifiez ces rapprochements avant de changer.",
+      "L'économie annuelle reprend les quantités de l'article dans vos devis acceptés sur les douze derniers mois.",
+    ],
+    link: { href: "/app/catalogue/comparateur", label: "Ouvrir le comparateur" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

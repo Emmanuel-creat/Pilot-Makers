@@ -85,6 +85,7 @@ import { addRental, deleteRental, returnRental } from "@/lib/services/rentals";
 import { createGroup, deleteGroup, sendGroup } from "@/lib/services/order-groups";
 import { collectReturn, createReturn, creditReturn, deleteReturn } from "@/lib/services/supplier-returns";
 import { applyCostCorrection } from "@/lib/services/price-review";
+import { switchSupplier } from "@/lib/services/supplier-compare";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2397,6 +2398,16 @@ export async function applyCostCorrectionAction(_: ActionState, fd: FormData): P
       ok: true,
       message: `${r.name} : coût passé à ${formatEuros(Math.round(r.newCost4 / 100))}${r.priceChanged ? `, prix de vente à ${formatEuros(Math.round(r.newPrice4 / 100))}` : ""}.`,
     };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function switchSupplierAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => switchSupplier(ctx, s(fd, "itemId"), s(fd, "offerId")));
+    revalidatePath("/app/catalogue", "layout");
+    return { ok: true, message: `${r.name} : acheté désormais chez ${r.supplier} à ${formatEuros(Math.round(r.newCost4 / 100))} HT.` };
   } catch (e) {
     return toState(e);
   }

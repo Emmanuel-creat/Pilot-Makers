@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "comparateur-fournisseurs",
+    date: "2026-10-14",
+    title: "Comparateur de fournisseurs",
+    text: "Comparez vos prix d'achat d'un négoce à l'autre, produit par produit, avec l'économie annuelle estimée et le changement de fournisseur en un clic.",
+    href: "/aide/comparateur-fournisseurs",
+  },
+  {
     id: "devis-similaires",
     date: "2026-10-14",
     title: "Devis similaires gagnés ou perdus",
