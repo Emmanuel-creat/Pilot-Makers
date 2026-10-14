@@ -10,7 +10,11 @@ import { listCostAlerts } from "@/lib/services/supplier-prices";
 
 export const metadata = { title: "Catalogue" };
 
-export default async function CatalogPage({ searchParams }: { searchParams: Promise<{ q?: string; cat?: string; fav?: string; archives?: string; tri?: string; tag?: string }> }) {
+export default async function CatalogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; cat?: string; fav?: string; archives?: string; tri?: string; tag?: string }>;
+}) {
   const sp = await searchParams;
   const ctx = await requirePageCtx();
   const rows = await searchItems(ctx, {
@@ -31,6 +35,11 @@ export default async function CatalogPage({ searchParams }: { searchParams: Prom
         subtitle={`${rows.length} prestation${rows.length > 1 ? "s" : ""}`}
         actions={
           <>
+            {can(ctx, "costs") ? (
+              <Link href="/app/catalogue/ecarts" className="btn-secondary">
+                <Icon name="chart" size={16} /> Écarts de prix
+              </Link>
+            ) : null}
             <Link href="/app/catalogue/bibliotheques" className="btn-secondary">
               <Icon name="box" size={16} /> Bibliothèques
             </Link>

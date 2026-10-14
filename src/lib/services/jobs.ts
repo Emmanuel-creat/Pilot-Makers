@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { num, one, type Queryable } from "@/lib/db";
-import { badRequest, conflict, notFound } from "@/lib/http";
+import { badRequest, conflict, isUuid, notFound } from "@/lib/http";
 import { isSealed, open, seal } from "@/lib/secret-box";
 import type { Ctx } from "./context";
 import { audit, requireWritable } from "./context";
@@ -139,8 +139,22 @@ export async function createJobFromQuote(ctx: Ctx, quoteId: string): Promise<str
       for (const l of sec.lines) {
         if (l.kind !== "item" || l.optional) continue;
         await tx.query(
-          "INSERT INTO job_tasks (org_id, job_id, section, label, quantity, unit, weight_cents, position, nature, cost_cents) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-          [ctx.orgId, job!.id, sec.title, l.label, l.quantity, l.unit, amounts.get(l.id) ?? 0, position++, l.nature, costs.get(l.id) ?? null],
+          `INSERT INTO job_tasks (org_id, job_id, section, label, quantity, unit, weight_cents, position, nature, cost_cents, catalog_item_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+             (SELECT id FROM catalog_items WHERE id=$11::uuid AND org_id=$1))`,
+          [
+            ctx.orgId,
+            job!.id,
+            sec.title,
+            l.label,
+            l.quantity,
+            l.unit,
+            amounts.get(l.id) ?? 0,
+            position++,
+            l.nature,
+            costs.get(l.id) ?? null,
+            l.catalogItemId && isUuid(l.catalogItemId) ? l.catalogItemId : null,
+          ],
         );
       }
     }
@@ -285,9 +299,6 @@ export async function addTask(ctx: Ctx, jobId: string, raw: { label: string; sec
 
 export async function deleteTask(ctx: Ctx, taskId: string) {
   requireWritable(ctx);
-  const r = await ctx.db.query<{ id: string }>("DELETE FROM job_tasks WHERE id=$1 AND org_id=$2 AND weight_cents=0 RETURNING id", [
-    taskId,
-    ctx.orgId,
-  ]);
+  const r = await ctx.db.query<{ id: string }>("DELETE FROM job_tasks WHERE id=$1 AND org_id=$2 AND weight_cents=0 RETURNING id", [taskId, ctx.orgId]);
   if (!r.length) throw badRequest("Seule une tâche ajoutée à la main peut être supprimée");
 }

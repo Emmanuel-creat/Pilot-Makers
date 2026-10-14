@@ -84,6 +84,7 @@ import { archiveStockItem, createStockItem, moveStock, setThresholds, setVehicle
 import { addRental, deleteRental, returnRental } from "@/lib/services/rentals";
 import { createGroup, deleteGroup, sendGroup } from "@/lib/services/order-groups";
 import { collectReturn, createReturn, creditReturn, deleteReturn } from "@/lib/services/supplier-returns";
+import { applyCostCorrection } from "@/lib/services/price-review";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2386,4 +2387,17 @@ export async function deleteReturnAction(fd: FormData) {
   const r = await withCtx((ctx) => deleteReturn(ctx, s(fd, "id")));
   revalidatePath(orderPath(r.jobId, r.orderId));
   revalidatePath("/app/chantiers/retours");
+}
+
+export async function applyCostCorrectionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => applyCostCorrection(ctx, s(fd, "itemId"), { keepMargin: s(fd, "keepMargin") === "1" }));
+    revalidatePath("/app/catalogue", "layout");
+    return {
+      ok: true,
+      message: `${r.name} : coût passé à ${formatEuros(Math.round(r.newCost4 / 100))}${r.priceChanged ? `, prix de vente à ${formatEuros(Math.round(r.newPrice4 / 100))}` : ""}.`,
+    };
+  } catch (e) {
+    return toState(e);
+  }
 }

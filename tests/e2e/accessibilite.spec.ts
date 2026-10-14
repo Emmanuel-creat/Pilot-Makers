@@ -1088,6 +1088,15 @@ test("commande : bon de livraison avec réserves et retour au fournisseur", asyn
   await audit(page, "retours fournisseurs");
 });
 
+test("catalogue : écarts de prix des chantiers terminés", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue");
+  await page.getByRole("link", { name: "Écarts de prix" }).click();
+  await page.waitForURL(/\/app\/catalogue\/ecarts$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Écarts de prix");
+  await audit(page, "écarts de prix");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

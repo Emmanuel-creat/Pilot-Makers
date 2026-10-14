@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "ecarts-de-prix",
+    date: "2026-10-14",
+    title: "Écarts de prix analysés",
+    text: "Comparez le coût prévu et le coût réel de chaque article sur vos chantiers terminés, puis corrigez le catalogue en un clic avant les prochains devis.",
+    href: "/aide/ecarts-de-prix",
+  },
+  {
     id: "livraisons-et-retours",
     date: "2026-10-14",
     title: "Livraisons et retours fournisseurs",

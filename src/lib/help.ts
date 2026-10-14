@@ -1535,6 +1535,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers/retours", label: "Voir les retours fournisseurs" },
   },
   {
+    slug: "ecarts-de-prix",
+    category: "catalogue",
+    title: "Corriger les prix avec les écarts des chantiers",
+    summary: "Coût prévu comparé au coût réel, article par article.",
+    steps: [
+      "Sur chaque chantier, affectez vos achats aux tâches venues du devis : c'est ce qui permet de comparer le prévu et le réel.",
+      "Une fois le chantier terminé, ouvrez Catalogue, puis « Écarts de prix » : chaque article montre le coût prévu, le coût réel et le coût unitaire constaté.",
+      "Pour un écart de plus de 5 %, cliquez sur « Appliquer le coût constaté ». Cochez « Garder le même taux de marge » pour ajuster aussi le prix de vente.",
+    ],
+    notes: [
+      "La fiabilité dépend du nombre de chantiers : un seul chantier peut refléter un cas particulier.",
+      "La main-d'oeuvre est comparée pour l'ensemble des chantiers terminés, à partir des heures pointées.",
+    ],
+    link: { href: "/app/catalogue/ecarts", label: "Voir les écarts de prix" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
