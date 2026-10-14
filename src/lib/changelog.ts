@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "bourse-du-reseau",
+    date: "2026-10-14",
+    title: "Bourse aux missions et matériaux",
+    text: "Dans votre réseau d'artisans, proposez une mission de renfort ou vos matériaux restants, les intéressés vous répondent.",
+    href: "/aide/bourse-du-reseau",
+  },
+  {
     id: "risque-impaye",
     date: "2026-10-14",
     title: "Risque d'impayé avant signature",

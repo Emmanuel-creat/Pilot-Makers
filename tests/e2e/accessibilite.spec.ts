@@ -1526,6 +1526,20 @@ test("chantiers : retards détectés et prévenance du client", async ({ page })
   await audit(page, "retards de chantier");
 });
 
+test("réseau : bourse aux missions et matériaux", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue/reseaux");
+  await page.locator('a[href^="/app/catalogue/reseaux/"]:visible').first().click();
+  await page.waitForURL(/\/app\/catalogue\/reseaux\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Bourse aux missions et matériaux" }).click();
+  await page.getByLabel("Type").selectOption("materiau");
+  await page.getByLabel("Titre").fill("Plaques de plâtre restantes");
+  await page.getByLabel("Quantité").fill("14");
+  await page.getByRole("button", { name: "Publier" }).click();
+  await expect(page.getByTestId("bourse")).toContainText("Plaques de plâtre restantes");
+  await audit(page, "bourse du réseau");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -105,6 +105,7 @@ import { dismissAdvice } from "@/lib/services/advice";
 import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from "@/lib/services/home-records";
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
+import { closePost, createPost, replyToPost } from "@/lib/services/network-board";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
@@ -3023,4 +3024,48 @@ export async function delayAutoNoticeAction(_: ActionState, fd: FormData): Promi
   }
   revalidatePath("/app/chantiers/retards");
   return { ok: true, message: on ? "Prévenance automatique activée." : "Prévenance automatique désactivée." };
+}
+
+export async function networkPostAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const networkId = s(fd, "networkId");
+  try {
+    await withCtx((ctx) =>
+      createPost(ctx, networkId, {
+        kind: s(fd, "kind"),
+        title: s(fd, "title"),
+        detail: s(fd, "detail"),
+        trade: s(fd, "trade"),
+        city: s(fd, "city"),
+        start: s(fd, "start"),
+        end: s(fd, "end"),
+        quantity: s(fd, "quantity"),
+        unit: s(fd, "unit"),
+        price: s(fd, "price"),
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/reseaux/${networkId}/bourse`);
+  return { ok: true, message: "Annonce publiée dans le réseau." };
+}
+
+export async function networkReplyAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => replyToPost(ctx, s(fd, "postId"), s(fd, "message")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/reseaux/${s(fd, "networkId")}/bourse`);
+  return { ok: true, message: "Réponse envoyée : l'auteur a vos coordonnées." };
+}
+
+export async function networkCloseAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const networkId = await withCtx((ctx) => closePost(ctx, s(fd, "postId"), s(fd, "status") === "retiree" ? "retiree" : "pourvue"));
+    revalidatePath(`/app/catalogue/reseaux/${networkId}/bourse`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Annonce close." };
 }

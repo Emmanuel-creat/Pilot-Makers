@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { networkImportAction, networkLeaveAction, networkShareAction, networkUnshareAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
+import { Icon } from "@/components/Icon";
 import { PageHeader, Section } from "@/components/ui";
 import { formatEuros } from "@/lib/calc/format";
 import { HttpError } from "@/lib/http";
@@ -35,6 +37,11 @@ export default async function NetworkPage({ params, searchParams }: { params: Pr
           `${n.members.length} membre${n.members.length > 1 ? "s" : ""}, ${n.items.length} ouvrage${n.items.length > 1 ? "s" : ""} partagé${n.items.length > 1 ? "s" : ""}.`
         }
         back={{ href: "/app/catalogue/reseaux", label: "Réseaux d'artisans" }}
+        actions={
+          <Link href={`/app/catalogue/reseaux/${n.id}/bourse`} className="btn-secondary">
+            <Icon name="team" size={16} /> Bourse aux missions et matériaux
+          </Link>
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">

@@ -2000,6 +2000,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "bourse-du-reseau",
+    category: "catalogue",
+    title: "Proposer une mission ou des matériaux aux membres de votre réseau",
+    summary: "La bourse du réseau d'artisans : missions de renfort pour absorber un pic de travail, matériaux restants à céder plutôt qu'à jeter.",
+    steps: [
+      "Ouvrez votre réseau dans Catalogue, Réseaux d'artisans, puis Bourse aux missions et matériaux.",
+      "Pour un pic de travail, publiez une mission avec ses dates, le métier recherché et la ville.",
+      "Pour des matériaux restants d'un chantier, publiez la quantité, l'unité et un prix, ou laissez le prix vide pour un don ou un prix à débattre.",
+      "Les membres intéressés répondent en un clic avec un message : vous recevez leurs coordonnées et une notification.",
+      "Marquez l'annonce pourvue ou retirez-la : elle disparaît pour les autres membres. Une mission dont la date de fin est passée disparaît aussi.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
