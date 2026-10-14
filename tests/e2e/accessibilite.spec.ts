@@ -1156,6 +1156,15 @@ test("équipe : déclaration de congés payés du bâtiment", async ({ page }) =
   await audit(page, "congés payés du bâtiment");
 });
 
+test("équipe : parcours de formation des apprentis", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/equipe");
+  await page.getByRole("link", { name: "Apprentis", exact: true }).click();
+  await page.waitForURL(/\/app\/equipe\/apprentis$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Parcours des apprentis");
+  await audit(page, "parcours des apprentis");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

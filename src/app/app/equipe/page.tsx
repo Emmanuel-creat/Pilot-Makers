@@ -37,11 +37,16 @@ export default async function TeamPage() {
         title="Équipe"
         subtitle={`${members.length} utilisateur(s) sur ${max} inclus dans l'offre ${ctx.entitlements.plan.name}`}
         actions={
-          can(ctx, "staff") ? (
-            <Link href="/app/equipe/conges-payes" className="btn-secondary">
-              <Icon name="calendar" size={16} /> Congés payés du bâtiment
+          <div className="flex flex-wrap gap-2">
+            <Link href="/app/equipe/apprentis" className="btn-secondary">
+              <Icon name="users" size={16} /> Apprentis
             </Link>
-          ) : null
+            {can(ctx, "staff") ? (
+              <Link href="/app/equipe/conges-payes" className="btn-secondary">
+                <Icon name="calendar" size={16} /> Congés payés du bâtiment
+              </Link>
+            ) : null}
+          </div>
         }
       />
       <Section title="Membres">

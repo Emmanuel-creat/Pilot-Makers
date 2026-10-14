@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "parcours-apprentis",
+    date: "2026-10-14",
+    title: "Parcours de formation des apprentis",
+    text: "Suivez les compétences de chaque apprenti, validées par son tuteur, avec ses jours d'école et une alerte avant la fin du contrat.",
+    href: "/aide/parcours-apprentis",
+  },
+  {
     id: "conges-payes-batiment",
     date: "2026-10-14",
     title: "Déclarations de congés payés du bâtiment",

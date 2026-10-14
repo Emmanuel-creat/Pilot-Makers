@@ -1635,6 +1635,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/equipe/conges-payes", label: "Ouvrir les congés payés" },
   },
   {
+    slug: "parcours-apprentis",
+    category: "compte",
+    title: "Suivre le parcours de formation d'un apprenti",
+    summary: "Les compétences à acquérir pendant l'alternance, validées étape par étape par le tuteur.",
+    steps: [
+      "Invitez l'apprenti dans votre équipe, puis dans Équipe, « Apprentis », démarrez son parcours : tuteur, diplôme préparé, école, dates du contrat et jours d'école.",
+      "Le parcours proposé couvre la sécurité, l'organisation du chantier, les gestes du métier et la relation client. Ajoutez ou retirez des compétences selon votre métier.",
+      "Au fil des chantiers, le tuteur indique pour chaque compétence si elle a été montrée, faite avec lui ou maîtrisée en autonomie, avec une observation.",
+    ],
+    notes: [
+      "L'apprenti consulte son propre parcours ; seuls le tuteur et la direction valident les étapes.",
+      "Une alerte apparaît 60 jours avant la fin du contrat pour préparer la suite.",
+    ],
+    link: { href: "/app/equipe/apprentis", label: "Ouvrir les parcours" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

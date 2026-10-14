@@ -89,6 +89,7 @@ import { switchSupplier } from "@/lib/services/supplier-compare";
 import { setItemCarbon } from "@/lib/services/carbon";
 import { ensureReferralCode, markReferralRewarded, saveReferralSettings } from "@/lib/services/referrals";
 import { markDeclarationSent, saveDeclaration, saveLeaveFundSettings } from "@/lib/services/leave-fund";
+import { addSkill, createApprentice, deleteApprentice, deleteSkill, setSkillLevel, updateApprentice } from "@/lib/services/apprentices";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2487,6 +2488,80 @@ export async function markLeaveDeclarationSentAction(_: ActionState, fd: FormDat
     await withCtx((ctx) => markDeclarationSent(ctx, s(fd, "period")));
     revalidatePath("/app/equipe/conges-payes");
     return { ok: true, message: "Déclaration marquée comme transmise." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+function apprenticeFields(fd: FormData) {
+  return {
+    tutorId: s(fd, "tutorId"),
+    diploma: s(fd, "diploma"),
+    school: s(fd, "school"),
+    contractStart: s(fd, "contractStart"),
+    contractEnd: s(fd, "contractEnd"),
+    schoolDays: fd.getAll("schoolDays").map(String),
+  };
+}
+
+export async function createApprenticeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createApprentice(ctx, s(fd, "userId"), apprenticeFields(fd)));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/equipe/apprentis");
+  redirect(`/app/equipe/apprentis/${id}`);
+}
+
+export async function updateApprenticeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    await withCtx((ctx) => updateApprentice(ctx, id, apprenticeFields(fd)));
+    revalidatePath(`/app/equipe/apprentis/${id}`);
+    return { ok: true, message: "Fiche de l'apprenti enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteApprenticeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteApprentice(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/equipe/apprentis");
+  redirect("/app/equipe/apprentis");
+}
+
+export async function setSkillLevelAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => setSkillLevel(ctx, s(fd, "skillId"), s(fd, "level"), s(fd, "note")));
+    revalidatePath(`/app/equipe/apprentis/${s(fd, "apprenticeId")}`);
+    return { ok: true, message: "Étape enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function addSkillAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "apprenticeId");
+    await withCtx((ctx) => addSkill(ctx, id, s(fd, "category"), s(fd, "label")));
+    revalidatePath(`/app/equipe/apprentis/${id}`);
+    return { ok: true, message: "Compétence ajoutée au parcours." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteSkillAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteSkill(ctx, s(fd, "skillId")));
+    revalidatePath(`/app/equipe/apprentis/${s(fd, "apprenticeId")}`);
+    return { ok: true, message: "Compétence retirée du parcours." };
   } catch (e) {
     return toState(e);
   }
