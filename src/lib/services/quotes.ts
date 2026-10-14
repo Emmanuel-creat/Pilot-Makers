@@ -46,6 +46,7 @@ import { documentsMention, quoteDocuments, type SnapshotDocument } from "./datas
 import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualifications, type EnergyAid, type RgeQualification } from "./aids";
 import { enqueueWebhook } from "./webhooks";
 import { overseasIssues } from "@/lib/overseas";
+import { countryVatIssues } from "@/lib/country-rules";
 import { currencyIssues, draftForeign, foreignMention, normalizeForeign, type ForeignCurrency } from "@/lib/currency";
 
 const DAY = 86_400_000;
@@ -524,9 +525,10 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
 }
 
 /** Taux de TVA à vérifier quand le chantier (ou, à défaut, le client) est outre-mer. */
-function quoteOverseasIssues(org: Parameters<typeof quoteVatExempt>[0], customer: Customer | null, d: { reverseCharge?: boolean; site: { postalCode: string } }, calc: ReturnType<typeof computeQuote>) {
+function quoteOverseasIssues(org: Parameters<typeof quoteVatExempt>[0] & { country?: string }, customer: Customer | null, d: { reverseCharge?: boolean; site: { postalCode: string } }, calc: ReturnType<typeof computeQuote>) {
   const postal = d.site.postalCode || customer?.billing_postal_code || "";
-  return overseasIssues(postal, calc.vatGroups.map((g) => g.vatBp), quoteVatExempt(org, d));
+  const vatBps = calc.vatGroups.map((g) => g.vatBp);
+  return [...overseasIssues(postal, vatBps, quoteVatExempt(org, d)), ...countryVatIssues(org.country, vatBps, quoteVatExempt(org, d))];
 }
 
 /** Aperçu des calculs et contrôles, sans rien enregistrer. */

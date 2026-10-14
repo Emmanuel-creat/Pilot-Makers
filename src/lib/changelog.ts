@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "belgique-suisse-luxembourg",
+    date: "2026-10-14",
+    title: "Belgique, Suisse et Luxembourg",
+    text: "Les entreprises établies dans ces pays ont leurs taux de TVA, leur identifiant d'entreprise, leur format de numéro de TVA et de code postal.",
+    href: "/aide/belgique-suisse-luxembourg",
+  },
+  {
     id: "conseil-financier",
     date: "2026-10-14",
     title: "Conseil financier personnalisé",

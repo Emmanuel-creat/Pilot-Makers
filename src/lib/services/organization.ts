@@ -1,5 +1,6 @@
 /** Profil de l'entreprise (module B). */
 
+import { countryOf, validateCompanyId, validateCountryPostalCode, validateForeignVat } from "@/lib/country-rules";
 import { requireCleanFile } from "@/lib/file-scan";
 import { z } from "zod";
 import { one } from "@/lib/db";
@@ -172,6 +173,16 @@ export function validateOrgFields(input: OrgInput): Record<string, string> {
   const check = (field: keyof OrgInput, msg: string | null) => {
     if (msg) errors[field] = msg;
   };
+  const country = countryOf(input.country);
+  if (country !== "FR") {
+    // Hors de France, le champ SIREN porte l'identifiant d'entreprise du pays et le SIRET n'existe pas.
+    if (input.siren !== undefined) check("siren", validateCompanyId(country, input.siren));
+    if (input.vat_number !== undefined) check("vat_number", validateForeignVat(country, input.vat_number));
+    if (input.postal_code !== undefined) check("postal_code", validateCountryPostalCode(country, input.postal_code));
+    if (input.bank_iban !== undefined) check("bank_iban", validateIban(input.bank_iban));
+    if (input.email !== undefined) check("email", validateEmail(input.email));
+    return errors;
+  }
   if (input.siren !== undefined) check("siren", validateSiren(input.siren));
   if (input.siret !== undefined) {
     check("siret", validateSiret(input.siret));

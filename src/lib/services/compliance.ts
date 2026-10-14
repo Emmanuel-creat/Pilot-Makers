@@ -6,6 +6,7 @@
  * professionnel compétent pour chaque métier.
  */
 
+import { rulesFor } from "@/lib/country-rules";
 import { findAnomalies, type AnomalyLine } from "./anomalies";
 import type { CalcResult } from "@/lib/calc/engine";
 import { formatPercent } from "@/lib/calc/format";
@@ -32,6 +33,7 @@ export interface ComplianceInput {
     siren: string;
     siret: string;
     vat_number: string;
+    country?: string;
     vat_regime: "normal" | "franchise";
     phone: string;
     email: string;
@@ -84,7 +86,10 @@ export function checkCompliance(i: ComplianceInput): ComplianceIssue[] {
   if (!i.org.address_line1.trim() || !i.org.postal_code.trim() || !i.org.city.trim()) {
     block("org_address", "Adresse de l'entreprise incomplète (profil entreprise)", "org.address");
   }
-  if (!i.org.siret.trim() && !i.org.siren.trim()) block("org_siret", "SIRET de l'entreprise manquant (profil entreprise)", "org.siret");
+  if (!i.org.siret.trim() && !i.org.siren.trim()) {
+    const r = rulesFor(i.org.country);
+    block("org_siret", `${r.code === "FR" ? "SIRET" : r.companyIdLabel} de l'entreprise manquant (profil entreprise)`, "org.siret");
+  }
   if (!i.org.phone.trim() && !i.org.email.trim()) warn("org_contact", "Aucun téléphone ni e-mail professionnel dans le profil");
   if (i.org.vat_regime === "normal" && !i.org.vat_number.trim()) {
     warn("org_vat_number", "Numéro de TVA intracommunautaire absent : vérifiez s'il doit figurer sur vos documents");

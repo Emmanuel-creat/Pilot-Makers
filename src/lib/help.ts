@@ -2079,6 +2079,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "belgique-suisse-luxembourg",
+    category: "compte",
+    title: "Entreprise établie en Belgique, en Suisse ou au Luxembourg",
+    summary: "Choisissez votre pays d'établissement : taux de TVA, identifiant d'entreprise, numéro de TVA et code postal suivent les règles du pays.",
+    steps: [
+      "Dans Entreprise, onglet Identité, choisissez le pays d'établissement : France, Belgique, Suisse ou Luxembourg.",
+      "Le champ d'identifiant devient le numéro d'entreprise BCE en Belgique, le numéro IDE en Suisse ou le numéro RCS au Luxembourg, avec le contrôle de sa clé.",
+      "Le numéro de TVA est vérifié selon le format du pays (BE, CHE suivi de TVA, LU) et les codes postaux à 4 chiffres sont acceptés.",
+      "Dans l'éditeur de devis, les taux proposés sont ceux du pays : 21, 12 et 6 % en Belgique ; 8,1, 3,8 et 2,6 % en Suisse ; 17, 14, 8 et 3 % au Luxembourg. Un taux étranger est signalé avant l'émission.",
+      "Le devis imprime l'identifiant du pays et votre pays sous l'adresse. En Suisse, indiquez la contre-valeur en francs suisses avec le taux appliqué.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

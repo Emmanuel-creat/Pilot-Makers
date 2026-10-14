@@ -1606,6 +1606,16 @@ test("rapports : conseil financier personnalisé", async ({ page }) => {
   await audit(page, "conseil financier");
 });
 
+test("entreprise : pays d'établissement hors de France", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise");
+  await page.getByLabel("Pays d'établissement").selectOption("Belgique");
+  await expect(page.getByLabel("Numéro d'entreprise (BCE)")).toBeVisible();
+  await expect(page.getByLabel("SIRET", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("BE suivi des 10 chiffres du numéro d'entreprise")).toBeVisible();
+  await audit(page, "profil entreprise belge");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

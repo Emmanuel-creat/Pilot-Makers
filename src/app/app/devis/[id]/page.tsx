@@ -105,6 +105,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
             siren: org.siren,
             siret: org.siret,
             vat_number: org.vat_number,
+            country: org.country,
             vat_regime: org.vat_regime,
             phone: org.phone,
             email: org.email,

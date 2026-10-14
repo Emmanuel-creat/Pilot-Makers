@@ -1,5 +1,6 @@
 "use client";
 
+import { rulesFor } from "@/lib/country-rules";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -187,6 +188,7 @@ export function QuoteEditor({
   const focusedSection = useRef("");
   const franchise = org.vat_regime === "franchise";
   const vatExempt = franchise || d.reverseCharge;
+  const vatOptions = rulesFor(org.country).vatOptions;
 
   /* Calculs et contrôles en direct (même moteur que le serveur) */
   const calc = useMemo(() => computeQuote(draftToCalcInput(d, vatExempt)), [d, vatExempt]);
@@ -1070,6 +1072,7 @@ export function QuoteEditor({
                         laborRates={pricing.laborRates}
                         coefficient={pricing.coefficients[l.nature as keyof Pricing["coefficients"]] ?? 0}
                         vatExempt={vatExempt}
+                        vatOptions={vatOptions}
                         readOnly={false}
                         onChange={(patch) => setLine(s.id, l.id, patch)}
                         onRemove={() => setSection(s.id, (x) => ({ ...x, lines: x.lines.filter((y) => y.id !== l.id) }))}

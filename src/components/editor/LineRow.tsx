@@ -20,6 +20,8 @@ export const NATURES: Record<string, string> = {
 };
 
 interface Props {
+  /** Taux proposés selon le pays de l'entreprise */
+  vatOptions?: string[];
   line: DraftLine;
   result?: CalcLineResult;
   issues: CalcIssue[];
@@ -45,7 +47,7 @@ interface Props {
   dragOver: boolean;
 }
 
-export function LineRow({ line, result, issues, showCosts, laborRates = [], coefficient = 0, vatExempt, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
+export function LineRow({ line, result, issues, showCosts, laborRates = [], coefficient = 0, vatExempt, vatOptions = VAT_OPTIONS, readOnly, onChange, onRemove, onDuplicate, onMove, onSaveToCatalog, dragHandlers, dragOver }: Props) {
   const [showDesc, setShowDesc] = useState(!!line.description);
   const [measuring, setMeasuring] = useState(false);
   const [showNote, setShowNote] = useState(!!line.internalNote);
@@ -156,12 +158,12 @@ export function LineRow({ line, result, issues, showCosts, laborRates = [], coef
               ) : (
                 <select value={line.vatPercent} onChange={(e) => onChange({ vatPercent: e.target.value })} className={fieldCls("vatPercent")} disabled={readOnly} aria-label="Taux de TVA">
                   <option value="">Choisir</option>
-                  {VAT_OPTIONS.map((v) => (
+                  {vatOptions.map((v) => (
                     <option key={v} value={v}>
                       {v} %
                     </option>
                   ))}
-                  {line.vatPercent && !VAT_OPTIONS.includes(line.vatPercent) ? <option value={line.vatPercent}>{line.vatPercent} %</option> : null}
+                  {line.vatPercent && !vatOptions.includes(line.vatPercent) ? <option value={line.vatPercent}>{line.vatPercent} %</option> : null}
                 </select>
               )}
             </Labeled>

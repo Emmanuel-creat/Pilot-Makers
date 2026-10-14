@@ -9,6 +9,7 @@ import { groupRuns, runAt } from "@/lib/calc/groups";
 import { type Key, type Lang, translator, unitLabel } from "./i18n";
 import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, degrees, rgb, type RGB } from "pdf-lib";
 import { formatEuros, formatPercent, formatQuantity, formatUnitPrice } from "@/lib/calc/format";
+import { companyIdLine, countryOf } from "@/lib/country-rules";
 import { reducedVatAttestation, WITHDRAWAL_TEXT, withdrawalForm } from "@/lib/services/consumer";
 import type { QuoteSnapshot } from "@/lib/services/quote-types";
 import { snapshotOptions, snapshotVariants } from "@/lib/services/options";
@@ -141,7 +142,7 @@ export function legalFooter(s: QuoteSnapshot): string {
     o.legal_name || o.trade_name,
     o.legal_form,
     o.share_capital ? `capital ${o.share_capital}` : "",
-    o.siret ? `SIRET ${o.siret}` : o.siren ? `SIREN ${o.siren}` : "",
+    companyIdLine(o),
     o.rcs_rm,
     o.vat_number ? `TVA ${o.vat_number}` : "",
   ]
@@ -287,10 +288,11 @@ export async function renderQuotePdf(
     o.address_line1,
     o.address_line2,
     [o.postal_code, o.city].filter(Boolean).join(" "),
+    countryOf(o.country) !== "FR" ? o.country : "",
     o.phone ? `${t("phone")} ${o.phone}` : "",
     o.email,
     o.website,
-    o.siret ? `SIRET ${o.siret}` : o.siren ? `SIREN ${o.siren}` : "",
+    companyIdLine(o),
     o.vat_number ? `${t("vatId")} ${o.vat_number}` : "",
   ].filter(Boolean);
   for (const l of orgLines) {
