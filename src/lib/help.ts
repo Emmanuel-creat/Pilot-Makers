@@ -1723,6 +1723,34 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/comptabilite/bilan", label: "Préparer le bilan" },
   },
   {
+    slug: "planification-automatique",
+    category: "demarrer",
+    title: "Planifier un chantier automatiquement",
+    summary: "La première période où l'équipe nécessaire est compétente, libre et la plus proche du chantier.",
+    steps: [
+      "Sur la fiche du chantier, cliquez sur « Planifier automatiquement ».",
+      "Vérifiez le nombre de jours et de personnes, estimés d'après la main-d'oeuvre du devis accepté, et indiquez si besoin une compétence (qualification ou habilitation) et une date au plus tôt.",
+      "Relisez la période et l'équipe proposées, puis cliquez sur « Enregistrer dans le planning ».",
+    ],
+    notes: [
+      "Les week-ends, jours fériés, absences et autres chantiers sont évités. À disponibilité égale, la personne dont le chantier précédent ou le dépôt est le plus proche passe d'abord.",
+      "Les fonctions secrétariat et comptable ne sont pas proposées.",
+    ],
+  },
+  {
+    slug: "veille-reglementaire",
+    category: "regles",
+    title: "Suivre les évolutions réglementaires",
+    summary: "Les règles qui changent pour vos devis et factures, leur date d'effet et ce qu'il faut faire.",
+    steps: [
+      "Quand une évolution vous concerne, le tableau de bord l'annonce : cliquez sur le message pour ouvrir la veille réglementaire.",
+      "Lisez ce qui change, la date d'entrée en vigueur et l'action conseillée, avec la source.",
+      "Cliquez sur « Marquer comme lu » : l'alerte disparaît pour toute l'entreprise.",
+    ],
+    notes: ["Une évolution est signalée dès sa publication et jusqu'à quatre mois avant son entrée en vigueur. Faites valider votre situation par votre expert-comptable."],
+    link: { href: "/app/veille", label: "Ouvrir la veille" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

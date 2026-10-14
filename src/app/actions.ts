@@ -94,6 +94,8 @@ import { savePenalties, setFinalAccountStatus } from "@/lib/services/final-accou
 import { locateAll } from "@/lib/services/map";
 import { deleteCampaign, saveCampaign, sendCampaign } from "@/lib/services/campaigns";
 import { saveYearEnd } from "@/lib/services/year-end";
+import { applyProposal } from "@/lib/services/auto-planning";
+import { markWatchRead } from "@/lib/services/regulatory-watch";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2658,6 +2660,31 @@ export async function saveYearEndAction(_: ActionState, fd: FormData): Promise<A
     await withCtx((ctx) => saveYearEnd(ctx, year, fd.getAll("done").map(String), notes));
     revalidatePath("/app/comptabilite/bilan");
     return { ok: true, message: "Préparation du bilan enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function applyAutoPlanningAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const jobId = s(fd, "jobId");
+  const start = s(fd, "start");
+  try {
+    const r = await withCtx((ctx) => applyProposal(ctx, jobId, start, s(fd, "end"), fd.getAll("userId").map(String)));
+    if (r.conflicts.length) return { ok: false, error: `Affectations enregistrées, mais en conflit avec : ${r.conflicts.join(", ")}.` };
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/planning");
+  revalidatePath(`/app/chantiers/${jobId}`);
+  redirect(`/app/planning?vue=semaine&date=${start}`);
+}
+
+export async function markWatchReadAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => markWatchRead(ctx, s(fd, "id")));
+    revalidatePath("/app/veille");
+    revalidatePath("/app");
+    return { ok: true, message: s(fd, "id") === "tout" ? "Toutes les évolutions sont marquées comme lues." : "Évolution marquée comme lue." };
   } catch (e) {
     return toState(e);
   }

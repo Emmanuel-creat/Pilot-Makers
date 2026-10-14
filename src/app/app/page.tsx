@@ -11,6 +11,7 @@ import { budgetAlerts } from "@/lib/services/job-costs";
 import { subcontractorAlerts } from "@/lib/services/subcontractors";
 import { clientInbox } from "@/lib/services/client-space";
 import { pct } from "@/lib/services/jobs-labels";
+import { regulatoryAlertCount } from "@/lib/services/regulatory-watch";
 
 export const metadata = { title: "Tableau de bord" };
 
@@ -26,6 +27,7 @@ export default async function Dashboard() {
   const overBudget = ctx.entitlements.plan.features.margin ? await budgetAlerts(ctx) : [];
   const subAlerts = await subcontractorAlerts(ctx);
   const inbox = await clientInbox(ctx);
+  const watchAlerts = await regulatoryAlertCount(ctx);
   return (
     <>
       <PageHeader
@@ -41,6 +43,15 @@ export default async function Dashboard() {
         <Link href="/app/bienvenue" className="card mb-6 flex items-center gap-3 border-warning/40 bg-warning-soft p-4 text-sm">
           <Icon name="building" className="text-warning" />
           <span className="flex-1">Complétez le profil de votre entreprise (adresse, SIRET, assurance) pour pouvoir émettre vos devis.</span>
+          <Icon name="right" />
+        </Link>
+      ) : null}
+      {watchAlerts ? (
+        <Link href="/app/veille" className="card mb-6 flex items-center gap-3 p-4 text-sm hover:border-accent">
+          <Icon name="alert" className="text-warning" />
+          <span className="flex-1">
+            {watchAlerts > 1 ? `${watchAlerts} évolutions réglementaires vous concernent` : "1 évolution réglementaire vous concerne"} : voyez ce qui change et quoi faire.
+          </span>
           <Icon name="right" />
         </Link>
       ) : null}

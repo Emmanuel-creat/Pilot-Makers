@@ -1206,6 +1206,34 @@ test("comptabilité : préparation du bilan", async ({ page }) => {
   expect(csv.status()).toBe(200);
 });
 
+test("chantier : planification automatique", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Planifier automatiquement" }).click();
+  await page.waitForURL(/\/planifier$/);
+  await page.getByLabel("Personnes").fill("1");
+  await page.getByRole("button", { name: "Chercher une période" }).click();
+  await expect(page.getByTestId("proposition-planning")).toBeVisible();
+  await audit(page, "planification automatique");
+  await page.getByRole("button", { name: "Enregistrer dans le planning" }).click();
+  await page.waitForURL(/\/app\/planning\?vue=semaine/);
+});
+
+test("veille réglementaire annoncée sur le tableau de bord", async ({ page }) => {
+  await login(page);
+  await page.goto("/app");
+  await page.getByRole("link", { name: /évolutions? réglementaires? vous concern/ }).click();
+  await page.waitForURL(/\/app\/veille$/);
+  await expect(page.getByTestId("veille-entree").first()).toBeVisible();
+  await audit(page, "veille réglementaire");
+  const unread = page.getByRole("button", { name: "Marquer comme lu" });
+  const before = await unread.count();
+  await unread.first().click();
+  await expect(unread).toHaveCount(before - 1);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -17,6 +17,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "veille-reglementaire",
+    date: "2026-10-14",
+    title: "Veille réglementaire",
+    text: "Les évolutions qui touchent vos devis et factures sont annoncées sur le tableau de bord, avec leur date d'effet et ce qu'il faut faire.",
+    href: "/aide/veille-reglementaire",
+  },
+  {
+    id: "planification-automatique",
+    date: "2026-10-14",
+    title: "Planification automatique des chantiers",
+    text: "Trouvez la première période où l'équipe compétente est libre, hors absences et jours fériés, en privilégiant les personnes les plus proches.",
+    href: "/aide/planification-automatique",
+  },
+  {
     id: "preparation-bilan",
     date: "2026-10-14",
     title: "Préparation du bilan",
