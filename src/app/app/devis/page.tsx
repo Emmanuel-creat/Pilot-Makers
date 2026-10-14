@@ -59,9 +59,14 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
         title="Devis"
         subtitle={`${res.total} devis${sp.archives === "1" ? " archivés" : ""}`}
         actions={
-          <Link href="/app/devis/nouveau" className="btn-primary">
-            <Icon name="plus" /> Créer un devis
-          </Link>
+          <>
+            <Link href="/app/devis/marches" className="btn-secondary">
+              <Icon name="building" /> Marchés publics
+            </Link>
+            <Link href="/app/devis/nouveau" className="btn-primary">
+              <Icon name="plus" /> Créer un devis
+            </Link>
+          </>
         }
       />
       <div className="mb-4 flex gap-1 overflow-x-auto pb-1" role="tablist">

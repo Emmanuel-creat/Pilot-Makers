@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "marches-publics",
+    date: "2026-10-14",
+    title: "Marchés publics : DPGF et BPU",
+    text: "Importez le bordereau de l'acheteur, le devis se chiffre avec votre catalogue et le bordereau revient rempli.",
+    href: "/aide/marches-publics",
+  },
+  {
     id: "chance-de-signature",
     date: "2026-10-14",
     title: "Chance de signature",

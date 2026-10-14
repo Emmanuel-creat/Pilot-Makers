@@ -1136,6 +1136,23 @@ test("devis : chance de signature avant l'envoi", async ({ page }) => {
   await audit(page, "chance de signature");
 });
 
+test("devis : bordereau de marché public importé puis rempli", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis");
+  await page.getByRole("link", { name: "Marchés publics" }).click();
+  await audit(page, "marchés publics");
+  const csv = "N°;Désignation;U;Qté;PU HT;Montant HT\n1;LOT 1 PEINTURE;;;;\n1.1;Peinture des murs deux couches;m²;120;;\n";
+  await page.getByLabel("Bordereau de l'acheteur (DPGF, BPU ou DQE)").setInputFiles({ name: "dpgf.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
+  await page.getByLabel("Objet du marché").fill("Peinture du gymnase");
+  await page.getByRole("button", { name: "Importer et créer le devis" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("marche-public")).toContainText("1 poste");
+  const href = await page.getByTestId("marche-public").getByRole("link", { name: "Bordereau rempli" }).getAttribute("href");
+  const res = await page.request.get(href!);
+  expect(res.status()).toBe(200);
+  expect(await res.text()).toContain("Peinture des murs deux couches");
+});
+
 test("catalogue : comparateur de prix entre fournisseurs", async ({ page }) => {
   await login(page);
   await page.goto("/app/catalogue/tarifs-fournisseurs");

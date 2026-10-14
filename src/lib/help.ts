@@ -1948,6 +1948,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "marches-publics",
+    category: "devis",
+    title: "Répondre à un marché public avec le bordereau de l'acheteur",
+    summary: "Importez le DPGF, le BPU ou le DQE : le devis se crée avec ses lots et ses postes, chiffré avec votre catalogue, puis téléchargez le bordereau rempli.",
+    steps: [
+      "Dans Devis, ouvrez Marchés publics et choisissez le fichier de l'acheteur au format .xlsx, .ods ou .csv (un .xls s'enregistre d'abord en .xlsx).",
+      "Les colonnes Désignation, Unité, Quantité et Prix unitaire sont reconnues seules, même sous un titre. Les lignes sans unité ni quantité deviennent des lots.",
+      "Chaque poste est rapproché de l'article le plus proche de votre catalogue. Les postes sans article proche sont marqués estimés, prix à compléter.",
+      "Complétez et ajustez les prix dans le devis comme d'habitude, puis cliquez sur Bordereau rempli : le tableau de l'acheteur revient avec les prix unitaires, les montants et le total HT.",
+      "Reportez ce tableau dans votre réponse sur la plateforme de l'acheteur, avec le devis en PDF si besoin.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
