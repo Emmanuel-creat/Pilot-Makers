@@ -5,6 +5,9 @@ import { num } from "@/lib/db";
 import { requirePageCtx } from "@/lib/server/session";
 import { getSubscription, listPlans, quotesIssuedThisMonth } from "@/lib/services/billing";
 import { cancelSubscriptionAction } from "@/app/actions";
+import { discounted } from "@/lib/preferential-pricing";
+import { benefitPercent, getBenefit } from "@/lib/services/pricing-benefits";
+import { Benefits } from "./Benefits";
 import { Checkout } from "./Checkout";
 
 export const metadata = { title: "Abonnement" };
@@ -19,7 +22,7 @@ const STATUS: Record<string, string> = {
 
 export default async function BillingPage() {
   const ctx = await requirePageCtx();
-  const [plans, sub, used, invoices, aiUsed] = await Promise.all([
+  const [plans, sub, used, invoices, aiUsed, benefit, percent] = await Promise.all([
     listPlans(ctx.db),
     getSubscription(ctx.db, ctx.orgId),
     quotesIssuedThisMonth(ctx.db, ctx.orgId),
@@ -31,6 +34,8 @@ export default async function BillingPage() {
       "SELECT coalesce(sum(units),0) AS n FROM usage_events WHERE org_id=$1 AND kind='ai' AND created_at >= date_trunc('month', now())",
       [ctx.orgId],
     ),
+    getBenefit(ctx.db, ctx.orgId),
+    benefitPercent(ctx.db, ctx.orgId),
   ]);
   const ent = ctx.entitlements;
   const owner = ctx.role === "owner" && !ctx.supportAccess;
@@ -77,6 +82,7 @@ export default async function BillingPage() {
           </form>
         ) : null}
       </Section>
+      <Benefits benefit={benefit} percent={percent} owner={owner} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {plans.map((p) => {
           const current = sub?.plan_code === p.code && sub.status !== "trialing";
@@ -89,6 +95,11 @@ export default async function BillingPage() {
                 <span className="text-sm font-normal text-muted"> HT / mois</span>
               </div>
               {p.price_year_cents ? <div className="text-xs text-muted">ou {formatEuros(p.price_year_cents).replace(",00", "")} HT / an</div> : null}
+              {percent > 0 && p.price_month_cents > 0 ? (
+                <div className="text-sm font-medium text-success">
+                  Avec votre tarif : {formatEuros(discounted(p.price_month_cents, percent)).replace(",00", "")} HT / mois
+                </div>
+              ) : null}
               <ul className="mt-3 flex-1 space-y-1 text-sm">
                 <li className="flex gap-2">
                   <Icon name="check" size={16} className="mt-0.5 text-success" />

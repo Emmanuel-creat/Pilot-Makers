@@ -127,6 +127,10 @@ export default async function Home() {
       <section id="tarifs" className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="text-2xl font-semibold">Tarifs</h2>
         <p className="mt-1 text-sm text-muted">Prix hors taxes, sans engagement. Offres de lancement susceptibles d'évoluer.</p>
+        <p className="mt-2 text-sm" data-testid="tarifs-apprentis">
+          Apprentis et élèves en formation : abonnement gratuit jusqu&apos;à la fin de la formation. Créateurs d&apos;entreprise : moitié prix la
+          première année. La demande se fait depuis la page Abonnement.
+        </p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((p) => (
             <div key={p.code} className={`card flex flex-col p-5 ${p.code === "professionnel" ? "border-accent ring-1 ring-accent" : ""}`}>

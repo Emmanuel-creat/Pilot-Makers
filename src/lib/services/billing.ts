@@ -11,6 +11,7 @@
 import type { Database, Queryable } from "@/lib/db";
 import { num, one } from "@/lib/db";
 import { badRequest, forbidden, notFound, paymentRequired } from "@/lib/http";
+import { activePercent, discounted } from "@/lib/preferential-pricing";
 import { hmacSha256, randomToken, safeEqual } from "@/lib/security";
 import type { Ctx, Entitlements, PlanInfo } from "./context";
 import { audit, requireRole } from "./context";
@@ -277,7 +278,16 @@ export async function handleWebhookEvent(db: Database, provider: string, event: 
            WHERE org_id=$1`,
           [event.data.orgId, plan.code, interval, now, periodEnd, event.data.paymentMethodLabel ?? null, provider],
         );
-        const ht = interval === "year" ? plan.price_year_cents : plan.price_month_cents;
+        const benefit = await one<{ status: string; percent: unknown; valid_until: unknown }>(
+          tx,
+          "SELECT status, percent, valid_until::text AS valid_until FROM pricing_benefits WHERE org_id=$1",
+          [event.data.orgId],
+        );
+        const percent = activePercent(
+          benefit ? { status: benefit.status, percent: num(benefit.percent), validUntil: benefit.valid_until ? String(benefit.valid_until) : null } : null,
+          now.toISOString().slice(0, 10),
+        );
+        const ht = discounted(interval === "year" ? plan.price_year_cents : plan.price_month_cents, percent);
         if (ht > 0) {
           await tx.query(
             `INSERT INTO billing_invoices (org_id, number, plan_code, amount_ht_cents, amount_ttc_cents, status, period_start, period_end)

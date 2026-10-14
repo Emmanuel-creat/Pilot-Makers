@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "tarifs-apprentis-createurs",
+    date: "2026-10-14",
+    title: "Tarifs apprentis et créateurs",
+    text: "Gratuit pour les apprentis jusqu'à la fin de leur formation, moitié prix la première année pour les créateurs d'entreprise. Demande depuis la page Abonnement.",
+    href: "/app/abonnement",
+  },
+  {
     id: "lecture-cctp",
     date: "2026-10-14",
     title: "Un devis préparé depuis le CCTP",

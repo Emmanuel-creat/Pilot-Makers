@@ -1706,6 +1706,19 @@ test("marchés : devis préparé depuis un CCTP", async ({ page }) => {
   await audit(page, "devis issu d'un CCTP");
 });
 
+test("abonnement : demande de tarif créateur", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/abonnement");
+  const zone = page.getByTestId("tarifs-preferentiels");
+  if (await zone.getByRole("button", { name: "Demander le tarif créateur" }).isVisible()) {
+    const d = new Date(Date.now() - 60 * 86_400_000).toISOString().slice(0, 10);
+    await zone.getByLabel("Date de création de l'entreprise").fill(d);
+    await zone.getByRole("button", { name: "Demander le tarif créateur" }).click();
+  }
+  await expect(zone.getByText("Créateur d'entreprise : En cours de vérification")).toBeVisible();
+  await audit(page, "tarifs préférentiels");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

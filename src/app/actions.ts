@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { decideBenefit, requestBenefit } from "@/lib/services/pricing-benefits";
 import { setTeamLocale } from "@/lib/services/team-day";
 import { quoteFromDiagnosis, saveDiagnosis } from "@/lib/services/energy-diagnoses";
 import { addConsortiumMember, answerConsortiumInvitation, assignLot, createConsortium, removeConsortiumMember } from "@/lib/services/consortia";
@@ -3258,4 +3259,29 @@ export async function teamLocaleAction(_: ActionState, fd: FormData): Promise<Ac
   }
   revalidatePath("/app/ma-journee");
   return { ok: true, message: "" };
+}
+
+export async function benefitRequestAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const kind = s(fd, "kind");
+    const raw =
+      kind === "apprenti"
+        ? { kind, school: s(fd, "school"), diploma: s(fd, "diploma"), trainingEnd: s(fd, "trainingEnd"), reference: s(fd, "reference") }
+        : { kind, creationDate: s(fd, "creationDate") };
+    await withCtx((ctx) => requestBenefit(ctx, raw));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/abonnement");
+  return { ok: true, message: "Demande envoyée : l'équipe la vérifie et répond sous deux jours ouvrés." };
+}
+
+export async function benefitDecisionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => decideBenefit(ctx, s(fd, "id"), s(fd, "decision") === "accept", s(fd, "note")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/admin/offres");
+  return { ok: true, message: "Décision enregistrée" };
 }

@@ -2163,6 +2163,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "tarifs-apprentis-createurs",
+    category: "compte",
+    title: "Tarifs apprentis et créateurs d'entreprise",
+    summary: "Gratuit jusqu'à la fin de la formation pour les apprentis, moitié prix pendant un an pour une entreprise de moins d'un an.",
+    steps: [
+      "Ouvrez Abonnement, section Tarifs préférentiels. Seul le propriétaire du compte peut faire la demande.",
+      "Apprenti ou élève : indiquez l'établissement, le diplôme, la date de fin de formation et le numéro du contrat d'apprentissage ou votre numéro INE. La gratuité dure jusqu'à la fin de la formation, trois ans au plus.",
+      "Créateur : indiquez la date de création. Le SIREN du profil sert à la vérifier dans le répertoire SIRENE. La remise de moitié dure un an à compter de l'accord.",
+      "L'équipe vérifie et répond sous deux jours ouvrés. La remise s'applique ensuite à chaque échéance et le prix remisé s'affiche sur chaque offre. Un refus indique son motif et une nouvelle demande reste possible.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
