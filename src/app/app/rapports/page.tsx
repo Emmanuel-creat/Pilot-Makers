@@ -81,6 +81,9 @@ export default async function ReportsPage() {
           <>
             {can(ctx, "billing") ? (
               <>
+                <Link href="/app/rapports/simulateur" className="btn-secondary print:hidden">
+                  <Icon name="wand" size={16} /> Simulateur
+                </Link>
                 <Link href="/app/rapports/reperes" className="btn-secondary print:hidden">
                   <Icon name="compare" size={16} /> Repères
                 </Link>

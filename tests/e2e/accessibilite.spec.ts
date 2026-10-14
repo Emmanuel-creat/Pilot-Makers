@@ -1368,6 +1368,23 @@ test("devis : métré sur plan ajouté au devis", async ({ page }) => {
   await expect(page.locator("input[value='Pose de carrelage'], textarea").first()).toBeVisible();
 });
 
+test("rapports : simulateur de décisions", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Simulateur" }).click();
+  await page.waitForURL(/\/app\/rapports\/simulateur$/);
+  await expect(page.getByTestId("resultat")).toContainText("embauche");
+  await audit(page, "simulateur embauche");
+  await page.getByRole("link", { name: "Augmenter les prix" }).click();
+  await page.getByLabel("Hausse des prix").fill("8");
+  await page.getByRole("button", { name: "Calculer" }).click();
+  await page.waitForURL(/hausse=8/);
+  await expect(page.getByTestId("resultat")).toContainText("Perte de volume supportable");
+  await page.getByRole("link", { name: "Acheter un véhicule" }).click();
+  await expect(page.getByTestId("resultat")).toContainText("par mois");
+  await audit(page, "simulateur véhicule");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

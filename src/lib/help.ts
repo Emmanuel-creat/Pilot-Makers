@@ -1858,6 +1858,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "simulateur-decisions",
+    category: "compte",
+    title: "Simuler une embauche, une hausse de prix ou l'achat d'un véhicule",
+    summary: "Effet estimé sur le résultat annuel, à partir de vos 12 derniers mois.",
+    steps: [
+      "Dans Rapports, ouvrez le Simulateur. Les chiffres de départ sont repris de vos factures, achats de chantier et frais des 12 derniers mois, et de votre taux horaire ; vous pouvez les modifier.",
+      "Embaucher : salaire brut, charges, heures facturables et montée en compétence donnent le coût employeur, le chiffre d'affaires en plus et les heures à facturer chaque mois pour couvrir le poste.",
+      "Augmenter les prix : la simulation tient compte des devis que vous pourriez perdre et indique la perte de volume au-delà de laquelle la hausse ne rapporte plus.",
+      "Acheter un véhicule : mensualité, frais courants et économies donnent le coût mensuel net et le nombre d'heures à facturer en plus. Les résultats sont des ordres de grandeur, hors impôts : confirmez-les avec votre comptable.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

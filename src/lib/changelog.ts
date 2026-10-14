@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "simulateur-decisions",
+    date: "2026-10-14",
+    title: "Simulateur de décisions",
+    text: "Embaucher, augmenter vos prix ou acheter un véhicule : l'effet estimé sur votre résultat, calculé à partir de vos chiffres.",
+    href: "/aide/simulateur-decisions",
+  },
+  {
     id: "metre-sur-plan",
     date: "2026-10-14",
     title: "Métré sur plan",
