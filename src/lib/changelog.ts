@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "location-de-materiel",
+    date: "2026-10-14",
+    title: "Location de matériel",
+    text: "Suivez le matériel loué pour chaque chantier : coût engagé, retours en retard, et coût réel ajouté au chantier au retour.",
+    href: "/aide/location-de-materiel",
+  },
+  {
     id: "stock-depot-vehicules",
     date: "2026-10-14",
     title: "Stock du dépôt et des véhicules",

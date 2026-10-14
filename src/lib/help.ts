@@ -1492,6 +1492,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/stock", label: "Ouvrir le stock" },
   },
   {
+    slug: "location-de-materiel",
+    category: "devis",
+    title: "Suivre le matériel loué",
+    summary: "Coût engagé, retours en retard et coût réel reporté sur le chantier.",
+    steps: [
+      "Sur la fiche du chantier, partie « Location de matériel », notez le matériel, le loueur, les dates, le tarif par jour, semaine ou mois, le transport et l'assurance casse.",
+      "Tant que le matériel n'est pas rendu, le coût court : un retour en retard est signalé avec le supplément qu'il coûte.",
+      "Au retour, indiquez la date et cliquez sur « Matériel rendu » : le coût réel s'ajoute aux coûts du chantier, catégorie Location de matériel.",
+    ],
+    notes: ["Dans Chantiers, « Matériel loué » liste toutes les locations en cours, le retour le plus proche en premier."],
+    link: { href: "/app/chantiers/locations", label: "Voir le matériel loué" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

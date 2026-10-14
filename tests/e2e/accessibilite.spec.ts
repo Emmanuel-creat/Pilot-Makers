@@ -1021,6 +1021,30 @@ test("stock : article suivi, entrée puis alerte de réapprovisionnement", async
   await audit(page, "stock");
 });
 
+test("chantier : location de matériel rendue et coût reporté", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  const name = `Perforateur ${Date.now().toString(36)}`;
+  await page.getByLabel("Matériel loué").fill(name);
+  await page.getByLabel("Loueur").fill("Kiloutou");
+  await page.getByLabel("Tarif HT (€)").fill("35");
+  await page.getByRole("button", { name: "Enregistrer la location" }).click();
+  await expect(page.getByText("Location enregistrée.")).toBeVisible();
+  await expect(page.getByTestId("bilan-locations")).toContainText("Coût des locations");
+  await audit(page, "location de matériel");
+  await page.goto("/app/chantiers/locations");
+  await expect(page.getByTestId("locations-en-cours")).toContainText(name);
+  await audit(page, "matériel loué");
+  await page.getByRole("link", { name: "Douche à l'italienne" }).first().click();
+  const row = page.locator("li", { hasText: name });
+  await row.getByRole("button", { name: "Matériel rendu" }).click();
+  // Rendu, le matériel n'a plus de formulaire de retour et son coût rejoint les achats du chantier.
+  await expect(row.getByText("Rendu", { exact: true })).toBeVisible();
+  await expect(page.getByText(`Location : ${name} (1 jour)`)).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -81,6 +81,8 @@ import { saveSafetyPlan } from "@/lib/services/safety";
 import { addJobWaste, deleteJobWaste } from "@/lib/services/waste";
 import { deleteIntervention, saveIntervention, sendPlanning } from "@/lib/services/coordination";
 import { archiveStockItem, createStockItem, moveStock, setThresholds, setVehicleKit } from "@/lib/services/stock";
+import { addRental, deleteRental, returnRental } from "@/lib/services/rentals";
+import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
   createAmendment,
@@ -2258,4 +2260,43 @@ export async function stockSettingsAction(_: ActionState, fd: FormData): Promise
 export async function archiveStockItemAction(fd: FormData) {
   await withCtx((ctx) => archiveStockItem(ctx, s(fd, "id")));
   revalidatePath("/app/stock");
+}
+
+export async function addRentalAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) =>
+      addRental(ctx, jobId, {
+        equipment: s(fd, "equipment"),
+        renter: s(fd, "renter"),
+        startDate: s(fd, "startDate"),
+        endDate: s(fd, "endDate"),
+        rate: s(fd, "rate"),
+        period: s(fd, "period"),
+        delivery: s(fd, "delivery"),
+        insurance: s(fd, "insurance"),
+        reference: s(fd, "reference"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Location enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function returnRentalAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => returnRental(ctx, s(fd, "id"), s(fd, "date")));
+    revalidatePath(`/app/chantiers/${r.jobId}`);
+    revalidatePath("/app/chantiers/locations");
+    return { ok: true, message: `Matériel rendu : ${formatEuros(r.cost.totalCents)} HT ajoutés aux coûts du chantier.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteRentalAction(fd: FormData) {
+  const jobId = await withCtx((ctx) => deleteRental(ctx, s(fd, "id")));
+  revalidatePath(`/app/chantiers/${jobId}`);
 }

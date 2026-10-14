@@ -77,6 +77,7 @@ import { sql as m075 } from "./migrations/075_prevention";
 import { sql as m076 } from "./migrations/076_dechets";
 import { sql as m077 } from "./migrations/077_coordination";
 import { sql as m078 } from "./migrations/078_stock";
+import { sql as m079 } from "./migrations/079_locations";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -158,6 +159,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "076_dechets", sql: m076 },
   { id: "077_coordination", sql: m077 },
   { id: "078_stock", sql: m078 },
+  { id: "079_locations", sql: m079 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {
