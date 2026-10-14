@@ -84,6 +84,9 @@ export default async function ReportsPage() {
                 <Link href="/app/rapports/sante" className="btn-secondary print:hidden">
                   <Icon name="shield" size={16} /> Score de santé
                 </Link>
+                <Link href="/app/rapports/conseil-financier" className="btn-secondary print:hidden">
+                  <Icon name="star" size={16} /> Conseil financier
+                </Link>
                 <Link href="/app/rapports/simulateur" className="btn-secondary print:hidden">
                   <Icon name="wand" size={16} /> Simulateur
                 </Link>

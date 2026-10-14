@@ -2066,6 +2066,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "conseil-financier",
+    category: "compte",
+    title: "Lire le conseil financier de votre entreprise",
+    summary: "Des recommandations chiffrées à partir de vos factures, paiements, achats et devis des douze derniers mois.",
+    steps: [
+      "Ouvrez Rapports puis Conseil financier.",
+      "Chaque piste indique ce que montrent vos chiffres (délai de paiement, retards, acomptes, marge, dépendance à un client, carnet, mois creux) et ce qu'elle peut rapporter.",
+      "Les pistes urgentes viennent en premier, puis les plus rentables. Le lien Passer à l'action ouvre l'écran utile.",
+      "Renseignez votre solde bancaire et vos charges fixes dans la trésorerie pour savoir combien de mois votre réserve couvre.",
+      "Les montants sont des ordres de grandeur : validez vos décisions avec votre expert-comptable.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

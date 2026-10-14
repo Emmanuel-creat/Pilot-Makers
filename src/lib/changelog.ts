@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "conseil-financier",
+    date: "2026-10-14",
+    title: "Conseil financier personnalisé",
+    text: "Des recommandations chiffrées sur vos propres chiffres : délai de paiement, retards, acomptes, marge, réserve de trésorerie, carnet de commandes.",
+    href: "/aide/conseil-financier",
+  },
+  {
     id: "groupement-entreprises",
     date: "2026-10-14",
     title: "Groupements d'entreprises pour les gros chantiers",

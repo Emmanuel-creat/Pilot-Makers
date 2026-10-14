@@ -1596,6 +1596,16 @@ test("devis : groupement d'entreprises et convention", async ({ page }) => {
   await audit(page, "invitations de groupement");
 });
 
+test("rapports : conseil financier personnalisé", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Conseil financier" }).click();
+  await page.waitForURL(/\/app\/rapports\/conseil-financier$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Conseil financier");
+  await expect(page.getByText("Validez vos décisions avec votre expert-comptable.")).toBeVisible();
+  await audit(page, "conseil financier");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
