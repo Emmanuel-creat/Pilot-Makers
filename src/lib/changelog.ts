@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "reseaux-artisans",
+    date: "2026-10-14",
+    title: "Réseaux d'artisans",
+    text: "Créez ou rejoignez un réseau avec un code d'invitation et partagez une bibliothèque d'ouvrages, sans jamais dévoiler vos coûts.",
+    href: "/aide/reseaux-artisans",
+  },
+  {
     id: "aujourdhui-widgets",
     date: "2026-10-14",
     title: "Aujourd'hui et widgets",

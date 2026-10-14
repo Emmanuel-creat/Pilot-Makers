@@ -1834,6 +1834,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "reseaux-artisans",
+    category: "catalogue",
+    title: "Partager une bibliothèque d'ouvrages avec son réseau",
+    summary: "Groupement, réseau ou confrères : chacun partage ses ouvrages et reprend ceux des autres.",
+    steps: [
+      "Dans Catalogue, ouvrez Réseaux. Créez un réseau, puis transmettez son code d'invitation à vos confrères ; ils le saisissent dans Rejoindre un réseau.",
+      "Dans Partager mes ouvrages, cochez les ouvrages de votre catalogue à mettre en commun. Le libellé, la description, l'unité, la TVA et la durée sont partagés ; votre prix de vente seulement si vous cochez la case. Les coûts d'achat et les fournisseurs ne le sont jamais.",
+      "Dans la bibliothèque du réseau, cochez les ouvrages des autres membres et ajoutez-les à votre catalogue. Un ouvrage sans prix partagé arrive à 0 € : complétez son prix avant de l'utiliser.",
+      "Quitter un réseau retire les ouvrages que vous y aviez partagés ; ceux déjà repris par les autres restent dans leur catalogue.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

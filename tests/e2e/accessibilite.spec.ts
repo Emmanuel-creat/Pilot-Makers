@@ -1312,6 +1312,22 @@ test("aujourd'hui : chantiers du jour et devis en attente", async ({ page }) => 
   expect(manifest.shortcuts.map((s: { url: string }) => s.url)).toContain("/app/aujourdhui");
 });
 
+test("catalogue : réseau d'artisans et ouvrages partagés", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue");
+  await page.getByRole("link", { name: "Réseaux", exact: true }).click();
+  await page.waitForURL(/\/app\/catalogue\/reseaux$/);
+  await audit(page, "réseaux");
+  await page.getByLabel("Nom du réseau").fill("Groupement des carreleurs du Rhône");
+  await page.getByRole("button", { name: "Créer", exact: true }).click();
+  await page.waitForURL(/\/app\/catalogue\/reseaux\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("code-reseau")).toHaveText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  await page.getByRole("list", { name: "Ouvrages à partager" }).getByRole("checkbox").first().check();
+  await page.getByRole("button", { name: "Partager", exact: true }).click();
+  await expect(page.getByTestId("mes-partages")).toBeVisible();
+  await audit(page, "réseau");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

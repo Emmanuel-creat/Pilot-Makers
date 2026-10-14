@@ -43,6 +43,9 @@ export default async function CatalogPage({
             <Link href="/app/catalogue/bibliotheques" className="btn-secondary">
               <Icon name="box" size={16} /> Bibliothèques
             </Link>
+            <Link href="/app/catalogue/reseaux" className="btn-secondary">
+              <Icon name="team" size={16} /> Réseaux
+            </Link>
             <a href="/api/catalog-items/export" className="btn-secondary">
               <Icon name="download" size={16} /> Exporter
             </a>

@@ -101,6 +101,7 @@ import { assignCode } from "@/lib/services/barcode";
 import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { setBenchmarkOptin } from "@/lib/services/benchmark";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
+import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2809,4 +2810,64 @@ export async function financingDeleteAction(fd: FormData) {
   await withCtx((ctx) => deleteFinancing(ctx, s(fd, "id")));
   revalidatePath("/app/parc/financement");
   redirect("/app/parc/financement");
+}
+
+export async function networkCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createNetwork(ctx, { name: s(fd, "name"), description: s(fd, "description") }));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/catalogue/reseaux/${id}`);
+}
+
+export async function networkJoinAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => joinNetwork(ctx, s(fd, "code")));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/catalogue/reseaux/${id}`);
+}
+
+export async function networkLeaveAction(fd: FormData) {
+  await withCtx((ctx) => leaveNetwork(ctx, s(fd, "networkId")));
+  revalidatePath("/app/catalogue/reseaux");
+  redirect("/app/catalogue/reseaux");
+}
+
+export async function networkShareAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const networkId = s(fd, "networkId");
+  let n: number;
+  try {
+    n = await withCtx((ctx) => shareItems(ctx, networkId, fd.getAll("item").map(String), s(fd, "withPrices") === "1"));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/reseaux/${networkId}`);
+  return { ok: true, message: `${n} ouvrage${n > 1 ? "s" : ""} partagé${n > 1 ? "s" : ""}.` };
+}
+
+export async function networkImportAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const networkId = s(fd, "networkId");
+  let r: { added: number; skipped: number };
+  try {
+    r = await withCtx((ctx) => importNetworkItems(ctx, networkId, fd.getAll("item").map(String)));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/reseaux/${networkId}`);
+  revalidatePath("/app/catalogue");
+  return {
+    ok: true,
+    message: `${r.added} ouvrage${r.added > 1 ? "s" : ""} ajouté${r.added > 1 ? "s" : ""} au catalogue${r.skipped ? `, ${r.skipped} déjà présent${r.skipped > 1 ? "s" : ""}` : ""}.`,
+  };
+}
+
+export async function networkUnshareAction(fd: FormData) {
+  const networkId = s(fd, "networkId");
+  await withCtx((ctx) => unshareItem(ctx, networkId, s(fd, "itemId")));
+  revalidatePath(`/app/catalogue/reseaux/${networkId}`);
 }
