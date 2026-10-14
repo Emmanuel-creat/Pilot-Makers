@@ -12,6 +12,7 @@ import { num, one, type Queryable } from "@/lib/db";
 import { badRequest, conflict, isUuid, notFound } from "@/lib/http";
 import { BLACK, fr, GREY, LEFT, Page, WIDTH } from "@/lib/pdf/reception-pdf";
 import { sanitize } from "@/lib/pdf/quote-pdf";
+import { deliveryDeltas, expectedCreditCents, type DeliveredLine } from "@/lib/supplier-returns";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import type { Ctx } from "./context";
 import { audit, requirePermission, requireWritable } from "./context";
@@ -88,7 +89,7 @@ function mapLine(r: Record<string, unknown>): OrderLine {
   };
 }
 
-function parseQuantity(input: string, label = "Quantité"): number {
+export function parseQuantity(input: string, label = "Quantité"): number {
   try {
     const v = Number(parseScaled(input || "0", 3));
     if (v < 0) throw new DecimalError("négative");
@@ -247,15 +248,20 @@ export type Matching = "aucune" | "conforme" | "ecart";
 export async function getOrder(ctx: Ctx, id: string) {
   requirePermission(ctx, "costs");
   const order = await loadOrder(ctx.db, ctx, id);
-  const lines = (await ctx.db.query<Record<string, unknown>>("SELECT * FROM purchase_order_lines WHERE order_id=$1 ORDER BY position, id", [id])).map(
-    mapLine,
-  );
+  const lines = (await ctx.db.query<Record<string, unknown>>("SELECT * FROM purchase_order_lines WHERE order_id=$1 ORDER BY position, id", [id])).map(mapLine);
   const invoices = await ctx.db.query<{ id: string; purchase_date: unknown; reference: string; amount_ht_cents: unknown }>(
     "SELECT id, purchase_date, reference, amount_ht_cents FROM job_purchases WHERE purchase_order_id=$1 ORDER BY purchase_date",
     [id],
   );
+  const returns = await ctx.db.query<{ line_id: string; quantity_milli: unknown; restocking_bp: number }>(
+    "SELECT line_id, quantity_milli, restocking_bp FROM supplier_returns WHERE order_id=$1",
+    [id],
+  );
+  const cost = new Map(lines.map((l) => [l.id, l.unit_cost_cents]));
+  // Marchandise retournée : sa valeur créditée se déduit de ce qui doit être facturé, l'avoir s'ajoute aux factures (en négatif).
+  const returnedCents = returns.reduce((a, r) => a + expectedCreditCents(num(r.quantity_milli), cost.get(r.line_id) ?? 0, r.restocking_bp), 0);
   const totalCents = lines.reduce((a, l) => a + l.total_cents, 0);
-  const receivedCents = lines.reduce((a, l) => a + l.received_cents, 0);
+  const receivedCents = lines.reduce((a, l) => a + l.received_cents, 0) - returnedCents;
   const invoicedCents = invoices.reduce((a, i) => a + num(i.amount_ht_cents), 0);
   const gapCents = invoicedCents - receivedCents;
   // Tolérance : 1 euro ou 1 % de la valeur reçue (arrondis, frais de port mineurs).
@@ -266,6 +272,7 @@ export async function getOrder(ctx: Ctx, id: string) {
     lines,
     totalCents,
     receivedCents,
+    returnedCents,
     invoicedCents,
     gapCents,
     matching,
@@ -337,10 +344,7 @@ export async function deleteLine(ctx: Ctx, orderId: string, lineId: string) {
   requireWritable(ctx);
   requirePermission(ctx, "costs");
   await draftOrder(ctx.db, ctx, orderId);
-  const r = await ctx.db.query("DELETE FROM purchase_order_lines WHERE id=$1 AND order_id=$2 RETURNING id", [
-    isUuid(lineId) ? lineId : null,
-    orderId,
-  ]);
+  const r = await ctx.db.query("DELETE FROM purchase_order_lines WHERE id=$1 AND order_id=$2 RETURNING id", [isUuid(lineId) ? lineId : null, orderId]);
   if (!r.length) throw notFound("Ligne introuvable");
 }
 
@@ -368,14 +372,28 @@ export async function cancelOrder(ctx: Ctx, id: string) {
   await ctx.db.query("UPDATE purchase_orders SET status='annule', updated_at=now() WHERE id=$1", [id]);
 }
 
-/** Réception : quantités reçues au total pour chaque ligne (cumul des livraisons). */
-export async function receiveOrder(ctx: Ctx, id: string, received: Record<string, string>) {
+const deliverySchema = z.object({
+  deliveredOn: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date de livraison invalide")]).default(""),
+  noteNumber: z.string().trim().max(80).default(""),
+  issues: z.string().trim().max(1000).default(""),
+});
+
+/**
+ * Réception : quantités reçues au total pour chaque ligne (cumul des livraisons). Chaque saisie qui change
+ * une quantité est gardée comme une livraison, avec son bon de livraison et les réserves éventuelles.
+ */
+export async function receiveOrder(ctx: Ctx, id: string, received: Record<string, string>, delivery: unknown = {}, now = new Date()) {
   requireWritable(ctx);
   requirePermission(ctx, "costs");
   const o = await loadOrder(ctx.db, ctx, id);
   if (!["envoye", "recu_partiel", "recu"].includes(o.status)) throw conflict("Envoyez la commande avant d'en saisir la réception");
+  const d = deliverySchema.safeParse(delivery);
+  if (!d.success) throw badRequest(d.error.issues[0].message);
+  const deliveredOn = d.data.deliveredOn || parisDate(now);
+  if (deliveredOn > parisDate(now)) throw badRequest("La date de livraison ne peut pas être dans le futur");
   return ctx.db.transaction(async (tx) => {
     const lines = (await tx.query<Record<string, unknown>>("SELECT * FROM purchase_order_lines WHERE order_id=$1", [id])).map(mapLine);
+    const before = Object.fromEntries(lines.map((l) => [l.id, l.received_milli]));
     for (const l of lines) {
       if (received[l.id] === undefined) continue;
       const q = parseQuantity(received[l.id], `Quantité reçue (${l.label})`);
@@ -383,6 +401,21 @@ export async function receiveOrder(ctx: Ctx, id: string, received: Record<string
       if (q > l.quantity_milli * 2) throw badRequest(`Quantité reçue trop élevée pour ${l.label}`);
       await tx.query("UPDATE purchase_order_lines SET received_milli=$2 WHERE id=$1", [l.id, q]);
       l.received_milli = q;
+    }
+    const deltas = deliveryDeltas(before, Object.fromEntries(lines.map((l) => [l.id, l.received_milli])));
+    if (Object.keys(deltas).length || d.data.issues) {
+      const delivered: DeliveredLine[] = lines
+        .filter((l) => deltas[l.id])
+        .map((l) => ({ lineId: l.id, label: l.label, unit: l.unit, quantityMilli: deltas[l.id] }));
+      await tx.query("INSERT INTO order_deliveries (org_id, order_id, delivered_on, note_number, issues, lines, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7)", [
+        ctx.orgId,
+        id,
+        deliveredOn,
+        d.data.noteNumber,
+        d.data.issues,
+        JSON.stringify(delivered),
+        ctx.userId,
+      ]);
     }
     const all = lines.every((l) => l.received_milli >= l.quantity_milli);
     const any = lines.some((l) => l.received_milli > 0);
@@ -427,8 +460,7 @@ export async function recordSupplierInvoice(ctx: Ctx, id: string, raw: unknown) 
 /* PDF                                                                  */
 /* ------------------------------------------------------------------ */
 
-const euros = (cents: number) =>
-  (cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/ | /g, " ") + " EUR";
+const euros = (cents: number) => (cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/ | /g, " ") + " EUR";
 
 export async function orderPdf(ctx: Ctx, id: string): Promise<{ number: string; pdf: Uint8Array }> {
   const { order, lines, totalCents } = await getOrder(ctx, id);

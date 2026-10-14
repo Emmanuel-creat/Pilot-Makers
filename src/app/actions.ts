@@ -83,6 +83,7 @@ import { deleteIntervention, saveIntervention, sendPlanning } from "@/lib/servic
 import { archiveStockItem, createStockItem, moveStock, setThresholds, setVehicleKit } from "@/lib/services/stock";
 import { addRental, deleteRental, returnRental } from "@/lib/services/rentals";
 import { createGroup, deleteGroup, sendGroup } from "@/lib/services/order-groups";
+import { collectReturn, createReturn, creditReturn, deleteReturn } from "@/lib/services/supplier-returns";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -1499,7 +1500,9 @@ export async function receiveOrderAction(_: ActionState, fd: FormData): Promise<
     const id = s(fd, "orderId");
     const received: Record<string, string> = {};
     for (const [k, v] of fd.entries()) if (k.startsWith("recu_") && typeof v === "string") received[k.slice(5)] = v;
-    const status = await withCtx((ctx) => receiveOrder(ctx, id, received));
+    const status = await withCtx((ctx) =>
+      receiveOrder(ctx, id, received, { deliveredOn: s(fd, "deliveredOn"), noteNumber: s(fd, "noteNumber"), issues: s(fd, "issues") }),
+    );
     revalidatePath(orderPath(s(fd, "jobId")), "layout");
     return {
       ok: true,
@@ -2333,4 +2336,54 @@ export async function sendOrderGroupAction(_: ActionState, fd: FormData): Promis
 export async function deleteOrderGroupAction(fd: FormData) {
   await withCtx((ctx) => deleteGroup(ctx, s(fd, "id")));
   redirect("/app/commandes");
+}
+
+export async function createReturnAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      createReturn(ctx, s(fd, "orderId"), {
+        lineId: s(fd, "lineId"),
+        quantity: s(fd, "quantity"),
+        reason: s(fd, "reason"),
+        notes: s(fd, "notes"),
+        restocking: s(fd, "restocking"),
+      }),
+    );
+    revalidatePath(orderPath(s(fd, "jobId"), s(fd, "orderId")));
+    revalidatePath("/app/chantiers/retours");
+    return { ok: true, message: "Retour enregistré : l'avoir attendu est déduit de la marchandise à facturer." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function collectReturnAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => collectReturn(ctx, s(fd, "id"), s(fd, "date")));
+    revalidatePath(orderPath(r.jobId, r.orderId));
+    revalidatePath("/app/chantiers/retours");
+    return { ok: true, message: "Reprise notée : l'avoir est attendu." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function creditReturnAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => creditReturn(ctx, s(fd, "id"), { amount: s(fd, "amount"), reference: s(fd, "reference"), date: s(fd, "date") }));
+    revalidatePath(orderPath(r.jobId, r.orderId));
+    revalidatePath(`/app/chantiers/${r.jobId}`);
+    revalidatePath("/app/chantiers/retours");
+    return r.gapCents < 0
+      ? { ok: true, message: `Avoir enregistré, ${formatEuros(-r.gapCents)} de moins que prévu : réclamez la différence au fournisseur.` }
+      : { ok: true, message: "Avoir enregistré et déduit des achats du chantier." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteReturnAction(fd: FormData) {
+  const r = await withCtx((ctx) => deleteReturn(ctx, s(fd, "id")));
+  revalidatePath(orderPath(r.jobId, r.orderId));
+  revalidatePath("/app/chantiers/retours");
 }

@@ -1054,6 +1054,40 @@ test("commandes groupées : page accessible depuis les chantiers", async ({ page
   await audit(page, "commandes groupées");
 });
 
+test("commande : bon de livraison avec réserves et retour au fournisseur", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Commande vide" }).click();
+  await page.waitForURL(/\/commandes\/[0-9a-f-]{36}$/);
+  const item = `Faïence ${Date.now().toString(36)}`;
+  await page.getByLabel("Désignation").fill(item);
+  await page.getByLabel("Qté").fill("10");
+  await page.getByLabel("Prix unit. HT").fill("25");
+  await page.getByRole("button", { name: "Ajouter" }).click();
+  await expect(page.getByText("Total HT : 250,00")).toBeVisible();
+  await page.getByLabel("Fournisseur", { exact: true }).fill("Cédéo");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Commande enregistrée.")).toBeVisible();
+  await page.getByRole("button", { name: "Marquer comme envoyée" }).click();
+  await expect(page.getByRole("heading", { name: "Réception" })).toBeVisible();
+  await page.getByRole("textbox", { name: new RegExp(item) }).fill("10");
+  await page.getByLabel("N° du bon de livraison").fill("BL-4410");
+  await page.getByLabel("Réserves à la livraison").fill("3 carreaux cassés");
+  await page.getByRole("button", { name: "Enregistrer la réception" }).click();
+  await expect(page.getByText("Commande reçue en totalité.")).toBeVisible();
+  await expect(page.getByTestId("livraisons")).toContainText("bon BL-4410");
+  await expect(page.getByTestId("livraisons")).toContainText("Réserves : 3 carreaux cassés");
+  await page.getByLabel("Quantité retournée").fill("1");
+  await page.getByRole("button", { name: "Déclarer le retour" }).click();
+  await expect(page.getByTestId("retours")).toContainText("Avoir attendu 25,00");
+  await audit(page, "livraisons et retours");
+  await page.goto("/app/chantiers/retours");
+  await expect(page.getByTestId("retours-en-attente")).toContainText(item);
+  await audit(page, "retours fournisseurs");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

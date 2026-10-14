@@ -7,7 +7,11 @@ import { requirePageCtx } from "@/lib/server/session";
 import { getJob } from "@/lib/services/jobs";
 import { getOrder, ORDER_STATUSES } from "@/lib/services/purchase-orders";
 import { parisDate } from "@/lib/services/quotes";
+import { listDeliveries, listReturns } from "@/lib/services/supplier-returns";
+import { RETURN_REASONS, RETURN_STATUSES, returnableMilli } from "@/lib/supplier-returns";
+import { formatScaled } from "@/lib/calc/decimal";
 import { DeleteOrderLine, OrderInfoForm, OrderLineForm, OrderStatusButtons, ReceiveForm, SupplierInvoiceForm } from "../../OrderForms";
+import { ReturnForm, ReturnSteps } from "../../ReturnForms";
 
 export const metadata = { title: "Commande fournisseur" };
 
@@ -25,6 +29,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const draft = order.status === "brouillon";
   const sent = order.status === "envoye" || order.status === "recu_partiel" || order.status === "recu";
   const ids = { jobId: id, orderId };
+  const today = parisDate(new Date());
+  const [deliveries, returns] = await Promise.all([listDeliveries(ctx, orderId), listReturns(ctx, orderId)]);
+  const returned = new Map<string, number>();
+  for (const r of returns) returned.set(r.lineId, (returned.get(r.lineId) ?? 0) + r.quantityMilli);
+  const returnable = lines
+    .map((l) => ({ id: l.id, label: l.label, unit: l.unit, milli: returnableMilli(l.received_milli, returned.get(l.id) ?? 0) }))
+    .filter((l) => l.milli > 0)
+    .map((l) => ({ ...l, returnable: formatScaled(BigInt(l.milli), 3) }));
+  const qty = (milli: number) => formatScaled(BigInt(milli), 3).replace(".", ",");
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
@@ -112,7 +125,70 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
         {sent ? (
           <Section title="Réception" description="Quantité reçue au total pour chaque ligne, toutes livraisons confondues.">
-            {canEdit ? <ReceiveForm ids={ids} lines={lines} /> : null}
+            {canEdit ? <ReceiveForm ids={ids} lines={lines} today={today} /> : null}
+          </Section>
+        ) : null}
+
+        {deliveries.length ? (
+          <Section title="Livraisons" description="Chaque réception saisie, avec son bon de livraison et les réserves notées.">
+            <ul className="divide-y divide-line text-sm" data-testid="livraisons">
+              {deliveries.map((d) => (
+                <li key={d.id} className="space-y-1 py-2">
+                  <p className="font-medium">
+                    {fmtDate(d.deliveredOn)}
+                    {d.noteNumber ? `, bon ${d.noteNumber}` : ""}
+                  </p>
+                  {d.lines.length ? (
+                    <p className="text-muted">
+                      {d.lines.map((l) => `${l.label} : ${l.quantityMilli > 0 ? "+" : ""}${qty(l.quantityMilli)} ${l.unit}`).join(", ")}
+                    </p>
+                  ) : null}
+                  {d.issues ? (
+                    <p className="flex items-center gap-1 text-warning">
+                      <Icon name="alert" size={14} /> Réserves : {d.issues}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </Section>
+        ) : null}
+
+        {sent && (returns.length || returnable.length) ? (
+          <Section
+            title="Retours au fournisseur"
+            description="Casse, erreur, défaut ou surplus : suivez la reprise puis l'avoir, déduit des achats du chantier."
+          >
+            {returns.length ? (
+              <ul className="mb-4 divide-y divide-line text-sm" data-testid="retours">
+                {returns.map((r) => (
+                  <li key={r.id} className="space-y-2 py-3">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <span>
+                        <span className="font-medium">
+                          {r.label}, {r.quantity.replace(".", ",")} {r.unit}
+                        </span>
+                        <span className="block text-xs text-muted">
+                          {RETURN_REASONS[r.reason]}
+                          {r.restockingBp ? `, frais de reprise ${r.restockingBp / 100} %` : ""}
+                          {r.notes ? `, ${r.notes}` : ""}
+                        </span>
+                      </span>
+                      <span className="text-right">
+                        <span className="inline-flex rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-medium">{RETURN_STATUSES[r.status]}</span>
+                        <span className="block text-xs text-muted tabular">
+                          {r.creditCents != null ? `Avoir ${formatEuros(r.creditCents)}` : `Avoir attendu ${formatEuros(r.expectedCents)}`}
+                        </span>
+                      </span>
+                    </div>
+                    {canEdit && r.status !== "avoir_recu" ? (
+                      <ReturnSteps id={r.id} label={r.label} status={r.status} today={today} expected={(r.expectedCents / 100).toFixed(2).replace(".", ",")} />
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {canEdit && returnable.length ? <ReturnForm ids={ids} lines={returnable} /> : null}
           </Section>
         ) : null}
 
@@ -145,7 +221,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 </Notice>
               </div>
             ) : null}
-            {canEdit ? <SupplierInvoiceForm ids={ids} today={parisDate(new Date())} /> : null}
+            {canEdit ? <SupplierInvoiceForm ids={ids} today={today} /> : null}
           </Section>
         ) : null}
       </div>

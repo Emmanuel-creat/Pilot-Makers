@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "livraisons-et-retours",
+    date: "2026-10-14",
+    title: "Livraisons et retours fournisseurs",
+    text: "Gardez chaque bon de livraison avec vos réserves, déclarez les retours de marchandise et suivez l'avoir jusqu'aux coûts du chantier.",
+    href: "/aide/livraisons-et-retours",
+  },
+  {
     id: "commandes-groupees",
     date: "2026-10-14",
     title: "Commandes groupées",

@@ -203,8 +203,10 @@ export function OrderStatusButtons({ ids, canSend, canCancel }: { ids: Ids; canS
 export function ReceiveForm({
   ids,
   lines,
+  today,
 }: {
   ids: Ids;
+  today: string;
   lines: {
     id: string;
     label: string;
@@ -236,6 +238,26 @@ export function ReceiveForm({
           </li>
         ))}
       </ul>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <label className="label" htmlFor="dl-date">
+            Livrée le
+          </label>
+          <input id="dl-date" name="deliveredOn" type="date" className="field" defaultValue={today} max={today} />
+        </div>
+        <div>
+          <label className="label" htmlFor="dl-bl">
+            N° du bon de livraison
+          </label>
+          <input id="dl-bl" name="noteNumber" className="field" maxLength={80} />
+        </div>
+        <div>
+          <label className="label" htmlFor="dl-issues">
+            Réserves à la livraison
+          </label>
+          <input id="dl-issues" name="issues" className="field" maxLength={1000} placeholder="Ex. : 2 carreaux cassés" />
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2">
         <Submit className="btn-primary" pendingLabel="Enregistrement...">
           <Icon name="truck" size={16} /> Enregistrer la réception

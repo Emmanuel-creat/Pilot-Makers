@@ -1519,6 +1519,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/commandes", label: "Voir les commandes groupées" },
   },
   {
+    slug: "livraisons-et-retours",
+    category: "devis",
+    title: "Suivre les livraisons et les retours fournisseurs",
+    summary: "Bons de livraison, réserves, marchandise retournée et avoirs.",
+    steps: [
+      "Sur la commande, partie « Réception », saisissez les quantités reçues, la date, le numéro du bon de livraison et vos réserves (casse, manquant) : chaque livraison est gardée dans l'historique.",
+      "Pour renvoyer de la marchandise, partie « Retours au fournisseur », choisissez l'article, la quantité et le motif : casse, erreur, défaut ou surplus.",
+      "Notez la reprise par le fournisseur, puis l'avoir reçu : il s'ajoute en négatif aux achats du chantier.",
+    ],
+    notes: [
+      "Des frais de reprise ne sont retenus que sur un surplus. Le rapprochement de la facture tient compte des retours : la marchandise retournée n'est plus attendue sur la facture.",
+      "Dans Chantiers, « Retours fournisseurs » liste les avoirs encore attendus, tous chantiers confondus.",
+    ],
+    link: { href: "/app/chantiers/retours", label: "Voir les retours fournisseurs" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
