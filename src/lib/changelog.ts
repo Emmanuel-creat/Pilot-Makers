@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "reperes-anonymes",
+    date: "2026-10-14",
+    title: "Repères anonymes",
+    text: "Situez vos prix dans la fourchette de votre région et comparez vos résultats à des entreprises semblables, sans aucune donnée individuelle visible.",
+    href: "/aide/reperes-anonymes",
+  },
+  {
     id: "meteo-chantiers",
     date: "2026-10-14",
     title: "Météo des chantiers extérieurs",

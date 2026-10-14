@@ -1270,6 +1270,19 @@ test("chantier : météo des travaux extérieurs", async ({ page }) => {
   await audit(page, "météo des chantiers");
 });
 
+test("rapports : repères anonymes après participation", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Repères" }).click();
+  await page.waitForURL(/\/app\/rapports\/reperes$/);
+  const join = page.getByRole("button", { name: "Participer aux repères" });
+  if (await join.count()) await join.click();
+  await expect(page.getByRole("button", { name: "Arrêter de participer" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Vos prix face au marché" })).toBeVisible();
+  await expect(page.getByTestId("comparaison")).toBeVisible();
+  await audit(page, "repères anonymes");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

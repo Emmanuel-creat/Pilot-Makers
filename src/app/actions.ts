@@ -99,6 +99,7 @@ import { markWatchRead } from "@/lib/services/regulatory-watch";
 import { saveProductInfo } from "@/lib/services/product-info";
 import { assignCode } from "@/lib/services/barcode";
 import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
+import { setBenchmarkOptin } from "@/lib/services/benchmark";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2749,4 +2750,15 @@ export async function weatherShiftAction(_: ActionState, fd: FormData): Promise<
     ok: true,
     message: r.conflicts ? `Chantier décalé : ${r.conflicts} conflit${r.conflicts > 1 ? "s" : ""} à vérifier dans le planning.` : "Chantier décalé dans le planning.",
   };
+}
+
+export async function benchmarkOptinAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const on = s(fd, "optin") === "1";
+  try {
+    await withCtx((ctx) => setBenchmarkOptin(ctx, on));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/rapports/reperes");
+  return { ok: true, message: on ? "Participation enregistrée." : "Participation arrêtée." };
 }

@@ -1786,6 +1786,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "reperes-anonymes",
+    category: "compte",
+    title: "Comparer ses prix et ses résultats de façon anonyme",
+    summary: "Fourchette de prix de votre région et indicateurs d'entreprises semblables, à partir de 5 entreprises.",
+    steps: [
+      "Dans Rapports, ouvrez Repères. Un administrateur choisit de participer : c'est volontaire et réversible à tout moment.",
+      "Pour les prestations de la bibliothèque commune et les articles avec un code-barres, vous voyez la fourchette de prix des autres entreprises de votre région, ou de France si elles sont trop peu nombreuses, et si votre prix est en dessous, dedans ou au-dessus.",
+      "Trois indicateurs des 12 derniers mois sont comparés à des entreprises du même métier, de la même région et de taille voisine : taux d'acceptation des devis, montant moyen d'un devis accepté et délai de paiement.",
+      "Aucun nom, client ni montant isolé n'est jamais montré : une fourchette n'apparaît qu'à partir de 5 autres entreprises.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
