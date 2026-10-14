@@ -2013,6 +2013,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "paiement-par-etapes",
+    category: "factures",
+    title: "Faire valider chaque étape en photo avant de la facturer",
+    summary: "Le devis accepté est découpé en étapes. Le client valide l'avancement sur photos depuis son espace, puis vous facturez l'étape.",
+    steps: [
+      "Sur un devis accepté, ouvrez Paiement par étapes et indiquez l'avancement cumulé atteint à chaque étape (par exemple 30 %, 70 %, 100 %).",
+      "Quand une étape est terminée, joignez une à six photos du chantier et une note, puis soumettez-la : le client reçoit un e-mail avec le lien de son espace.",
+      "Le client regarde les photos et valide l'étape, ou la conteste en expliquant ce qui ne va pas. Vous êtes prévenu dans les deux cas.",
+      "Une étape contestée se soumet à nouveau avec de nouvelles photos, une fois la correction faite.",
+      "Une étape validée se facture d'un clic : situation à l'avancement cumulé, ou facture de solde pour la dernière étape à 100 %.",
+      "Le plan est figé dès la première étape soumise, pour que le client sache toujours à quoi correspond chaque tranche.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "paiement-par-etapes",
+    date: "2026-10-14",
+    title: "Paiement par étape validée en photo",
+    text: "Découpez un devis accepté en étapes : le client valide chaque avancement sur photos depuis son espace, et seule une étape validée se facture.",
+    href: "/aide/paiement-par-etapes",
+  },
+  {
     id: "bourse-du-reseau",
     date: "2026-10-14",
     title: "Bourse aux missions et matériaux",

@@ -1,6 +1,9 @@
 import { ClientMessages } from "@/components/ClientMessages";
 import { Logo } from "@/components/Icon";
+import { StageDecision } from "@/components/StageDecision";
 import { Notice } from "@/components/ui";
+import { formatPercent } from "@/lib/calc/format";
+import { STAGE_STATUSES } from "@/lib/payment-stages";
 import { formatEuros } from "@/lib/calc/format";
 import { getDb } from "@/lib/db";
 import { HttpError } from "@/lib/http";
@@ -81,6 +84,42 @@ export default async function PortalPage({ params }: { params: Promise<{ token: 
                   ) : null}
                 </div>
               </div>
+              {q.stages.length ? (
+                <div className="mt-4 border-t border-border pt-4" data-testid="etapes-paiement">
+                  <h4 className="text-sm font-semibold">Paiement par étapes</h4>
+                  <p className="text-xs text-muted">Chaque étape est facturée seulement après votre validation des photos du chantier.</p>
+                  <ol className="mt-3 space-y-3">
+                    {q.stages.map((st) => (
+                      <li key={st.id} className="rounded-lg border border-border p-3 text-sm">
+                        <p className="font-medium">
+                          {st.position}. {st.label} · {formatPercent(st.cumulativeBp)}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {STAGE_STATUSES[st.status]}
+                          {st.invoiceNumber ? ` · facturée (${st.invoiceNumber})` : ""}
+                        </p>
+                        {st.artisanNote && st.status !== "prevue" ? <p className="mt-1">{st.artisanNote}</p> : null}
+                        {st.photoIds.length && st.status !== "prevue" ? (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {st.photoIds.map((ph, i) => (
+                              <a key={ph} href={`${base}/photo-etape/${ph}`} target="_blank" rel="noreferrer">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={`${base}/photo-etape/${ph}`}
+                                  alt={`Photo ${i + 1} de l'étape ${st.label}`}
+                                  className="h-24 w-24 rounded-md border border-border object-cover"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
+                        {st.status === "contestee" && st.clientComment ? <p className="mt-1 text-xs">Votre remarque : {st.clientComment}</p> : null}
+                        {st.status === "soumise" ? <StageDecision endpoint={`${base}/etapes`} stageId={st.id} /> : null}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
               {q.status !== "canceled" ? (
                 <details className="mt-4" open={q.messages.length > 0}>
                   <summary className="cursor-pointer text-sm font-medium">

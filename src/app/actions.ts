@@ -105,6 +105,7 @@ import { dismissAdvice } from "@/lib/services/advice";
 import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from "@/lib/services/home-records";
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
+import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
 import { closePost, createPost, replyToPost } from "@/lib/services/network-board";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
@@ -3068,4 +3069,27 @@ export async function networkCloseAction(_: ActionState, fd: FormData): Promise<
     return toState(e);
   }
   return { ok: true, message: "Annonce close." };
+}
+
+export async function stagesDefineAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const quoteId = s(fd, "quoteId");
+  const rows = Array.from({ length: 12 }, (_, i) => ({ label: s(fd, `label${i}`), percent: s(fd, `percent${i}`) }));
+  try {
+    const n = await withCtx((ctx) => defineStages(ctx, quoteId, rows));
+    revalidatePath(`/app/devis/${quoteId}/etapes`);
+    return { ok: true, message: `${n} étape${n > 1 ? "s" : ""} enregistrée${n > 1 ? "s" : ""}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function stageInvoiceAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => invoiceStage(ctx, s(fd, "stageId")));
+    revalidatePath(`/app/devis/${r.quoteId}/etapes`);
+    revalidatePath("/app/factures");
+    return { ok: true, message: `Facture ${r.number} émise pour cette étape.` };
+  } catch (e) {
+    return toState(e);
+  }
 }

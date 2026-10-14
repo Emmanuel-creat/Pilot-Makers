@@ -193,6 +193,19 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   await expect(page.getByText("Envoyé au client", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Le client l'a accepté" }).click();
   await expect(page.getByText("Accepté par le client", { exact: true })).toBeVisible();
+
+  // 9. Paiement par étapes validées en photo : plan défini sur le devis accepté.
+  await page.goto(quoteUrl);
+  await page.getByRole("link", { name: "Paiement par étapes" }).click();
+  await page.waitForURL(/\/etapes$/);
+  await page.getByLabel("Étape 1", { exact: true }).fill("Dépose de l'ancien sol");
+  await page.locator("#st-pct-0").fill("40");
+  await page.getByLabel("Étape 2", { exact: true }).fill("Pose et joints");
+  await page.locator("#st-pct-1").fill("100");
+  await page.getByRole("button", { name: "Enregistrer le plan" }).click();
+  await expect(page.getByText("2 étapes enregistrées.")).toBeVisible();
+  await expect(page.getByTestId("etapes")).toContainText("Dépose de l'ancien sol");
+  await expect(page.getByRole("button", { name: "Soumettre l'étape au client" })).toBeVisible();
 });
 
 test("espace client : lien personnel, documents et message", async ({ page, browser }) => {

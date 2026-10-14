@@ -4,6 +4,7 @@
  */
 
 import { notifyOrg } from "./push";
+import { portalStages } from "./payment-stages";
 import { z } from "zod";
 import type { Database, Queryable } from "@/lib/db";
 import { num, one } from "@/lib/db";
@@ -264,7 +265,7 @@ export async function portalLinkInfo(ctx: Ctx, customerId: string) {
   return { active: num(r?.n), lastUsed: r?.last_used ?? null };
 }
 
-async function resolvePortal(q: Queryable, token: string) {
+export async function resolvePortal(q: Queryable, token: string) {
   if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) return null;
   const link = await one<{ id: string; org_id: string; customer_id: string; expires_at: Date; revoked_at: Date | null }>(
     q,
@@ -318,6 +319,7 @@ export async function openPortal(db: Database, token: string, meta: { ip: string
     [link.org_id, quotes.map((x) => x.id)],
   );
   const today = parisDate(new Date());
+  const stages = await portalStages(db, link.org_id, quotes.filter((x) => x.status === "accepted").map((x) => x.id));
   return {
     org: { trade_name: org?.trade_name ?? "", email: org?.email ?? "", phone: org?.phone ?? "" },
     customerName: c ? customerDisplayName(c as never) : "",
@@ -337,6 +339,7 @@ export async function openPortal(db: Database, token: string, meta: { ip: string
         validUntil,
         awaitingAnswer: PENDING.includes(x.status) && (!validUntil || validUntil >= today),
         messages: messages.filter((m) => m.quote_id === x.id).map(mapMessage),
+        stages: stages.get(x.id) ?? [],
       };
     }),
     invoices: invoices.map((i) => ({
