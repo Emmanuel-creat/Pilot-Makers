@@ -314,3 +314,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 151 (14/10/2026) : ligne 249 (lecture des factures fournisseurs électroniques Factur-X, CII ou UBL ligne à ligne pour mettre à jour les prix d'achat du catalogue, avec aperçu et alertes de marge).
 - Vague 152 (14/10/2026) : ligne 472 (tests sur sept téléphones parmi les plus répandus, portrait et paysage, débordement et taille des cibles tactiles, docs/TELEPHONES.md).
 - Vague 153 (14/10/2026) : ligne 474 (exercice annuel de reprise après sinistre : sauvegarde et restauration vérifiées de toute la base, npm run reprise, docs/PLAN-REPRISE.md et REPRISE.md, résultat publié sur /qualite).
+- Vague 154 (14/10/2026) : ligne 255 (diagnostic énergétique simplifié pendant la visite : étiquette estimée à double seuil, travaux classés par rentabilité, économies, aides MaPrimeRénov' 2025 par geste ou d'ampleur, reste à charge, devis des travaux cochés en TVA à 5,5 %, migration 111).

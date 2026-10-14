@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { quoteFromDiagnosis, saveDiagnosis } from "@/lib/services/energy-diagnoses";
 import { addConsortiumMember, answerConsortiumInvitation, assignLot, createConsortium, removeConsortiumMember } from "@/lib/services/consortia";
 import { closeGroupPurchase, commitQuantity, createGroupPurchase } from "@/lib/services/group-buying";
 import { answerRecommendation, sendRecommendation } from "@/lib/services/network-recommendations";
@@ -3220,4 +3221,30 @@ export async function consortiumAnswerAction(_: ActionState, fd: FormData): Prom
   }
   revalidatePath("/app/groupements");
   return { ok: true, message: "Réponse transmise au mandataire." };
+}
+
+const DIAGNOSIS_FIELDS = ["housing", "surface", "period", "postalCode", "heating", "roof", "walls", "floor", "windows", "ventilation", "householdSize", "income"];
+
+export async function diagnosisCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    const raw = Object.fromEntries(DIAGNOSIS_FIELDS.map((k) => [k, s(fd, k)]));
+    id = await withCtx((ctx) => saveDiagnosis(ctx, raw, s(fd, "customerId") || null));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/devis/diagnostic-energetique");
+  redirect(`/app/devis/diagnostic-energetique/${id}`);
+}
+
+export async function diagnosisQuoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let quoteId: string;
+  try {
+    const keys = fd.getAll("works").map(String) as Parameters<typeof quoteFromDiagnosis>[2];
+    quoteId = await withCtx((ctx) => quoteFromDiagnosis(ctx, s(fd, "id"), keys));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/devis");
+  redirect(`/app/devis/${quoteId}`);
 }

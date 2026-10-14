@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "diagnostic-energetique",
+    date: "2026-10-14",
+    title: "Diagnostic énergétique pendant la visite",
+    text: "Étiquette estimée, travaux classés par rentabilité, économies, aides MaPrimeRénov' et reste à charge, puis le devis des travaux cochés en un geste.",
+    href: "/app/devis/diagnostic-energetique",
+  },
+  {
     id: "reprise-apres-sinistre",
     date: "2026-10-14",
     title: "Reprise après sinistre éprouvée",

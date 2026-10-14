@@ -2105,6 +2105,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "diagnostic-energetique",
+    category: "devis",
+    title: "Faire un diagnostic énergétique pendant la visite",
+    summary: "Étiquette estimée du logement, travaux les plus rentables, économies, aides MaPrimeRénov' et reste à charge, puis le devis des travaux retenus.",
+    steps: [
+      "Ouvrez Devis puis Diagnostic énergétique, ou le bouton du même nom sur la fiche du client.",
+      "Renseignez le logement : code postal, surface, période de construction, chauffage, état des combles, des murs, du plancher, des fenêtres et de la ventilation.",
+      "Ajoutez le nombre de personnes et le revenu fiscal de référence du foyer pour estimer les aides selon le barème MaPrimeRénov' 2025.",
+      "Le résultat montre l'étiquette actuelle et après travaux, chaque geste avec son coût, son aide et son économie annuelle, et l'aide de rénovation d'ampleur quand le logement gagne au moins deux classes.",
+      "Cochez les travaux retenus puis Créer le devis : les lignes arrivent en TVA à 5,5 %, avec des prix indicatifs à ajuster et les aides déjà renseignées.",
+      "Ce diagnostic est indicatif : il ne remplace ni le DPE ni l'audit énergétique exigés pour certaines aides ou une vente.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

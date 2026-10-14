@@ -1642,6 +1642,27 @@ test("catalogue : prix d'achat mis à jour depuis une facture électronique", as
   await audit(page, "facture fournisseur vers catalogue");
 });
 
+test("devis : diagnostic énergétique puis devis des travaux", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis");
+  await page.getByRole("link", { name: "Diagnostic énergétique" }).click();
+  await page.waitForURL(/\/app\/devis\/diagnostic-energetique$/);
+  await page.getByLabel("Code postal du logement").fill("69003");
+  await page.getByLabel("Surface habitable (m²)").fill("100");
+  await page.getByLabel("Chauffage").selectOption("fioul");
+  await page.getByLabel("Fenêtres").selectOption("simple");
+  await page.getByLabel("Revenu fiscal de référence (€)").fill("28000");
+  await page.getByLabel("Personnes au foyer").fill("3");
+  await page.getByRole("button", { name: "Établir le diagnostic" }).click();
+  await page.waitForURL(/\/app\/devis\/diagnostic-energetique\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("etiquettes")).toContainText("Aujourd'hui : étiquette G");
+  await expect(page.getByText(/Passoire thermique/)).toBeVisible();
+  await audit(page, "diagnostic énergétique");
+  await page.getByRole("button", { name: "Créer le devis des travaux cochés" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await expect(page.getByText("Pompe à chaleur air/eau").first()).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
