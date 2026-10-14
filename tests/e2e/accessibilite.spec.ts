@@ -1385,6 +1385,29 @@ test("rapports : simulateur de décisions", async ({ page }) => {
   await audit(page, "simulateur véhicule");
 });
 
+test("rapports : score de santé et lien de partage en lecture seule", async ({ page, browser }) => {
+  await login(page);
+  await page.goto("/app/rapports/sante");
+  await expect(page.getByTestId("score-sante")).toContainText("/ 100");
+  await audit(page, "score de santé");
+  await page.getByLabel("Destinataire").fill("Banque test");
+  await page.getByRole("button", { name: "Créer un lien" }).click();
+  const notice = page.getByText(/Copiez-le maintenant/);
+  await expect(notice).toBeVisible();
+  const url = (await notice.textContent())!.match(/\/score\/[A-Za-z0-9_-]+/)![0];
+  await expect(page.getByTestId("liens-score")).toContainText("Banque test");
+  const anonCtx = await browser.newContext();
+  const anon = await anonCtx.newPage();
+  await anon.goto(url);
+  await expect(anon.getByTestId("score-sante")).toBeVisible();
+  await audit(anon, "score de santé partagé");
+  await anonCtx.close();
+  await page.reload();
+  await expect(page.getByTestId("liens-score")).toContainText("1 consultation");
+  await page.getByRole("button", { name: "Révoquer" }).first().click();
+  await expect(page.getByTestId("liens-score")).toContainText("Révoqué");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

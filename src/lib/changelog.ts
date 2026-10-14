@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "score-de-sante",
+    date: "2026-10-14",
+    title: "Score de santé partageable",
+    text: "Une note de A à E sur sept indicateurs, avec des pistes d'amélioration et des liens de partage limités dans le temps pour la banque ou l'assureur.",
+    href: "/aide/score-de-sante",
+  },
+  {
     id: "simulateur-decisions",
     date: "2026-10-14",
     title: "Simulateur de décisions",

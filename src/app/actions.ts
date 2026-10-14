@@ -100,6 +100,7 @@ import { saveProductInfo } from "@/lib/services/product-info";
 import { assignCode } from "@/lib/services/barcode";
 import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { setBenchmarkOptin } from "@/lib/services/benchmark";
+import { createHealthShare, revokeHealthShare } from "@/lib/services/health-score";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
@@ -2901,4 +2902,24 @@ export async function deleteTakeoffAction(fd: FormData) {
   const quoteId = await withCtx((ctx) => deleteTakeoff(ctx, s(fd, "id")));
   revalidatePath(`/app/devis/${quoteId}/metres`);
   redirect(`/app/devis/${quoteId}/metres`);
+}
+
+export async function healthShareCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => createHealthShare(ctx, { label: s(fd, "label"), days: s(fd, "days") || undefined }));
+    revalidatePath("/app/rapports/sante");
+    return { ok: true, message: `Lien créé. Copiez-le maintenant, il ne sera plus affiché : ${appUrl(`/score/${r.token}`)}` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function healthShareRevokeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => revokeHealthShare(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/rapports/sante");
+  return { ok: true, message: "Lien révoqué." };
 }

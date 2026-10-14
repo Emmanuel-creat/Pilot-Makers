@@ -1870,6 +1870,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "score-de-sante",
+    category: "compte",
+    title: "Suivre et partager le score de santé de l'entreprise",
+    summary: "Une note de A à E sur sept indicateurs des douze derniers mois, à partager en lecture seule avec une banque ou un assureur.",
+    steps: [
+      "Ouvrez Rapports puis Score de santé : la note et le score sur 100 se calculent à partir de vos factures, paiements, achats, frais et devis.",
+      "Chaque indicateur (évolution du chiffre d'affaires, marge, délai de paiement, retards, poids du premier client, carnet de commandes, taux de signature) affiche sa valeur et une piste quand il est faible.",
+      "Pour un dossier de prêt ou d'assurance, créez un lien de partage en choisissant le destinataire et une durée de 7, 30 ou 90 jours.",
+      "Copiez le lien affiché juste après la création : il ne sera plus montré. Le destinataire voit la note, les indicateurs et trois montants, jamais vos clients ni vos documents.",
+      "La liste des liens indique le nombre de consultations. Révoquez un lien à tout moment, il cesse aussitôt de fonctionner.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
