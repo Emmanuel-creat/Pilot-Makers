@@ -1505,6 +1505,20 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers/locations", label: "Voir le matériel loué" },
   },
   {
+    slug: "commandes-groupees",
+    category: "devis",
+    title: "Regrouper les commandes de plusieurs chantiers",
+    summary: "Un seul bon et une seule livraison chez un même fournisseur.",
+    steps: [
+      "Préparez les commandes en brouillon depuis la fiche de chaque chantier, en indiquant le même fournisseur.",
+      "Dans Chantiers, ouvrez « Commandes groupées » : les fournisseurs visés par au moins deux brouillons apparaissent, cochez les commandes à réunir.",
+      "Indiquez l'adresse de livraison (le dépôt par défaut) et la date souhaitée, puis cliquez sur « Regrouper ces commandes ».",
+      "Téléchargez le bon groupé : les mêmes articles sont additionnés, avec la part de chaque chantier. Marquez-le comme envoyé une fois transmis.",
+    ],
+    notes: ["Chaque chantier garde sa propre commande et ses coûts. Tant que le bon n'est pas envoyé, vous pouvez dégrouper."],
+    link: { href: "/app/commandes", label: "Voir les commandes groupées" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

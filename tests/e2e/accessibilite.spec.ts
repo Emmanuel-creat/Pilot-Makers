@@ -1045,6 +1045,15 @@ test("chantier : location de matériel rendue et coût reporté", async ({ page 
   await expect(page.getByText(`Location : ${name} (1 jour)`)).toBeVisible();
 });
 
+test("commandes groupées : page accessible depuis les chantiers", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.getByRole("link", { name: "Commandes groupées" }).click();
+  await page.waitForURL(/\/app\/commandes$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Commandes groupées");
+  await audit(page, "commandes groupées");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

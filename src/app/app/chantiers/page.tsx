@@ -26,6 +26,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             <Link href="/app/chantiers/garanties" className="btn-secondary">
               <Icon name="shield" size={16} /> Garanties
             </Link>
+            <Link href="/app/commandes" className="btn-secondary">
+              <Icon name="box" size={16} /> Commandes groupées
+            </Link>
             <Link href="/app/chantiers/locations" className="btn-secondary">
               <Icon name="truck" size={16} /> Matériel loué
             </Link>

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "commandes-groupees",
+    date: "2026-10-14",
+    title: "Commandes groupées",
+    text: "Réunissez les commandes de plusieurs chantiers chez un même fournisseur : un seul bon avec les articles additionnés, une seule livraison au dépôt.",
+    href: "/aide/commandes-groupees",
+  },
+  {
     id: "location-de-materiel",
     date: "2026-10-14",
     title: "Location de matériel",

@@ -82,6 +82,7 @@ import { addJobWaste, deleteJobWaste } from "@/lib/services/waste";
 import { deleteIntervention, saveIntervention, sendPlanning } from "@/lib/services/coordination";
 import { archiveStockItem, createStockItem, moveStock, setThresholds, setVehicleKit } from "@/lib/services/stock";
 import { addRental, deleteRental, returnRental } from "@/lib/services/rentals";
+import { createGroup, deleteGroup, sendGroup } from "@/lib/services/order-groups";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2299,4 +2300,37 @@ export async function returnRentalAction(_: ActionState, fd: FormData): Promise<
 export async function deleteRentalAction(fd: FormData) {
   const jobId = await withCtx((ctx) => deleteRental(ctx, s(fd, "id")));
   revalidatePath(`/app/chantiers/${jobId}`);
+}
+
+export async function createOrderGroupAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id = "";
+  try {
+    id = await withCtx((ctx) =>
+      createGroup(ctx, {
+        orderIds: fd.getAll("orderIds").map(String),
+        deliveryAddress: s(fd, "deliveryAddress"),
+        deliveryDate: s(fd, "deliveryDate"),
+        notes: s(fd, "notes"),
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/commandes/${id}`);
+}
+
+export async function sendOrderGroupAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "id");
+    await withCtx((ctx) => sendGroup(ctx, id));
+    revalidatePath(`/app/commandes/${id}`);
+    return { ok: true, message: "Commandes envoyées : réceptionnez chaque livraison sur la fiche de son chantier." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteOrderGroupAction(fd: FormData) {
+  await withCtx((ctx) => deleteGroup(ctx, s(fd, "id")));
+  redirect("/app/commandes");
 }
