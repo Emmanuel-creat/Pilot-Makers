@@ -52,7 +52,7 @@ describe("planification d'un chantier", () => {
   });
 
   it("propose puis enregistre la période en tenant compte des absences", async () => {
-    expect(await planningDefaults(ctx, job, "2026-10-30")).toEqual({ days: 1, crew: 1, skill: "", from: "2026-11-02" });
+    expect(await planningDefaults(ctx, job, "2026-10-30")).toEqual({ days: 1, crew: 1, skill: "", from: "2026-11-02", lead: null });
     const r = await proposeForJob(ctx, job, { days: "2", crew: "1", skill: "carrel", from: "2026-11-02" });
     expect(r.proposal).toMatchObject({ start: "2026-11-09", end: "2026-11-10", crew: [{ id: worker }] });
     await expect(proposeForJob(ctx, job, { days: "0", crew: "1", from: "2026-11-02" })).rejects.toMatchObject({ status: 400 });

@@ -35,6 +35,7 @@ import { jobForQuote } from "@/lib/services/jobs";
 import { listIndexValues } from "@/lib/services/revision";
 import { SimilarQuotes } from "./SimilarQuotes";
 import { CarbonBalance } from "./CarbonBalance";
+import { ProductSheets } from "./ProductSheets";
 import { hasFeature } from "@/lib/services/features";
 import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
 
@@ -123,6 +124,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
         <QuoteMedia quoteId={id} initial={await listQuoteMedia(ctx, id)} editable />
         <SimilarQuotes ctx={ctx} quoteId={id} />
         <CarbonBalance ctx={ctx} quoteId={id} />
+        <ProductSheets ctx={ctx} quoteId={id} />
         {can(ctx, "costs") ? (
           <section className="card mt-6 p-4" id="sous-traitance">
             <h2 className="mb-1 text-sm font-semibold">Prix des sous-traitants</h2>
@@ -608,6 +610,8 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
           ) : null}
           <SimilarQuotes ctx={ctx} quoteId={id} />
           <CarbonBalance ctx={ctx} quoteId={id} />
+          <ProductSheets ctx={ctx} quoteId={id} />
+        <ProductSheets ctx={ctx} quoteId={id} />
         </aside>
       </div>
     </div>

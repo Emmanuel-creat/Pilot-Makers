@@ -12,6 +12,8 @@ import { listCatalogDocuments } from "@/lib/services/datasheets";
 import { ItemDocuments } from "./ItemDocuments";
 import { CarbonForm } from "./CarbonForm";
 import { getItemCarbon } from "@/lib/services/carbon";
+import { getProductInfo } from "@/lib/services/product-info";
+import { ProductInfoForm } from "./ProductInfoForm";
 
 export const metadata = { title: "Prestation" };
 
@@ -19,7 +21,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const ctx = await requirePageCtx();
   const it = await getItem(ctx, id).catch(() => notFound());
-  const [history, components, usedIn, carbon] = await Promise.all([
+  const [history, components, usedIn, carbon, productInfo] = await Promise.all([
     priceHistory(ctx, id),
     listComponents(ctx.db, ctx.orgId, id),
     ctx.db.query<{ id: string; name: string }>(
@@ -27,6 +29,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
       [id, ctx.orgId],
     ),
     getItemCarbon(ctx, id),
+    getProductInfo(ctx, id),
   ]);
   const input = itemToInput(it);
   return (
@@ -95,6 +98,11 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
           <ItemDocuments itemId={it.id} initial={await listCatalogDocuments(ctx, it.id)} />
         </div>
         <aside className="h-fit space-y-4">
+          <section className="card p-4">
+            <h2 className="mb-1 text-sm font-semibold">Fiche produit</h2>
+            <p className="mb-3 text-xs text-muted">Reprise sur les devis qui utilisent cet article ; le délai repousse la date de démarrage proposée.</p>
+            <ProductInfoForm itemId={it.id} info={productInfo} />
+          </section>
           <section className="card p-4">
             <h2 className="mb-1 text-sm font-semibold">Empreinte carbone</h2>
             <p className="mb-3 text-xs text-muted">Reprise dans le bilan carbone des devis qui utilisent cet article.</p>

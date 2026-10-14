@@ -42,7 +42,11 @@ export default async function AutoPlanningPage({ params, searchParams }: { param
       <div className="space-y-6">
         <Section
           title="Besoin du chantier"
-          description={sp.jours ? undefined : "Durée et équipe estimées d'après la main-d'oeuvre du devis accepté, à ajuster."}
+          description={
+            sp.jours
+              ? undefined
+              : `Durée et équipe estimées d'après la main-d'oeuvre du devis accepté, à ajuster.${defaults.lead ? ` Démarrage au plus tôt après le délai d'approvisionnement de « ${defaults.lead.label} » (${defaults.lead.days} jours ouvrés).` : ""}`
+          }
         >
           <form className="grid gap-3 sm:grid-cols-4 sm:items-end" action={`/app/chantiers/${id}/planifier`}>
             <div>

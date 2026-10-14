@@ -11,6 +11,7 @@ import type { GeoPoint } from "@/lib/map";
 import type { Ctx } from "./context";
 import { requireWritable } from "./context";
 import { estimateLinesDuration } from "./duration";
+import { quoteProducts } from "./product-info";
 import { assign } from "./planning";
 import { getVersion, parisDate } from "./quotes";
 
@@ -41,7 +42,10 @@ export async function planningDefaults(ctx: Ctx, jobId: string, today = parisDat
   }
   const tomorrow = new Date(`${today}T12:00:00Z`);
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  return { days, crew, skill: "", from: workingDaysFrom(tomorrow.toISOString().slice(0, 10), 1)[0] };
+  // Les produits au délai d'approvisionnement le plus long doivent être livrés avant le démarrage.
+  const lead = j.quote_id ? (await quoteProducts(ctx, j.quote_id)).lead : null;
+  const from = workingDaysFrom(tomorrow.toISOString().slice(0, 10), 1 + (lead?.days ?? 0)).at(-1)!;
+  return { days, crew, skill: "", from, lead };
 }
 
 const needSchema = z.object({

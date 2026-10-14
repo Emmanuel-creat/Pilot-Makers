@@ -96,6 +96,7 @@ import { deleteCampaign, saveCampaign, sendCampaign } from "@/lib/services/campa
 import { saveYearEnd } from "@/lib/services/year-end";
 import { applyProposal } from "@/lib/services/auto-planning";
 import { markWatchRead } from "@/lib/services/regulatory-watch";
+import { saveProductInfo } from "@/lib/services/product-info";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2685,6 +2686,25 @@ export async function markWatchReadAction(_: ActionState, fd: FormData): Promise
     revalidatePath("/app/veille");
     revalidatePath("/app");
     return { ok: true, message: s(fd, "id") === "tout" ? "Toutes les évolutions sont marquées comme lues." : "Évolution marquée comme lue." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveProductInfoAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const id = s(fd, "itemId");
+    await withCtx((ctx) =>
+      saveProductInfo(ctx, id, {
+        brand: s(fd, "brand"),
+        performance: s(fd, "performance"),
+        certifications: s(fd, "certifications"),
+        warrantyYears: s(fd, "warrantyYears"),
+        leadDays: s(fd, "leadDays"),
+      }),
+    );
+    revalidatePath(`/app/catalogue/${id}`);
+    return { ok: true, message: "Fiche produit enregistrée." };
   } catch (e) {
     return toState(e);
   }

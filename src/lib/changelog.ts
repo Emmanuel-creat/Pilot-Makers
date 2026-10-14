@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "fiches-produits",
+    date: "2026-10-14",
+    title: "Fiches produits enrichies",
+    text: "Marque, performances, garantie et délai d'approvisionnement de vos articles, rappelés sur les devis et pris en compte pour planifier le chantier.",
+    href: "/aide/fiches-produits",
+  },
+  {
     id: "veille-reglementaire",
     date: "2026-10-14",
     title: "Veille réglementaire",

@@ -1139,6 +1139,10 @@ test("catalogue : empreinte carbone d'un article", async ({ page }) => {
   await page.getByLabel("Prix de vente HT (€)").fill("189");
   await page.getByRole("button", { name: "Créer la prestation" }).click();
   await page.waitForURL(/\/app\/catalogue\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Marque et modèle").fill("Receveur Kinedo");
+  await page.getByLabel("Délai (jours)").fill("10");
+  await page.getByRole("button", { name: "Enregistrer la fiche" }).click();
+  await expect(page.getByText("Fiche produit enregistrée.")).toBeVisible();
   await page.getByLabel(/Kg CO2e par/).fill("55");
   await page.getByRole("button", { name: "Enregistrer l'empreinte" }).click();
   await expect(page.getByText("Empreinte enregistrée")).toBeVisible();

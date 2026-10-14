@@ -1751,6 +1751,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/veille", label: "Ouvrir la veille" },
   },
   {
+    slug: "fiches-produits",
+    category: "catalogue",
+    title: "Compléter la fiche produit d'un article",
+    summary: "Marque, performances, certifications, garantie et délai d'approvisionnement, repris sur vos devis.",
+    steps: [
+      "Ouvrez l'article dans le catalogue et remplissez la « Fiche produit » à droite.",
+      "Sur un devis qui utilise l'article, le bloc « Produits du devis » rappelle les garanties et le délai d'approvisionnement le plus long.",
+      "La planification automatique du chantier démarre au plus tôt après ce délai.",
+    ],
+    notes: ["Le délai se compte en jours ouvrés, de la commande à la livraison."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
