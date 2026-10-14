@@ -978,6 +978,27 @@ test("chantier : évacuation de déchets et registre", async ({ page }) => {
   expect(await res.text()).toContain("17 01 07");
 });
 
+test("chantier : coordination des corps de métier", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Corps de métier" }).click();
+  await expect(page.getByRole("heading", { name: "Coordination des corps de métier", level: 1 })).toBeVisible();
+  const add = page.locator("form", { has: page.getByRole("button", { name: "Ajouter l'intervention" }) });
+  await add.getByLabel("Corps de métier").selectOption("carrelage");
+  await add.getByLabel("Début").fill("2026-11-10");
+  await add.getByLabel("Fin").fill("2026-11-12");
+  await add.getByRole("button", { name: "Ajouter l'intervention" }).click();
+  await expect(page.getByText("Intervention ajoutée.")).toBeVisible();
+  await add.getByLabel("Corps de métier").selectOption("plomberie");
+  await add.getByLabel("Début").fill("2026-11-14");
+  await add.getByLabel("Fin").fill("2026-11-15");
+  await add.getByRole("button", { name: "Ajouter l'intervention" }).click();
+  await expect(page.getByTestId("coordination-alertes")).toContainText("l'ordre habituel est inverse");
+  await audit(page, "coordination des corps de métier");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

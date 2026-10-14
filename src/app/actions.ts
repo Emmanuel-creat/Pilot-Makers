@@ -79,6 +79,7 @@ import { cancelVisit, saveVisitSettings } from "@/lib/services/visits";
 import { saveDoeNotes } from "@/lib/services/doe";
 import { saveSafetyPlan } from "@/lib/services/safety";
 import { addJobWaste, deleteJobWaste } from "@/lib/services/waste";
+import { deleteIntervention, saveIntervention, sendPlanning } from "@/lib/services/coordination";
 import {
   cancelQuote,
   createAmendment,
@@ -2156,4 +2157,46 @@ export async function addWasteAction(_: ActionState, fd: FormData): Promise<Acti
 export async function deleteWasteAction(fd: FormData) {
   const jobId = await withCtx((ctx) => deleteJobWaste(ctx, s(fd, "id")));
   revalidatePath(`/app/chantiers/${jobId}`);
+}
+
+export async function interventionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    const id = s(fd, "id");
+    await withCtx((ctx) =>
+      saveIntervention(
+        ctx,
+        jobId,
+        {
+          trade: s(fd, "trade"),
+          subcontractorId: s(fd, "subcontractorId"),
+          startDate: s(fd, "startDate"),
+          endDate: s(fd, "endDate"),
+          afterId: s(fd, "afterId"),
+          note: s(fd, "note"),
+        },
+        id || undefined,
+      ),
+    );
+    revalidatePath(`/app/chantiers/${jobId}/coordination`);
+    return { ok: true, message: id ? "Intervention modifiée." : "Intervention ajoutée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteInterventionAction(fd: FormData) {
+  const jobId = await withCtx((ctx) => deleteIntervention(ctx, s(fd, "id")));
+  revalidatePath(`/app/chantiers/${jobId}/coordination`);
+}
+
+export async function sendPlanningAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    const n = await withCtx((ctx) => sendPlanning(ctx, jobId));
+    revalidatePath(`/app/chantiers/${jobId}/coordination`);
+    return { ok: true, message: `Planning envoyé à ${n} entreprise${n > 1 ? "s" : ""}.` };
+  } catch (e) {
+    return toState(e);
+  }
 }

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "coordination-corps-de-metier",
+    date: "2026-10-14",
+    title: "Coordination des corps de métier",
+    text: "Planifiez les interventions de votre équipe et de vos sous-traitants sur un chantier, repérez les enchaînements à revoir et envoyez le planning à chacun.",
+    href: "/aide/coordination-corps-de-metier",
+  },
+  {
     id: "dechets-de-chantier",
     date: "2026-10-14",
     title: "Déchets de chantier et registre",

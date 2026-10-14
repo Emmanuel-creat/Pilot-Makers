@@ -1467,6 +1467,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/chantiers/dechets", label: "Ouvrir le registre" },
   },
   {
+    slug: "coordination-corps-de-metier",
+    category: "devis",
+    title: "Coordonner les corps de métier d'un chantier",
+    summary: "Qui intervient, quand et après qui, avec les enchaînements à vérifier.",
+    steps: [
+      "Sur la fiche du chantier, cliquez sur « Corps de métier » et ajoutez chaque intervention : corps de métier, votre équipe ou un sous-traitant, dates, et l'intervention qui doit la précéder.",
+      "La frise montre la période de chacun ; l'application signale une intervention qui commence avant la fin de la précédente, un ordre inhabituel (peinture avant plâtrerie) ou deux entreprises présentes en même temps.",
+      "Cliquez sur « Envoyer le planning aux intervenants » : chaque sous-traitant concerné reçoit le planning complet par e-mail.",
+    ],
+    notes: ["Les entreprises présentes en même temps figurent dans le plan de prévention du chantier, pour organiser la coactivité."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

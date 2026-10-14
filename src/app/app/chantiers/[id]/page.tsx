@@ -95,6 +95,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
         }
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link className="btn-secondary" href={`/app/chantiers/${job.id}/coordination`}>
+              <Icon name="team" size={16} /> Corps de métier
+            </Link>
             <Link className="btn-secondary" href={`/app/chantiers/${job.id}/securite`}>
               <Icon name="shield" size={16} /> Plan de prévention
             </Link>
