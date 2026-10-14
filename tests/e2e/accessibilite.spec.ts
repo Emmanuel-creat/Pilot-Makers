@@ -955,6 +955,29 @@ test("chantier : plan de prévention à afficher", async ({ page }) => {
   expect(res.headers()["content-type"]).toBe("application/pdf");
 });
 
+test("chantier : évacuation de déchets et registre", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Déchets du chantier" })).toBeVisible();
+  await page.getByLabel("Nature du déchet").selectOption("gravats");
+  await page.getByLabel("Quantité", { exact: true }).fill("1,2");
+  await page.getByLabel("Installation de destination").fill("Déchèterie professionnelle de Vénissieux");
+  await page.getByLabel("Coût HT (€)").fill("78");
+  await page.getByRole("button", { name: "Noter l'évacuation" }).click();
+  await expect(page.getByText("Évacuation enregistrée.")).toBeVisible();
+  await expect(page.getByTestId("bilan-dechets")).toContainText("Inertes");
+  await audit(page, "déchets du chantier");
+  await page.goto("/app/chantiers/dechets");
+  await expect(page.getByRole("cell", { name: "Déchèterie professionnelle de Vénissieux" }).first()).toBeVisible();
+  await audit(page, "registre des déchets");
+  const href = await page.getByRole("link", { name: /Exporter \d{4} \(CSV\)/ }).getAttribute("href");
+  const res = await page.request.get(href!);
+  expect(res.headers()["content-type"]).toContain("text/csv");
+  expect(await res.text()).toContain("17 01 07");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -26,6 +26,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             <Link href="/app/chantiers/garanties" className="btn-secondary">
               <Icon name="shield" size={16} /> Garanties
             </Link>
+            <Link href="/app/chantiers/dechets" className="btn-secondary">
+              <Icon name="trash" size={16} /> Registre des déchets
+            </Link>
           </>
         }
       />

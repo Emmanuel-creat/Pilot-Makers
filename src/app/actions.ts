@@ -78,6 +78,7 @@ import { hideReview, replyReview, requestReview } from "@/lib/services/reviews";
 import { cancelVisit, saveVisitSettings } from "@/lib/services/visits";
 import { saveDoeNotes } from "@/lib/services/doe";
 import { saveSafetyPlan } from "@/lib/services/safety";
+import { addJobWaste, deleteJobWaste } from "@/lib/services/waste";
 import {
   cancelQuote,
   createAmendment,
@@ -2127,4 +2128,32 @@ export async function safetyPlanAction(_: ActionState, fd: FormData): Promise<Ac
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function addWasteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = s(fd, "jobId");
+    await withCtx((ctx) =>
+      addJobWaste(ctx, jobId, {
+        date: s(fd, "date"),
+        category: s(fd, "category"),
+        quantity: s(fd, "quantity"),
+        unit: s(fd, "unit"),
+        destination: s(fd, "destination"),
+        carrier: s(fd, "carrier"),
+        slipRef: s(fd, "slipRef"),
+        sorted: fd.get("sorted"),
+        cost: s(fd, "cost"),
+      }),
+    );
+    revalidatePath(`/app/chantiers/${jobId}`);
+    return { ok: true, message: "Évacuation enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteWasteAction(fd: FormData) {
+  const jobId = await withCtx((ctx) => deleteJobWaste(ctx, s(fd, "id")));
+  revalidatePath(`/app/chantiers/${jobId}`);
 }

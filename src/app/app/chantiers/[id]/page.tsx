@@ -32,6 +32,8 @@ import { JobMessageForm } from "./JobChat";
 import { jobReview } from "@/lib/services/reviews";
 import { RequestReviewForm } from "../../avis/ReviewForms";
 import { doeStatus } from "@/lib/services/doe";
+import { listJobWaste } from "@/lib/services/waste";
+import { WasteSection } from "./WasteSection";
 import { doeNotesAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
@@ -57,12 +59,13 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
     getWarranty(ctx, id),
     listJobMessages(ctx, id),
   ]);
-  const [review, customerEmail, doe] = await Promise.all([
+  const [review, customerEmail, doe, waste] = await Promise.all([
     jobReview(ctx, id),
     job.customer_id
       ? ctx.db.query<{ email: string }>("SELECT email FROM customers WHERE id=$1 AND org_id=$2", [job.customer_id, ctx.orgId]).then((r) => r[0]?.email ?? "")
       : Promise.resolve(""),
     doeStatus(ctx, id),
+    listJobWaste(ctx, id),
   ]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const costsAllowed = can(ctx, "costs");
@@ -309,6 +312,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <p className="text-sm text-muted">Pas encore de réception.</p>
           )}
         </Section>
+        <div className="lg:col-span-2">
+          <WasteSection jobId={job.id} entries={waste} canEdit={canEdit} today={parisDate(new Date())} />
+        </div>
         <div className="lg:col-span-2">
           <Section
             title="Dossier des ouvrages exécutés"

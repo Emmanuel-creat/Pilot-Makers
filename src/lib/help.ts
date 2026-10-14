@@ -1452,6 +1452,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "dechets-de-chantier",
+    category: "devis",
+    title: "Suivre les déchets et tenir le registre",
+    summary: "Chaque évacuation notée avec son bordereau, et le registre des déchets sortants prêt à exporter.",
+    steps: [
+      "Sur la fiche du chantier, partie « Déchets du chantier », notez chaque évacuation : nature du déchet, quantité, date, installation de destination, numéro de bon ou de bordereau, coût.",
+      "Le bilan du chantier s'affiche par classe de déchets (inertes, non dangereux, dangereux), avec la part triée à la source.",
+      "Dans Chantiers, « Registre des déchets » réunit toutes les évacuations de l'année et les exporte en CSV.",
+    ],
+    notes: [
+      "Les déchets dangereux s'évacuent avec un bordereau BSDD sur Trackdéchets, l'amiante avec un bordereau BSDA : l'application signale les numéros manquants. Le registre se conserve trois ans.",
+    ],
+    link: { href: "/app/chantiers/dechets", label: "Ouvrir le registre" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

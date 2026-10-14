@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "dechets-de-chantier",
+    date: "2026-10-14",
+    title: "Déchets de chantier et registre",
+    text: "Notez les évacuations de déchets de chaque chantier avec leur bordereau ; le registre des déchets sortants de l'année s'exporte en un clic.",
+    href: "/aide/dechets-de-chantier",
+  },
+  {
     id: "plan-de-prevention",
     date: "2026-10-14",
     title: "Plan de prévention du chantier",
