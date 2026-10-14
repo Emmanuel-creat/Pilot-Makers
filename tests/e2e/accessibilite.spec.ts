@@ -1191,6 +1191,21 @@ test("clients : campagne d'entretien vers les anciens clients", async ({ page })
   await audit(page, "campagne");
 });
 
+test("comptabilité : préparation du bilan", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/comptabilite");
+  await page.getByRole("link", { name: /Préparation du bilan/ }).click();
+  await page.waitForURL(/\/app\/comptabilite\/bilan$/);
+  await page.getByRole("checkbox", { name: "Inventaire du stock" }).check();
+  await page.getByLabel("Commentaire : Inventaire du stock").fill("Inventaire fait le dernier jour");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText("Préparation du bilan enregistrée.")).toBeVisible();
+  await audit(page, "préparation du bilan");
+  const href = await page.getByRole("link", { name: /Dossier pour l.expert-comptable/ }).getAttribute("href");
+  const csv = await page.request.get(href!);
+  expect(csv.status()).toBe(200);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

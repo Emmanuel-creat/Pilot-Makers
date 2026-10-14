@@ -93,6 +93,7 @@ import { addSkill, createApprentice, deleteApprentice, deleteSkill, setSkillLeve
 import { savePenalties, setFinalAccountStatus } from "@/lib/services/final-account";
 import { locateAll } from "@/lib/services/map";
 import { deleteCampaign, saveCampaign, sendCampaign } from "@/lib/services/campaigns";
+import { saveYearEnd } from "@/lib/services/year-end";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2647,4 +2648,17 @@ export async function deleteCampaignAction(_: ActionState, fd: FormData): Promis
   }
   revalidatePath("/app/clients/campagnes");
   redirect("/app/clients/campagnes");
+}
+
+export async function saveYearEndAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const year = Number(s(fd, "year"));
+    const notes: Record<string, string> = {};
+    for (const [k, v] of fd.entries()) if (k.startsWith("note_") && typeof v === "string") notes[k.slice(5)] = v;
+    await withCtx((ctx) => saveYearEnd(ctx, year, fd.getAll("done").map(String), notes));
+    revalidatePath("/app/comptabilite/bilan");
+    return { ok: true, message: "Préparation du bilan enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
 }

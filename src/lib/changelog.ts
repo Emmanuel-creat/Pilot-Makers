@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "preparation-bilan",
+    date: "2026-10-14",
+    title: "Préparation du bilan",
+    text: "Créances, acomptes, travaux restant à facturer et retenues arrêtés au dernier jour de l'exercice, points de clôture à cocher et dossier pour l'expert-comptable.",
+    href: "/aide/preparation-bilan",
+  },
+  {
     id: "presentation-tablette",
     date: "2026-10-14",
     title: "Présentation du devis sur tablette",

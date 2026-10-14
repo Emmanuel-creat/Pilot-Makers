@@ -40,7 +40,7 @@ export default async function AccountingPage() {
           accountant ? "Pièces et exports de l'entreprise, en consultation." : "Tout ce que votre expert-comptable attend de vous, au même endroit."
         }
       />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Tile href="/app/factures" icon="euro" title="Factures et avoirs">
           Factures émises, règlements reçus et PDF d&apos;origine.
         </Tile>
@@ -49,6 +49,9 @@ export default async function AccountingPage() {
         </Tile>
         <Tile href="/app/rapports/tresorerie" icon="chart" title="Trésorerie">
           Prévision sur 3 mois et factures en retard.
+        </Tile>
+        <Tile href="/app/comptabilite/bilan" icon="calendar" title="Préparation du bilan">
+          Points de clôture de l&apos;exercice et dossier pour l&apos;expert-comptable.
         </Tile>
       </div>
 

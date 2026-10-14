@@ -1707,6 +1707,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Les coûts, marges, commentaires internes et métrés ne sont jamais affichés. Le bouton « Plein écran » masque le navigateur."],
   },
   {
+    slug: "preparation-bilan",
+    category: "factures",
+    title: "Préparer le bilan avec l'expert-comptable",
+    summary: "Les montants de clôture arrêtés au dernier jour de l'exercice, les points à vérifier et un dossier à transmettre.",
+    steps: [
+      "Dans Comptabilité, ouvrez « Préparation du bilan » et choisissez l'exercice.",
+      "Vérifiez chaque point : factures non réglées, acomptes sur chantiers non soldés, travaux signés restant à facturer, retenues de garantie, stock, notes de frais. Cochez-le et ajoutez un commentaire si besoin.",
+      "Cliquez sur « Dossier pour l'expert-comptable » pour télécharger le tableau, à joindre à l'export comptable de l'exercice.",
+    ],
+    notes: [
+      "Les règlements et avoirs datés après la clôture ne sont pas déduits : le reste dû est bien celui du dernier jour de l'exercice.",
+      "La valeur du stock est celle du jour de consultation : faites l'inventaire le dernier jour de l'exercice.",
+    ],
+    link: { href: "/app/comptabilite/bilan", label: "Préparer le bilan" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
