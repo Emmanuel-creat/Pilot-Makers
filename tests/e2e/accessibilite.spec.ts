@@ -1300,6 +1300,18 @@ test("parc : demande de financement d'équipement", async ({ page }) => {
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
 });
 
+test("aujourd'hui : chantiers du jour et devis en attente", async ({ page }) => {
+  await login(page);
+  await page.goto("/app");
+  await page.getByRole("link", { name: "Aujourd'hui" }).first().click();
+  await page.waitForURL(/\/app\/aujourdhui$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Aujourd'hui");
+  await expect(page.getByRole("heading", { name: /devis en attente|Aucun devis en attente/ })).toBeVisible();
+  await audit(page, "aujourd'hui");
+  const manifest = await (await page.request.get("/manifest.webmanifest")).json();
+  expect(manifest.shortcuts.map((s: { url: string }) => s.url)).toContain("/app/aujourdhui");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

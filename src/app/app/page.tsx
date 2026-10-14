@@ -34,9 +34,14 @@ export default async function Dashboard() {
         title={`Bonjour ${ctx.userName.split(" ")[0] ?? ""}`}
         subtitle="Ce qui demande votre attention aujourd'hui."
         actions={
-          <Link href="/app/devis/nouveau" className="btn-primary">
-            <Icon name="plus" /> Créer un devis
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/app/aujourdhui" className="btn-secondary">
+              <Icon name="calendar" /> Aujourd&apos;hui
+            </Link>
+            <Link href="/app/devis/nouveau" className="btn-primary">
+              <Icon name="plus" /> Créer un devis
+            </Link>
+          </div>
         }
       />
       {profileIncomplete ? (

@@ -23,8 +23,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
     ],
     shortcuts: [
+      { name: "Aujourd'hui", short_name: "Aujourd'hui", url: "/app/aujourdhui", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Devis en attente", url: "/app/devis?status=pending", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Nouveau devis", url: "/app/devis/nouveau", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Factures", url: "/app/factures", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Demandes clients", url: "/app/demandes", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };

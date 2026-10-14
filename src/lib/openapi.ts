@@ -11,6 +11,7 @@ export interface ApiEndpoint {
 
 export const API_ENDPOINTS: ApiEndpoint[] = [
   { method: "GET", path: "/api/v1/me", summary: "Entreprise et droits de la clé" },
+  { method: "GET", path: "/api/v1/today", summary: "Chantiers du jour et devis en attente de réponse (widgets d'écran d'accueil)" },
   {
     method: "GET",
     path: "/api/v1/customers",

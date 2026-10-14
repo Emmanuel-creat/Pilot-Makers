@@ -1810,6 +1810,30 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "chantiers-outre-mer",
+    category: "regles",
+    title: "Devis pour un chantier outre-mer",
+    summary: "Taux de TVA de Guadeloupe, Martinique et La Réunion, TVA non applicable en Guyane et à Mayotte.",
+    steps: [
+      "Le contrôle du devis repère un chantier outre-mer grâce au code postal du chantier, ou à défaut à celui du client.",
+      "En Guadeloupe, en Martinique et à La Réunion, la TVA est de 8,5 % (taux normal) ou 2,1 % (taux réduit) : un taux de métropole est signalé avant l'envoi.",
+      "En Guyane et à Mayotte, la TVA n'est provisoirement pas applicable (article 294 du CGI) : facturez à 0 % avec la mention correspondante.",
+      "À Saint-Martin, Saint-Barthélemy, Saint-Pierre-et-Miquelon et dans le Pacifique, la fiscalité est locale : vérifiez les taxes avec votre comptable.",
+    ],
+  },
+  {
+    slug: "widgets-ecran-accueil",
+    category: "compte",
+    title: "Chantiers du jour et devis en attente sur l'écran d'accueil",
+    summary: "Raccourcis de l'application installée et widget alimenté par l'API.",
+    steps: [
+      "Installez l'application depuis le navigateur du téléphone (Ajouter à l'écran d'accueil). Un appui long sur son icône propose Aujourd'hui, Devis en attente, Nouveau devis et Demandes clients.",
+      "La page Aujourd'hui, aussi accessible depuis le tableau de bord, montre les chantiers où l'équipe intervient, les personnes et véhicules affectés, et les devis envoyés en attente de réponse.",
+      "Pour un vrai widget, créez une clé d'API en lecture dans Entreprise, puis utilisez une application de widgets qui lit une adresse web (Scriptable sur iPhone, KWGT ou HTTP Request Widget sur Android). Elle interroge /api/v1/today avec l'en-tête Authorization: Bearer suivi de votre clé.",
+      "La réponse contient la date, la liste des chantiers du jour (titre, client, ville, équipe, véhicules) et les devis en attente (nombre, total TTC, devis qui expirent dans la semaine).",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

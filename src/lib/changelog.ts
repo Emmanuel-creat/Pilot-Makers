@@ -17,6 +17,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "aujourdhui-widgets",
+    date: "2026-10-14",
+    title: "Aujourd'hui et widgets",
+    text: "Les chantiers du jour et les devis en attente sur une page compacte, en raccourci de l'application installée et pour les widgets d'écran d'accueil.",
+    href: "/aide/widgets-ecran-accueil",
+  },
+  {
+    id: "chantiers-outre-mer",
+    date: "2026-10-14",
+    title: "Chantiers outre-mer",
+    text: "Le contrôle du devis signale les taux de TVA de métropole sur un chantier en Guadeloupe, Martinique, à La Réunion, en Guyane ou à Mayotte.",
+    href: "/aide/chantiers-outre-mer",
+  },
+  {
     id: "financement-equipement",
     date: "2026-10-14",
     title: "Financement d'équipement",
