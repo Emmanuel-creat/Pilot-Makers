@@ -1,3 +1,4 @@
+import type { ForeignCurrency } from "@/lib/currency";
 import type { SectionChoice } from "@/lib/calc/variants";
 import type { EnergyAid } from "./aid-rules";
 import type { SnapshotMedia } from "./quote-media";
@@ -111,6 +112,8 @@ export interface QuoteDraft {
   priceRevision?: PriceRevision | null;
   /** Aides à la rénovation visées (MaPrimeRénov', CEE, éco-PTZ), absent ou nul sinon */
   energyAid?: EnergyAid | null;
+  /** Contre-valeur indicative du total dans la devise du client, absente ou nulle sinon */
+  foreignCurrency?: ForeignCurrency | null;
   sections: DraftSection[];
   draftRevision: number;
   currentVersion: number;
@@ -195,6 +198,7 @@ export interface QuoteSnapshot {
     amendment?: Omit<QuoteAmendment, "parentId">;
     priceRevision?: PriceRevision;
     energyAid?: EnergyAid;
+    foreignCurrency?: ForeignCurrency;
   };
   sections: DraftSection[];
   calc: CalcResult;

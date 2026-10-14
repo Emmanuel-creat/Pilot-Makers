@@ -1961,6 +1961,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "devises-etrangeres",
+    category: "devis",
+    title: "Indiquer la contre-valeur d'un devis dans une autre devise",
+    summary: "Pour un client à l'étranger, le devis affiche son total TTC en francs suisses, livres, dollars, dirhams ou francs CFA et CFP, le prix restant dû en euros.",
+    steps: [
+      "Dans le devis, choisissez la devise du client dans Contre-valeur en devise.",
+      "Indiquez le taux, en unités de la devise pour 1 euro. Les francs CFA et CFP prennent d'eux-mêmes leur parité fixe avec l'euro.",
+      "À l'émission, le devis imprime la contre-valeur du total TTC, le taux et sa date, et rappelle que le prix dû est celui en euros.",
+      "Sans taux, le devis ne peut pas être émis : la contre-valeur n'est jamais omise en silence.",
+      "Pour un client qui ne lit pas le français, la copie traduite du devis reste disponible ; seule la version française fait foi.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

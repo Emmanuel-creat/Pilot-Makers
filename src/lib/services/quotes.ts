@@ -46,6 +46,7 @@ import { documentsMention, quoteDocuments, type SnapshotDocument } from "./datas
 import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualifications, type EnergyAid, type RgeQualification } from "./aids";
 import { enqueueWebhook } from "./webhooks";
 import { overseasIssues } from "@/lib/overseas";
+import { currencyIssues, draftForeign, foreignMention, normalizeForeign, type ForeignCurrency } from "@/lib/currency";
 
 const DAY = 86_400_000;
 
@@ -112,6 +113,7 @@ export const draftSchema = z.object({
     .optional()
     .default(null),
   energyAid: energyAidSchema,
+  foreignCurrency: z.object({ code: str(3), rate: str(20) }).nullable().optional().default(null),
   // Les lignes des variantes non comprises dans le total sont marquées hors total, comme des options.
   sections: z
     .array(sectionSchema)
@@ -216,6 +218,7 @@ export async function getDraft(ctx: Ctx, id: string, q: Queryable = ctx.db): Pro
     retentionPercent: String(r.retention_percent ?? ""),
     priceRevision: (r.price_revision as PriceRevision | null) ?? null,
     energyAid: (r.energy_aid as EnergyAid | null) ?? null,
+    foreignCurrency: draftForeign(r.foreign_currency as ForeignCurrency | null),
     ...(r.amends_quote_id
       ? {
           amendment: {
@@ -472,11 +475,13 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
     const revision = normalizeRevision(d.priceRevision);
     await writeSections(tx, id, ctx.orgId, d.sections);
     const aid = normalizeAid(d.energyAid);
-    await tx.query("UPDATE quotes SET price_revision=$3, energy_aid=$4 WHERE id=$1 AND org_id=$2", [
+    const foreign = draftForeign(d.foreignCurrency);
+    await tx.query("UPDATE quotes SET price_revision=$3, energy_aid=$4, foreign_currency=$5 WHERE id=$1 AND org_id=$2", [
       id,
       ctx.orgId,
       revision ? JSON.stringify(revision) : null,
       aid ? JSON.stringify(aid) : null,
+      foreign ? JSON.stringify(foreign) : null,
     ]);
     await tx.query(
       `UPDATE quotes SET customer_id=$3, title=$4, description=$5, site_line1=$6, site_line2=$7, site_postal_code=$8, site_city=$9,
@@ -532,7 +537,7 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
   const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
   const customer = d.customerId ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null;
   const issues = checkCompliance(complianceInput(org, customer, d, calc));
-  issues.push(...quoteOverseasIssues(org, customer, d, calc));
+  issues.push(...quoteOverseasIssues(org, customer, d, calc), ...currencyIssues(d.foreignCurrency));
   const today = parisDate(new Date());
   issues.push(
     ...aidIssues(
@@ -656,6 +661,7 @@ export function buildSnapshot(args: {
 }): QuoteSnapshot {
   const { ctx, d, org, customer, calc, issues, number, version } = args;
   const aid = normalizeAid(d.energyAid);
+  const foreign = normalizeForeign(d.foreignCurrency);
   const now = args.now ?? new Date();
   const issueDate = parisDate(now);
   const validUntil = parisDate(addDays(now, d.validityDays));
@@ -731,6 +737,7 @@ export function buildSnapshot(args: {
         : {}),
       ...(d.priceRevision ? { priceRevision: d.priceRevision } : {}),
       ...(aid ? { energyAid: aid } : {}),
+      ...(foreign ? { foreignCurrency: foreign } : {}),
     },
     // Les commentaires internes ne quittent jamais l'entreprise : ils ne sont pas figés dans la version envoyée.
     sections: d.sections.map((sec) => ({ ...sec, lines: sec.lines.map(({ internalNote: _internal, wastePercent: _waste, measure: _measure, ...l }) => l) })),
@@ -747,6 +754,7 @@ export function buildSnapshot(args: {
       }),
       ...(d.priceRevision ? [revisionMention(d.priceRevision)] : []),
       ...aidMentions(aid, args.rge ?? [], issueDate, calc.totalTtcCents),
+      ...(foreign ? [foreignMention(foreign, calc.totalTtcCents, frDate(issueDate))] : []),
       ...(args.documents?.length ? [documentsMention(args.documents)!] : []),
     ],
     warnings: issues.filter((i) => !i.blocking).map((i) => i.message),
@@ -786,7 +794,7 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     // Recalcul côté serveur : les totaux envoyés par le navigateur ne sont jamais utilisés.
     const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
     const issues = checkCompliance(complianceInput(org, customer, d, calc));
-    issues.push(...quoteOverseasIssues(org, customer, d, calc));
+    issues.push(...quoteOverseasIssues(org, customer, d, calc), ...currencyIssues(d.foreignCurrency));
     const rge = await rgeQualifications(tx, ctx.orgId);
     issues.push(...aidIssues(normalizeAid(d.energyAid), rge, parisDate(new Date()), parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents));
     const blocking = issues.filter((i) => i.blocking);

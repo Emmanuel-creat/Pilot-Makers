@@ -27,6 +27,7 @@ import { CatalogPicker } from "./CatalogPicker";
 import { CustomerForm } from "./CustomerForm";
 import { LineRow, UNITS } from "./LineRow";
 import { BT_INDEXES, DEFAULT_FIXED_PERCENT } from "@/lib/services/revision-labels";
+import { CURRENCIES, isCurrency } from "@/lib/currency";
 import {
   AID_PROGRAMS,
   RGE_DOMAINS,
@@ -115,6 +116,7 @@ function payload(d: QuoteDraft) {
     retentionPercent: d.retentionPercent,
     priceRevision: d.priceRevision ?? null,
     energyAid: d.energyAid?.programs.length ? d.energyAid : null,
+    foreignCurrency: d.foreignCurrency?.code ? d.foreignCurrency : null,
     sections: d.sections,
   };
 }
@@ -1450,6 +1452,49 @@ export function QuoteEditor({
               </div>
             ) : null}
             <EnergyAidFields value={d.energyAid ?? null} onChange={(v) => set("energyAid", v)} />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="label" htmlFor="q-currency">
+                  Contre-valeur en devise
+                </label>
+                <select
+                  id="q-currency"
+                  className="field"
+                  value={d.foreignCurrency?.code ?? ""}
+                  onChange={(e) => {
+                    const code = e.target.value;
+                    set("foreignCurrency", isCurrency(code) ? { code, rate: CURRENCIES[code].fixed ?? (d.foreignCurrency?.code === code ? d.foreignCurrency.rate : "") } : null);
+                  }}
+                >
+                  <option value="">Aucune, euros seulement</option>
+                  {Object.entries(CURRENCIES).map(([code, c]) => (
+                    <option key={code} value={code}>
+                      {code}, {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {d.foreignCurrency?.code ? (
+                <div>
+                  <label className="label" htmlFor="q-currency-rate">
+                    Taux : {d.foreignCurrency.code} pour 1 EUR
+                  </label>
+                  <input
+                    id="q-currency-rate"
+                    inputMode="decimal"
+                    className="field"
+                    value={d.foreignCurrency.rate}
+                    readOnly={!!CURRENCIES[d.foreignCurrency.code].fixed}
+                    onChange={(e) => set("foreignCurrency", { ...d.foreignCurrency!, rate: e.target.value })}
+                  />
+                </div>
+              ) : null}
+              {d.foreignCurrency?.code ? (
+                <p className="text-xs text-muted sm:col-span-3">
+                  Client à l&apos;étranger : le devis indique la contre-valeur de son total TTC dans cette devise. Le prix dû reste en euros.
+                </p>
+              ) : null}
+            </div>
             <div>
               <label className="label" htmlFor="q-payment">
                 Conditions de paiement

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devises-etrangeres",
+    date: "2026-10-14",
+    title: "Contre-valeur en devise étrangère",
+    text: "Vos devis pour l'étranger affichent leur total en francs suisses, livres, dollars, dirhams ou francs CFA et CFP.",
+    href: "/aide/devises-etrangeres",
+  },
+  {
     id: "marches-publics",
     date: "2026-10-14",
     title: "Marchés publics : DPGF et BPU",

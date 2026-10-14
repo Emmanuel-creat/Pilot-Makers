@@ -1153,6 +1153,22 @@ test("devis : bordereau de marché public importé puis rempli", async ({ page }
   expect(await res.text()).toContain("Peinture des murs deux couches");
 });
 
+test("devis : contre-valeur en devise étrangère", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Chalet à Genève");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const select = page.getByLabel("Contre-valeur en devise");
+  await select.scrollIntoViewIfNeeded();
+  await select.selectOption("CHF");
+  await page.getByLabel("Taux : CHF pour 1 EUR").fill("0,94");
+  await expect(page.getByText("le devis indique la contre-valeur de son total TTC")).toBeVisible();
+  await select.selectOption("XOF");
+  await expect(page.getByLabel("Taux : XOF pour 1 EUR")).toHaveValue("655.957");
+  await audit(page, "contre-valeur en devise");
+});
+
 test("catalogue : comparateur de prix entre fournisseurs", async ({ page }) => {
   await login(page);
   await page.goto("/app/catalogue/tarifs-fournisseurs");
