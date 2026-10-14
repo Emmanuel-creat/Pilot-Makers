@@ -1169,6 +1169,18 @@ test("devis : contre-valeur en devise étrangère", async ({ page }) => {
   await audit(page, "contre-valeur en devise");
 });
 
+test("devis : risque d'impayé du client et garanties conseillées", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis");
+  await page.locator("a:visible", { hasText: "Rénovation de salle de bains" }).first().click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const customer = page.locator('a[href^="/app/clients/"]:visible').first();
+  await customer.click();
+  await page.waitForURL(/\/app\/clients\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("risque-client")).toContainText("Risque d'impayé");
+  await audit(page, "risque client");
+});
+
 test("catalogue : comparateur de prix entre fournisseurs", async ({ page }) => {
   await login(page);
   await page.goto("/app/catalogue/tarifs-fournisseurs");

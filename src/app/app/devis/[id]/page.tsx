@@ -36,6 +36,7 @@ import { listIndexValues } from "@/lib/services/revision";
 import { SimilarQuotes } from "./SimilarQuotes";
 import { WinOdds } from "./WinOdds";
 import { TenderBox } from "./TenderBox";
+import { QuoteRisk } from "./QuoteRisk";
 import { CarbonBalance } from "./CarbonBalance";
 import { ProductSheets } from "./ProductSheets";
 import { hasFeature } from "@/lib/services/features";
@@ -135,6 +136,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
         </section>
         <TenderBox ctx={ctx} quoteId={id} />
         <WinOdds ctx={ctx} quoteId={id} />
+        <QuoteRisk ctx={ctx} quoteId={id} />
         <SimilarQuotes ctx={ctx} quoteId={id} />
         <CarbonBalance ctx={ctx} quoteId={id} />
         <ProductSheets ctx={ctx} quoteId={id} />
@@ -623,6 +625,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
           ) : null}
           <TenderBox ctx={ctx} quoteId={id} />
           <WinOdds ctx={ctx} quoteId={id} />
+          <QuoteRisk ctx={ctx} quoteId={id} />
           <SimilarQuotes ctx={ctx} quoteId={id} />
           <CarbonBalance ctx={ctx} quoteId={id} />
           <ProductSheets ctx={ctx} quoteId={id} />

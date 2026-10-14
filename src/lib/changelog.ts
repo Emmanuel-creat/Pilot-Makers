@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "risque-impaye",
+    date: "2026-10-14",
+    title: "Risque d'impayé avant signature",
+    text: "Chaque devis indique le risque d'impayé du client et l'acompte ou les garanties à prévoir.",
+    href: "/aide/risque-impaye",
+  },
+  {
     id: "retards-de-chantier",
     date: "2026-10-14",
     title: "Retards de chantier",

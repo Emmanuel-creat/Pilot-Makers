@@ -1987,6 +1987,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "risque-impaye",
+    category: "devis",
+    title: "Évaluer le risque d'impayé d'un client avant de signer",
+    summary: "Une note de risque tirée des factures du client et du montant du devis, avec l'acompte et les garanties à prévoir.",
+    steps: [
+      "Sur un devis en préparation ou en attente, et sur la fiche du client, le bloc Risque d'impayé donne un niveau faible, modéré ou élevé.",
+      "Il tient compte des factures en retard aujourd'hui, du retard moyen de paiement, d'un premier chantier et du montant engagé par rapport à ce que le client a déjà réglé.",
+      "Chaque niveau propose des garanties : acompte de 30, 40 ou 50 %, factures de situation, paiement par étapes, garantie de paiement pour une entreprise.",
+      "Si l'acompte prévu dans le devis est plus bas que celui conseillé, un avertissement le signale avant l'envoi.",
+      "La note ne quitte pas l'entreprise : elle n'est jamais imprimée ni montrée au client.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CustomerRisk } from "@/components/CustomerRisk";
+import { riskForCustomer } from "@/lib/services/customer-risk";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { Notice, PageHeader, StatusBadge, fmtDate } from "@/components/ui";
@@ -43,6 +45,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
   const invoices = await listInvoices(ctx, { customerId: id });
   const balance = customerBalance(invoices);
   const payer = await customerPaymentProfile(ctx, id);
+  const risk = await riskForCustomer(ctx, id);
   const sites = await ctx.db.query<{ line1: string; postal_code: string; city: string; n: unknown }>(
     `SELECT site_line1 AS line1, site_postal_code AS postal_code, site_city AS city, count(*) AS n FROM quotes
      WHERE customer_id=$1 AND org_id=$2 AND site_line1 <> '' GROUP BY 1, 2, 3 ORDER BY 4 DESC, 1 LIMIT 20`,
@@ -123,6 +126,7 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
               </p>
             ) : null}
           </section>
+          {risk ? <CustomerRisk risk={risk} /> : null}
           {c.notes ? (
             <section className="card p-4">
               <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
