@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { Empty, Notice, PageHeader, Section, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listResources } from "@/lib/services/planning";
@@ -25,6 +26,11 @@ export default async function FleetPage() {
       <PageHeader
         title="Véhicules et outillage"
         subtitle="Contrôles techniques, entretiens et vérifications périodiques, avec un rappel quinze jours avant chaque échéance."
+        actions={
+          <Link href="/app/stock" className="btn-secondary">
+            <Icon name="box" size={16} /> Stock du dépôt et des véhicules
+          </Link>
+        }
       />
       {late.length ? (
         <Notice tone="warning" title="Contrôles en retard">

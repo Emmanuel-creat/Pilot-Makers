@@ -1479,6 +1479,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     notes: ["Les entreprises présentes en même temps figurent dans le plan de prévention du chantier, pour organiser la coactivité."],
   },
   {
+    slug: "stock-depot-vehicules",
+    category: "catalogue",
+    title: "Suivre le stock du dépôt et des véhicules",
+    summary: "Quantités par emplacement, seuils de réapprovisionnement et dotation de chaque véhicule.",
+    steps: [
+      "Ouvrez Stock (depuis Véhicules et outillage, ou ajoutez-le à votre menu) et suivez vos fournitures : depuis le catalogue pour reprendre le coût d'achat, ou hors catalogue.",
+      "Notez les mouvements : entrée à la livraison, transfert du dépôt vers un véhicule, sortie vers un chantier, inventaire pour corriger une quantité comptée.",
+      "Fixez un seuil et une quantité à commander pour chaque article, et la dotation à garder dans chaque véhicule : les listes « À commander » et « À recharger » se mettent à jour seules.",
+    ],
+    notes: ["Une sortie vers un chantier ajoute son coût d'achat aux coûts du chantier, quand le coût de l'article est connu."],
+    link: { href: "/app/stock", label: "Ouvrir le stock" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

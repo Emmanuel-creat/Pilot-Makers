@@ -999,6 +999,28 @@ test("chantier : coordination des corps de métier", async ({ page }) => {
   await audit(page, "coordination des corps de métier");
 });
 
+test("stock : article suivi, entrée puis alerte de réapprovisionnement", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/parc");
+  await page.getByRole("link", { name: "Stock du dépôt et des véhicules" }).click();
+  await expect(page.getByRole("heading", { name: "Stock", level: 1 })).toBeVisible();
+  const name = `Cartouche de silicone ${Date.now().toString(36)}`;
+  await page.getByLabel("Désignation (hors catalogue)").fill(name);
+  await page.getByLabel("Unité").fill("u");
+  await page.getByLabel("Seuil de réapprovisionnement").fill("10");
+  await page.getByLabel("Quantité à commander", { exact: true }).fill("24");
+  await page.getByRole("button", { name: "Suivre en stock" }).click();
+  await expect(page.getByText("Article suivi en stock.")).toBeVisible();
+  await expect(page.getByTestId("a-commander")).toContainText(name);
+  await page.getByLabel("Mouvement", { exact: true }).selectOption("entree");
+  await page.getByLabel("Article", { exact: true }).selectOption({ label: name });
+  await page.getByLabel("Quantité (ou quantité comptée)").fill("30");
+  await page.getByRole("button", { name: "Enregistrer le mouvement" }).click();
+  await expect(page.getByText("Mouvement enregistré.")).toBeVisible();
+  await expect(page.locator("tr", { hasText: name }).getByRole("cell").nth(1)).toHaveText("30");
+  await audit(page, "stock");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

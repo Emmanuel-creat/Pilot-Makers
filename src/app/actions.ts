@@ -80,6 +80,7 @@ import { saveDoeNotes } from "@/lib/services/doe";
 import { saveSafetyPlan } from "@/lib/services/safety";
 import { addJobWaste, deleteJobWaste } from "@/lib/services/waste";
 import { deleteIntervention, saveIntervention, sendPlanning } from "@/lib/services/coordination";
+import { archiveStockItem, createStockItem, moveStock, setThresholds, setVehicleKit } from "@/lib/services/stock";
 import {
   cancelQuote,
   createAmendment,
@@ -2199,4 +2200,62 @@ export async function sendPlanningAction(_: ActionState, fd: FormData): Promise<
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function stockItemAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      createStockItem(ctx, {
+        catalogItemId: s(fd, "catalogItemId"),
+        label: s(fd, "label"),
+        unit: s(fd, "unit"),
+        minQty: s(fd, "minQty"),
+        reorderQty: s(fd, "reorderQty"),
+      }),
+    );
+    revalidatePath("/app/stock");
+    return { ok: true, message: "Article suivi en stock." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function stockMoveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const kind = s(fd, "kind");
+    const r = await withCtx((ctx) =>
+      moveStock(ctx, {
+        itemId: s(fd, "itemId"),
+        kind,
+        qty: s(fd, "qty"),
+        from: s(fd, "from") || undefined,
+        to: s(fd, "to") || undefined,
+        jobId: s(fd, "jobId"),
+        note: s(fd, "note"),
+      }),
+    );
+    revalidatePath("/app/stock");
+    return { ok: true, message: kind === "inventaire" && r.delta === 0 ? "Inventaire conforme, rien à corriger." : "Mouvement enregistré." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function stockSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const itemId = s(fd, "itemId");
+    await withCtx(async (ctx) => {
+      await setThresholds(ctx, itemId, { minQty: s(fd, "minQty"), reorderQty: s(fd, "reorderQty") });
+      for (const [k, v] of fd.entries()) if (k.startsWith("kit_") && typeof v === "string") await setVehicleKit(ctx, itemId, k.slice(4), v);
+    });
+    revalidatePath("/app/stock");
+    return { ok: true, message: "Seuils enregistrés." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function archiveStockItemAction(fd: FormData) {
+  await withCtx((ctx) => archiveStockItem(ctx, s(fd, "id")));
+  revalidatePath("/app/stock");
 }

@@ -23,6 +23,7 @@ export const MENU_MODULES: MenuModule[] = [
   { key: "chantiers", href: "/app/chantiers", label: "Chantiers", icon: "hammer", hint: "Suivi, commandes, photos et journal." },
   { key: "planning", href: "/app/planning", label: "Planning", icon: "calendar", hint: "Interventions de l'équipe." },
   { key: "parc", href: "/app/parc", label: "Véhicules et outillage", icon: "truck", hint: "Entretiens et contrôles à prévoir." },
+  { key: "stock", href: "/app/stock", label: "Stock", icon: "box", hint: "Dépôt, véhicules et seuils de réapprovisionnement." },
   { key: "pointage", href: "/app/pointage", label: "Pointage", icon: "clock", hint: "Heures passées par chantier." },
   { key: "frais", href: "/app/frais", label: "Notes de frais", icon: "note", hint: "Tickets photographiés et remboursements." },
   { key: "clients", href: "/app/clients", label: "Clients", icon: "users", hint: "Fiches, historique et espace client." },

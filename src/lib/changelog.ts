@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "stock-depot-vehicules",
+    date: "2026-10-14",
+    title: "Stock du dépôt et des véhicules",
+    text: "Suivez vos fournitures au dépôt et dans chaque véhicule, avec seuils de réapprovisionnement, dotation des véhicules et sorties affectées aux chantiers.",
+    href: "/aide/stock-depot-vehicules",
+  },
+  {
     id: "coordination-corps-de-metier",
     date: "2026-10-14",
     title: "Coordination des corps de métier",
