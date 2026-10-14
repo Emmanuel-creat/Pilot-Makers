@@ -33,18 +33,13 @@ import { listSubQuotes } from "@/lib/services/subcontractor-quotes";
 import { listSubcontractors } from "@/lib/services/subcontractors";
 import { jobForQuote } from "@/lib/services/jobs";
 import { listIndexValues } from "@/lib/services/revision";
+import { SimilarQuotes } from "./SimilarQuotes";
 import { hasFeature } from "@/lib/services/features";
 import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from "@/lib/services/invoices";
 
 export const metadata = { title: "Devis" };
 
-export default async function QuotePage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ assistant?: string }>;
-}) {
+export default async function QuotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ assistant?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
@@ -125,6 +120,7 @@ export default async function QuotePage({
           pricing={editorPricing(readPricing(org.pricing), !!ctx.entitlements.plan.features.margin)}
         />
         <QuoteMedia quoteId={id} initial={await listQuoteMedia(ctx, id)} editable />
+        <SimilarQuotes ctx={ctx} quoteId={id} />
         {can(ctx, "costs") ? (
           <section className="card mt-6 p-4" id="sous-traitance">
             <h2 className="mb-1 text-sm font-semibold">Prix des sous-traitants</h2>
@@ -234,9 +230,7 @@ export default async function QuotePage({
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0">
-          {current ? <SnapshotView s={current.snapshot} /> : <Notice tone="info">Ce brouillon n'a pas encore été émis.</Notice>}
-        </div>
+        <div className="min-w-0">{current ? <SnapshotView s={current.snapshot} /> : <Notice tone="info">Ce brouillon n'a pas encore été émis.</Notice>}</div>
         <aside className="space-y-4">
           <section className="card space-y-3 p-4 text-sm">
             <div className="flex justify-between">
@@ -348,7 +342,16 @@ export default async function QuotePage({
               ) : (
                 <p className="text-xs text-muted">Aucune facture pour ce devis.</p>
               )}
-              {writable && status === "accepted" ? <QuoteBilling quoteId={id} defaultPercent={draft.depositPercent} hasFinal={hasFinal} hasDeposits={hasDeposits} progress={progress} revision={revision} /> : null}
+              {writable && status === "accepted" ? (
+                <QuoteBilling
+                  quoteId={id}
+                  defaultPercent={draft.depositPercent}
+                  hasFinal={hasFinal}
+                  hasDeposits={hasDeposits}
+                  progress={progress}
+                  revision={revision}
+                />
+              ) : null}
             </section>
           ) : null}
 
@@ -384,7 +387,8 @@ export default async function QuotePage({
             <section className="card space-y-3 p-4">
               <h2 className="text-sm font-semibold">Lien de consultation</h2>
               <p className="text-xs text-muted">
-                {activeLinks ? `${activeLinks} lien(s) actif(s).` : "Aucun lien actif."} À envoyer par SMS, WhatsApp ou une autre messagerie depuis votre téléphone.
+                {activeLinks ? `${activeLinks} lien(s) actif(s).` : "Aucun lien actif."} À envoyer par SMS, WhatsApp ou une autre messagerie depuis votre
+                téléphone.
               </p>
               <ShareLinkButton
                 quoteId={id}
@@ -396,7 +400,8 @@ export default async function QuotePage({
                         title: current.snapshot.quote.title,
                         totalTtcCents: current.snapshot.calc.totalTtcCents,
                         validUntil: current.snapshot.validUntil,
-                        greetingName: current.snapshot.customer.contact || (current.snapshot.customer.type === "particulier" ? current.snapshot.customer.name : ""),
+                        greetingName:
+                          current.snapshot.customer.contact || (current.snapshot.customer.type === "particulier" ? current.snapshot.customer.name : ""),
                         phone: current.snapshot.customer.phone,
                       }
                     : undefined
@@ -500,7 +505,13 @@ export default async function QuotePage({
                       {(Object.entries(LANGS) as [string, string][]).map(([code, name], i) => (
                         <span key={code}>
                           {i ? " · " : ""}
-                          <a className="link" href={`/api/quotes/${id}/pdf?version=${v.version}&langue=${code}`} target="_blank" rel="noreferrer" hrefLang={code}>
+                          <a
+                            className="link"
+                            href={`/api/quotes/${id}/pdf?version=${v.version}&langue=${code}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            hrefLang={code}
+                          >
                             {name}
                           </a>
                         </span>
@@ -548,13 +559,7 @@ export default async function QuotePage({
                   </div>
                   <div className="text-xs text-muted">
                     {fmtDate(e.created_at, true)}
-                    {e.actor_type === "client"
-                      ? " - par le client"
-                      : e.actor_type === "system"
-                        ? " - automatique"
-                        : e.actor_name
-                          ? ` - ${e.actor_name}`
-                          : ""}
+                    {e.actor_type === "client" ? " - par le client" : e.actor_type === "system" ? " - automatique" : e.actor_name ? ` - ${e.actor_name}` : ""}
                   </div>
                   {typeof e.data.proof === "string" ? <div className="text-xs text-muted">Preuve : {e.data.proof}</div> : null}
                   {typeof e.data.reason === "string" && e.data.reason ? <div className="text-xs text-muted">Motif : {e.data.reason}</div> : null}
@@ -577,9 +582,7 @@ export default async function QuotePage({
                   <li key={m.id}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate">{m.to_address}</span>
-                      <span className={`text-xs ${m.status === "sent" ? "text-success" : "text-danger"}`}>
-                        {m.status === "sent" ? "Envoyé" : "Échec"}
-                      </span>
+                      <span className={`text-xs ${m.status === "sent" ? "text-success" : "text-danger"}`}>{m.status === "sent" ? "Envoyé" : "Échec"}</span>
                     </div>
                     <div className="text-xs text-muted">
                       {m.kind === "reminder" ? "Relance - " : ""}
@@ -591,6 +594,7 @@ export default async function QuotePage({
               </ul>
             </section>
           ) : null}
+          <SimilarQuotes ctx={ctx} quoteId={id} />
         </aside>
       </div>
     </div>

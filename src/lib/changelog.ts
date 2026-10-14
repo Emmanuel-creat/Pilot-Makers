@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-similaires",
+    date: "2026-10-14",
+    title: "Devis similaires gagnés ou perdus",
+    text: "Chaque devis montre vos devis proches acceptés ou refusés, et compare vos prix unitaires à ceux qui ont été gagnés et perdus.",
+    href: "/aide/devis-similaires",
+  },
+  {
     id: "duree-du-chantier",
     date: "2026-10-14",
     title: "Durée du chantier estimée",

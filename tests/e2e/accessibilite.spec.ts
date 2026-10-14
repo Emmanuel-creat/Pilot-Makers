@@ -1113,6 +1113,16 @@ test("devis : durée du chantier estimée d'après la main-d'oeuvre", async ({ p
   await audit(page, "durée estimée");
 });
 
+test("devis : devis similaires gagnés ou perdus", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis");
+  await page.locator("a:visible", { hasText: "Rénovation de salle de bains" }).first().click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("devis-similaires")).toContainText("Devis similaires");
+  await page.getByTestId("devis-similaires").scrollIntoViewIfNeeded();
+  await audit(page, "devis similaires");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -1566,6 +1566,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "devis-similaires",
+    category: "devis",
+    title: "Comparer avec les devis similaires gagnés ou perdus",
+    summary: "Vos devis proches, leur issue et vos prix unitaires d'alors.",
+    steps: [
+      "Ouvrez un devis : la partie « Devis similaires » liste vos devis acceptés ou refusés qui portent sur les mêmes travaux, pour un montant voisin.",
+      "Pour chaque devis perdu, le motif du refus est rappelé quand vous l'avez noté.",
+      "Le tableau compare le prix unitaire de chaque ligne au prix médian des mêmes lignes dans les devis gagnés et perdus. Un écart de plus de 5 % avec les devis gagnés est signalé.",
+    ],
+    notes: ["La ressemblance tient aux mots des lignes et du titre, et à la proximité des montants. Notez les motifs de refus pour affiner la comparaison."],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
