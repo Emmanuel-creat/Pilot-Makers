@@ -1616,6 +1616,16 @@ test("entreprise : pays d'établissement hors de France", async ({ page }) => {
   await audit(page, "profil entreprise belge");
 });
 
+test("rapport de qualité public des bogues corrigés", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("/qualite");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Rapport de qualité");
+  await expect(page.getByTestId("registre-bogues")).toContainText("R-001");
+  await audit(page, "rapport de qualité");
+  await context.close();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

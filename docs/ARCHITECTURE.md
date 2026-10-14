@@ -120,3 +120,10 @@ La CI GitHub (`.github/workflows/ci.yml`) lance les contrôles de sécurité, pu
 3. Route API ou action de formulaire, puis écran.
 4. Tests du service dans `tests`, parcours navigateur si l'écran est nouveau.
 5. Article d'aide (`src/lib/help.ts`), entrée des nouveautés (`src/lib/changelog.ts`), ligne du plan d'actions (`docs/PLAN-ACTIONS.md`).
+
+## Bogues corrigés et tests permanents
+
+Chaque bogue corrigé ajoute un test permanent qui échoue sans la correction. La correction est inscrite dans
+`src/lib/quality/regressions.json` (identifiant R-NNN, date, type produit ou test, symptôme vu par l'utilisateur,
+correction, fichier et nom exact du test). `npm run check:regressions`, lancé par l'intégration continue, vérifie
+que chaque test référencé existe toujours. La liste est publiée sur la page publique `/qualite`.

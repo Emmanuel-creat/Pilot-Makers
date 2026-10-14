@@ -1,0 +1,38 @@
+[
+  {
+    "id": "R-001",
+    "date": "2026-10-14",
+    "kind": "produit",
+    "title": "Un devis enregistré avec une devise étrangère mais sans taux perdait la devise choisie.",
+    "fix": "Le brouillon garde la devise tant que le taux manque, et l'émission est bloquée avec un message clair.",
+    "file": "tests/devises.test.ts",
+    "test": "garde la devise en brouillon, bloque sans taux puis imprime la contre-valeur"
+  },
+  {
+    "id": "R-002",
+    "date": "2026-10-14",
+    "kind": "produit",
+    "title": "La date d'envoi d'un avis de retard automatique suivait l'horloge de la base et non la date du traitement.",
+    "fix": "L'avis enregistre la date du traitement, ce qui garantit au plus un avis par semaine.",
+    "file": "tests/retards-chantier.test.ts",
+    "test": "prévient automatiquement seulement si activé, et au plus une fois par semaine"
+  },
+  {
+    "id": "R-003",
+    "date": "2026-10-14",
+    "kind": "produit",
+    "title": "Le bordereau de marché public exporté commençait par deux marques d'ordre des octets, affichées comme un caractère parasite.",
+    "fix": "Une seule marque en tête du fichier CSV.",
+    "file": "tests/marches-publics.test.ts",
+    "test": "crée le devis avec lots et prix du catalogue, puis exporte le bordereau rempli"
+  },
+  {
+    "id": "R-004",
+    "date": "2026-10-14",
+    "kind": "test",
+    "title": "Le contrôle de la veille réglementaire cliquait sur « Tout marquer comme lu » dès que deux évolutions étaient à lire.",
+    "fix": "Le bouton est recherché par son libellé exact ; le test ne dépend plus de la date du jour.",
+    "file": "tests/e2e/accessibilite.spec.ts",
+    "test": "veille réglementaire annoncée sur le tableau de bord"
+  }
+]

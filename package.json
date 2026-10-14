@@ -15,9 +15,10 @@
     "test:watch": "vitest",
     "check:texte": "node scripts/check-texte.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
+    "check:regressions": "node scripts/check-regressions.mjs",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "verify": "npm run check:texte && npm run check:secrets && npm run typecheck && npm run test && npm run test:calcul",
+    "verify": "npm run check:texte && npm run check:secrets && npm run check:regressions && npm run typecheck && npm run test && npm run test:calcul",
     "test:e2e": "playwright test",
     "charge": "tsx scripts/charge.ts",
     "pdf:apercus": "DATABASE_URL=memory:// tsx scripts/pdf-apercus.ts"

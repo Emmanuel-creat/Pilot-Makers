@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "rapport-qualite",
+    date: "2026-10-14",
+    title: "Rapport de qualité public",
+    text: "Chaque bogue corrigé ajoute un test permanent rejoué avant chaque mise en ligne. La liste des corrections est publiée sur la page Qualité.",
+    href: "/qualite",
+  },
+  {
     id: "belgique-suisse-luxembourg",
     date: "2026-10-14",
     title: "Belgique, Suisse et Luxembourg",

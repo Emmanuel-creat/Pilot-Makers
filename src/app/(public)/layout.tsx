@@ -56,6 +56,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/statut" className="hover:text-ink">
             État du service
           </Link>
+          <Link href="/qualite" className="hover:text-ink">
+            Qualité
+          </Link>
         </div>
       </footer>
     </div>

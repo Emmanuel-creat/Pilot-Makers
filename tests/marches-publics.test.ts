@@ -116,7 +116,10 @@ describe("bordereau : devis", () => {
     lavabo.unitPrice = "320";
     await saveDraft(ctx, r.quoteId, d, d.draftRevision);
     expect(await quoteTender(ctx, r.quoteId)).toMatchObject({ items: 3, matched: 2 });
-    const out = parseCsv((await exportTender(ctx, r.id)).csv.replace(/^﻿/, ""));
+    const raw = (await exportTender(ctx, r.id)).csv;
+    // Une seule marque d'ordre des octets en tête du fichier, sinon le tableur affiche un caractère parasite.
+    expect(raw.startsWith("\ufeff") && !raw.startsWith("\ufeff\ufeff")).toBe(true);
+    const out = parseCsv(raw.replace(/^﻿/, ""));
     expect(out[5].slice(4)).toEqual(["320,00", "1920,00"]);
     expect(out.at(-1)![5]).toBe("6078,75");
     await expect(exportTender(other, r.id)).rejects.toThrow();
