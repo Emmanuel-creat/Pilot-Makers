@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "transmission-entreprise",
+    date: "2026-10-14",
+    title: "Dossier de transmission de l'entreprise",
+    text: "Une valeur indicative tirée de trois ans d'historique, ce qui la fait monter ou baisser, le patrimoine repris et les étapes d'une cession, prêt à imprimer.",
+    href: "/app/rapports/transmission",
+  },
+  {
     id: "diagnostic-energetique",
     date: "2026-10-14",
     title: "Diagnostic énergétique pendant la visite",

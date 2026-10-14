@@ -1663,6 +1663,16 @@ test("devis : diagnostic énergétique puis devis des travaux", async ({ page })
   await expect(page.getByText("Pompe à chaleur air/eau").first()).toBeVisible();
 });
 
+test("rapports : dossier de transmission de l'entreprise", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Transmission" }).click();
+  await page.waitForURL(/\/app\/rapports\/transmission$/);
+  await expect(page.getByTestId("valeur-transmission")).toContainText("€");
+  await expect(page.getByRole("heading", { name: "Étapes de la cession" })).toBeVisible();
+  await audit(page, "transmission");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

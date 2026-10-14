@@ -2119,6 +2119,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "transmission-entreprise",
+    category: "compte",
+    title: "Préparer la transmission de votre entreprise",
+    summary: "Une valeur indicative tirée de votre historique, les points qui la font monter ou baisser et les étapes d'une cession.",
+    steps: [
+      "Ouvrez Rapports puis Transmission (accès réservé aux personnes qui voient la facturation).",
+      "La fourchette croise trois fois l'excédent moyen des trois derniers exercices et 40 % du chiffre d'affaires moyen, deux méthodes usuelles pour une entreprise artisanale.",
+      "Les points listés la déplacent : croissance, clients fidèles, entretiens suivis, avis, carnet de commandes d'un côté ; dépendance à un client ou au seul dirigeant de l'autre.",
+      "La section Ce que reprend le repreneur résume votre patrimoine : clients et leur historique, catalogue chiffré, équipements suivis, avis.",
+      "Imprimez le dossier pour votre expert-comptable ou la chambre de métiers. Remettez-le à un repreneur seulement après un engagement de confidentialité.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
