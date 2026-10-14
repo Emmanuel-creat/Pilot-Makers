@@ -158,6 +158,7 @@ export function QuoteEditor({
 }) {
   const router = useRouter();
   const [d, setD] = useState<QuoteDraft>(initial);
+  const [durationHelp, setDurationHelp] = useState("");
   const [customer, setCustomer] = useState<EditorCustomer | null>(initialCustomer);
   const [save, setSave] = useState<SaveState>("saved");
   const [saveError, setSaveError] = useState("");
@@ -1274,7 +1275,42 @@ export function QuoteEditor({
                   value={d.estimatedDuration}
                   onChange={(e) => set("estimatedDuration", e.target.value)}
                   placeholder="Ex. : 5 jours"
+                  aria-describedby="q-duration-help"
                 />
+                <button
+                  type="button"
+                  className="btn-ghost mt-1 min-h-6 px-0 text-xs"
+                  onClick={async () => {
+                    setDurationHelp("Estimation...");
+                    try {
+                      const res = await fetch("/api/estimations/duree", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        credentials: "same-origin",
+                        body: JSON.stringify({ lines: d.sections.flatMap((sec) => sec.lines) }),
+                      });
+                      const e = await res.json();
+                      if (!res.ok) throw new Error(e.error);
+                      if (!e.minutes) {
+                        setDurationHelp("Aucune ligne de main-d'oeuvre dont le temps soit estimable : indiquez la durée à la main.");
+                        return;
+                      }
+                      set("estimatedDuration", e.text);
+                      const opts = e.options.map((o: { crew: number; days: number }) => `${o.crew} pers. : ${String(o.days).replace(".", ",")} j`).join(", ");
+                      setDurationHelp(
+                        `${String(e.hours).replace(".", ",")} h de main-d'oeuvre (${opts}).` +
+                          (e.unknown.length ? ` Temps non estimable pour : ${e.unknown.join(", ")}.` : ""),
+                      );
+                    } catch {
+                      setDurationHelp("Estimation impossible pour le moment.");
+                    }
+                  }}
+                >
+                  <Icon name="clock" size={14} /> Estimer d&apos;après la main-d&apos;oeuvre
+                </button>
+                <p id="q-duration-help" className="text-xs text-muted" role="status">
+                  {durationHelp}
+                </p>
               </div>
               <div>
                 <label className="label" htmlFor="q-template">

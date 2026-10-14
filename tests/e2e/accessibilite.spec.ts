@@ -1097,6 +1097,22 @@ test("catalogue : écarts de prix des chantiers terminés", async ({ page }) => 
   await audit(page, "écarts de prix");
 });
 
+test("devis : durée du chantier estimée d'après la main-d'oeuvre", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Pose de faïence");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Pose de faïence murale");
+  await page.getByLabel("Quantité", { exact: true }).last().fill("16");
+  await page.getByLabel("Unité", { exact: true }).last().fill("h");
+  await page.getByRole("button", { name: "Estimer d'après la main-d'oeuvre" }).click();
+  await expect(page.getByLabel("Durée estimée")).toHaveValue("2,5 jours ouvrés, 1 personne");
+  await expect(page.locator("#q-duration-help")).toContainText("16 h de main-d'oeuvre");
+  await audit(page, "durée estimée");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

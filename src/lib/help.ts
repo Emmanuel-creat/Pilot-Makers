@@ -1551,6 +1551,21 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/catalogue/ecarts", label: "Voir les écarts de prix" },
   },
   {
+    slug: "duree-du-chantier",
+    category: "devis",
+    title: "Estimer la durée du chantier et l'équipe",
+    summary: "Jours ouvrés et nombre de personnes calculés d'après la main-d'oeuvre du devis.",
+    steps: [
+      "Saisissez les lignes de main-d'oeuvre du devis : depuis le catalogue (avec un temps unitaire), en heures ou en jours, ou avec un coût.",
+      "Dans « Conditions », cliquez sur « Estimer d'après la main-d'oeuvre » sous « Durée estimée ».",
+      "La durée et l'équipe conseillée remplissent le champ, avec le total d'heures et la durée pour chaque taille d'équipe. Ajustez le texte si besoin.",
+    ],
+    notes: [
+      "La journée retenue est de 7 heures. Au-delà de 10 jours ouvrés, l'équipe est étoffée, sans dépasser l'effectif de l'entreprise.",
+      "Le temps d'une ligne se déduit, dans l'ordre : du temps unitaire de l'article, d'une quantité en heures ou en jours, du coût de la ligne rapporté au coût horaire, ou de son prix rapporté au taux horaire de vente.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

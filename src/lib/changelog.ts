@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "duree-du-chantier",
+    date: "2026-10-14",
+    title: "Durée du chantier estimée",
+    text: "Dans le devis, estimez en un clic la durée du chantier et l'équipe nécessaire d'après les lignes de main-d'oeuvre.",
+    href: "/aide/duree-du-chantier",
+  },
+  {
     id: "ecarts-de-prix",
     date: "2026-10-14",
     title: "Écarts de prix analysés",
