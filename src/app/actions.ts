@@ -88,6 +88,7 @@ import { applyCostCorrection } from "@/lib/services/price-review";
 import { switchSupplier } from "@/lib/services/supplier-compare";
 import { setItemCarbon } from "@/lib/services/carbon";
 import { ensureReferralCode, markReferralRewarded, saveReferralSettings } from "@/lib/services/referrals";
+import { markDeclarationSent, saveDeclaration, saveLeaveFundSettings } from "@/lib/services/leave-fund";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2454,6 +2455,38 @@ export async function rewardReferralAction(_: ActionState, fd: FormData): Promis
     const r = await withCtx((ctx) => markReferralRewarded(ctx, s(fd, "leadId")));
     revalidatePath("/app/clients", "layout");
     return { ok: true, message: `Récompense de ${r.referrerName} notée comme remise.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveLeaveFundAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => saveLeaveFundSettings(ctx, { fundName: s(fd, "fundName"), memberNumber: s(fd, "memberNumber"), rate: s(fd, "rate") }));
+    revalidatePath("/app/equipe/conges-payes");
+    return { ok: true, message: "Caisse enregistrée." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function saveLeaveDeclarationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const gross: Record<string, string> = {};
+    for (const [k, v] of fd.entries()) if (k.startsWith("brut_") && typeof v === "string") gross[k.slice(5)] = v;
+    const t = await withCtx((ctx) => saveDeclaration(ctx, s(fd, "period"), gross));
+    revalidatePath("/app/equipe/conges-payes");
+    return { ok: true, message: `Déclaration enregistrée : cotisation de ${formatEuros(t.contributionCents)}.` };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function markLeaveDeclarationSentAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => markDeclarationSent(ctx, s(fd, "period")));
+    revalidatePath("/app/equipe/conges-payes");
+    return { ok: true, message: "Déclaration marquée comme transmise." };
   } catch (e) {
     return toState(e);
   }

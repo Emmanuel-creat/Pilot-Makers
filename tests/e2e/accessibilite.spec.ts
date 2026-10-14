@@ -1145,6 +1145,17 @@ test("catalogue : empreinte carbone d'un article", async ({ page }) => {
   await audit(page, "empreinte carbone");
 });
 
+test("équipe : déclaration de congés payés du bâtiment", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/equipe");
+  await page.getByRole("link", { name: "Congés payés du bâtiment" }).click();
+  await page.waitForURL(/\/app\/equipe\/conges-payes/);
+  await page.getByLabel("Taux de cotisation (%)").fill("20,5");
+  await page.getByRole("button", { name: "Enregistrer la caisse" }).click();
+  await expect(page.getByText("Caisse enregistrée")).toBeVisible();
+  await audit(page, "congés payés du bâtiment");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

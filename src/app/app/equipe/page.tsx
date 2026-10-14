@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
+import { Icon } from "@/components/Icon";
 import { PageHeader, Section, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listMembers, listUserOrgs } from "@/lib/services/team";
@@ -31,7 +33,17 @@ export default async function TeamPage() {
   const canInvite = can(ctx, "settings") && !ctx.entitlements.readOnly && !ctx.supportAccess;
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader title="Équipe" subtitle={`${members.length} utilisateur(s) sur ${max} inclus dans l'offre ${ctx.entitlements.plan.name}`} />
+      <PageHeader
+        title="Équipe"
+        subtitle={`${members.length} utilisateur(s) sur ${max} inclus dans l'offre ${ctx.entitlements.plan.name}`}
+        actions={
+          can(ctx, "staff") ? (
+            <Link href="/app/equipe/conges-payes" className="btn-secondary">
+              <Icon name="calendar" size={16} /> Congés payés du bâtiment
+            </Link>
+          ) : null
+        }
+      />
       <Section title="Membres">
         <ul className="divide-y divide-line text-sm">
           {members.map((m) => (

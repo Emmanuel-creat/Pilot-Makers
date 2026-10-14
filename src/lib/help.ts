@@ -1619,6 +1619,22 @@ export const HELP_ARTICLES: HelpArticle[] = [
     link: { href: "/app/clients/parrainage", label: "Ouvrir le parrainage" },
   },
   {
+    slug: "conges-payes-batiment",
+    category: "compte",
+    title: "Préparer la déclaration de congés payés du bâtiment",
+    summary: "Les jours d'absence et les droits acquis de chaque salarié, calculés depuis les pointages, et un fichier pour la caisse.",
+    steps: [
+      "Dans Équipe, « Congés payés du bâtiment », indiquez le nom de votre caisse, votre numéro d'adhérent et le taux de cotisation.",
+      "Choisissez le mois : les jours ouvrés, les absences et les jours de congés acquis de chaque salarié sont repris des pointages.",
+      "Saisissez les salaires bruts, enregistrez, puis exportez le fichier et reportez-le sur l'espace de votre caisse. Marquez enfin la déclaration comme transmise.",
+    ],
+    notes: [
+      "Le gérant et le comptable ne sont pas déclarés. Les salaires du mois précédent sont proposés par défaut.",
+      "Pilot-Makers prépare la déclaration ; l'envoi reste à faire sur l'espace de la caisse.",
+    ],
+    link: { href: "/app/equipe/conges-payes", label: "Ouvrir les congés payés" },
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

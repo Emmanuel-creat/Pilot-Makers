@@ -273,3 +273,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 110 (14/10/2026) : ligne 268 (comparateur de prix entre fournisseurs : même produit rapproché par EAN ou désignation et unité entre les tarifs importés, offres classées, économie annuelle d'après les devis acceptés, changement de fournisseur avec historique)
 - Vague 111 (14/10/2026) : ligne 272 (empreinte carbone par article et bilan carbone du devis : facteur par unité et source sur la fiche article, ordres de grandeur indicatifs pour les produits courants, bilan des produits du devis avec les plus émetteurs et les lignes sans donnée)
 - Vague 112 (14/10/2026) : ligne 294 (parrainage entre clients : programme et récompenses réglables, lien personnel du client vers la vitrine, demande marquée comme recommandation, suivi jusqu'au devis signé et récompense remise)
+- Vague 113 (14/10/2026) : ligne 368 (déclarations de congés payés du bâtiment préparées depuis les pointages, export pour la caisse)

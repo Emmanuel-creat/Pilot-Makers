@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "conges-payes-batiment",
+    date: "2026-10-14",
+    title: "Déclarations de congés payés du bâtiment",
+    text: "Les absences et les droits acquis de chaque salarié sont calculés depuis les pointages, avec un fichier prêt pour votre caisse.",
+    href: "/aide/conges-payes-batiment",
+  },
+  {
     id: "parrainage",
     date: "2026-10-14",
     title: "Parrainage entre clients",
