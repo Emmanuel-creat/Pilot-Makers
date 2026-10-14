@@ -2132,6 +2132,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "ma-journee-langues",
+    category: "compte",
+    title: "Ma journée : l'écran des équipes dans leur langue",
+    summary: "Chaque compagnon voit ses chantiers du jour, pointe et suit ses heures en français, anglais, portugais, espagnol, roumain, polonais, turc ou arabe.",
+    steps: [
+      "Ouvrez Ma journée depuis Aujourd'hui ou depuis le Pointage, ou installez l'application et ajoutez cette page à l'écran d'accueil.",
+      "Choisissez la langue puis Changer : le choix est propre à chaque personne et conservé.",
+      "L'écran montre les chantiers prévus pour la personne avec l'itinéraire, le chronomètre de pointage, les heures de la semaine et leur validation, et les consignes de sécurité.",
+      "Les noms de chantiers, adresses et notes restent tels que saisis. Le reste de l'application reste en français.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

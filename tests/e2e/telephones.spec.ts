@@ -58,7 +58,7 @@ for (const phone of PHONES) {
 
     test(`${phone.name} : écrans principaux en portrait`, async ({ page }) => {
       await login(page);
-      for (const path of ["/app", "/app/devis", "/app/devis/nouveau", "/app/clients", "/app/chantiers", "/app/pointage", "/app/plus"]) {
+      for (const path of ["/app", "/app/devis", "/app/devis/nouveau", "/app/clients", "/app/chantiers", "/app/pointage", "/app/ma-journee", "/app/plus"]) {
         await page.goto(path);
         await check(page, `${phone.name} ${path}`);
       }

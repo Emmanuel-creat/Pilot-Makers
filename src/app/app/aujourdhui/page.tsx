@@ -84,6 +84,11 @@ export default async function TodayPage() {
             </Link>
           ) : null}
         </section>
+        <p className="text-sm">
+          <Link href="/app/ma-journee" className="link inline-flex min-h-6 items-center">
+            Ma journée pour les équipes de chantier, en huit langues
+          </Link>
+        </p>
         <p className="text-xs text-muted">
           Installez l&apos;application sur votre téléphone : un appui long sur son icône ouvre directement cette page. Pour un widget d&apos;écran
           d&apos;accueil, voir{" "}

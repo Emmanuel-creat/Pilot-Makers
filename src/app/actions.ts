@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { setTeamLocale } from "@/lib/services/team-day";
 import { quoteFromDiagnosis, saveDiagnosis } from "@/lib/services/energy-diagnoses";
 import { addConsortiumMember, answerConsortiumInvitation, assignLot, createConsortium, removeConsortiumMember } from "@/lib/services/consortia";
 import { closeGroupPurchase, commitQuantity, createGroupPurchase } from "@/lib/services/group-buying";
@@ -3247,4 +3248,14 @@ export async function diagnosisQuoteAction(_: ActionState, fd: FormData): Promis
   }
   revalidatePath("/app/devis");
   redirect(`/app/devis/${quoteId}`);
+}
+
+export async function teamLocaleAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => setTeamLocale(ctx, s(fd, "locale")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/ma-journee");
+  return { ok: true, message: "" };
 }

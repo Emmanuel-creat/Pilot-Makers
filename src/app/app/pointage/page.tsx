@@ -63,6 +63,9 @@ export default async function TimesheetPage({ searchParams }: { searchParams: Pr
             <Link className="btn-secondary" href={link(mondayOf(today))}>
               Cette semaine
             </Link>
+            <Link className="btn-secondary" href="/app/ma-journee">
+              <Icon name="phone" size={16} /> Ma journée, en plusieurs langues
+            </Link>
             <Link className="btn-secondary px-2" href={link(addDays(monday, 7))} aria-label="Semaine suivante">
               <Icon name="right" size={16} />
             </Link>

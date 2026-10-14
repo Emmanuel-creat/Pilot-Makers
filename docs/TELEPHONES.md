@@ -16,7 +16,7 @@ en paysage (`tests/e2e/telephones.spec.ts`, lancé avec les autres tests de navi
 Pour chaque modèle, on vérifie :
 
 - qu'aucun écran ne déborde horizontalement (tableau de bord, devis, nouveau devis, fiche devis, clients, chantiers,
-  pointage, menu Plus, planning en paysage) ;
+  pointage, Ma journée, menu Plus, planning en paysage) ;
 - que chaque bouton, case à cocher et liste déroulante visible offre une cible tactile d'au moins 24 x 24 points
   (WCAG 2.2, critère 2.5.8).
 

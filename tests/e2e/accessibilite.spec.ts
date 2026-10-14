@@ -1673,6 +1673,26 @@ test("rapports : dossier de transmission de l'entreprise", async ({ page }) => {
   await audit(page, "transmission");
 });
 
+test("équipes : ma journée dans la langue de chacun", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/aujourdhui");
+  await page.getByRole("link", { name: /Ma journée pour les équipes/ }).click();
+  await page.waitForURL(/\/app\/ma-journee$/);
+  await expect(page.getByTestId("titre-ma-journee")).toHaveText("Ma journée");
+  await page.getByLabel("Langue").selectOption("pt");
+  await page.getByRole("button", { name: "Changer" }).click();
+  await expect(page.getByTestId("titre-ma-journee")).toHaveText("O meu dia");
+  await audit(page, "ma journée en portugais");
+  await page.getByLabel("Língua").selectOption("ar");
+  await page.getByRole("button", { name: "Mudar" }).click();
+  await expect(page.getByTestId("titre-ma-journee")).toHaveText("يومي");
+  await expect(page.locator("[dir=rtl]")).toBeVisible();
+  await audit(page, "ma journée en arabe");
+  await page.getByLabel("اللغة").selectOption("fr");
+  await page.getByRole("button", { name: "تغيير" }).click();
+  await expect(page.getByTestId("titre-ma-journee")).toHaveText("Ma journée");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

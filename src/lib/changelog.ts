@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "ma-journee-langues",
+    date: "2026-10-14",
+    title: "Ma journée, en huit langues pour les équipes",
+    text: "Chantiers du jour, pointage, heures de la semaine et consignes de sécurité en français, anglais, portugais, espagnol, roumain, polonais, turc ou arabe, au choix de chacun.",
+    href: "/app/ma-journee",
+  },
+  {
     id: "transmission-entreprise",
     date: "2026-10-14",
     title: "Dossier de transmission de l'entreprise",
