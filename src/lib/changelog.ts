@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "retards-de-chantier",
+    date: "2026-10-14",
+    title: "Retards de chantier",
+    text: "Les chantiers qui prennent du retard sont repérés, la fin probable est estimée et le client peut être prévenu automatiquement.",
+    href: "/aide/retards-de-chantier",
+  },
+  {
     id: "devises-etrangeres",
     date: "2026-10-14",
     title: "Contre-valeur en devise étrangère",

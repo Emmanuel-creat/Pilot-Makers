@@ -104,6 +104,7 @@ import { createHealthShare, revokeHealthShare } from "@/lib/services/health-scor
 import { dismissAdvice } from "@/lib/services/advice";
 import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from "@/lib/services/home-records";
 import { recordMaintenance } from "@/lib/services/maintenance";
+import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
@@ -3001,4 +3002,25 @@ export async function maintenanceDoneAction(_: ActionState, fd: FormData): Promi
     return toState(e);
   }
   return { ok: true, message: "Entretien enregistré dans le carnet." };
+}
+
+export async function delayNoticeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => notifyCustomerDelay(ctx, s(fd, "jobId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/chantiers/retards");
+  return { ok: true, message: "Client prévenu par e-mail." };
+}
+
+export async function delayAutoNoticeAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const on = s(fd, "on") === "1";
+  try {
+    await withCtx((ctx) => setDelayAutoNotice(ctx, on));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/chantiers/retards");
+  return { ok: true, message: on ? "Prévenance automatique activée." : "Prévenance automatique désactivée." };
 }

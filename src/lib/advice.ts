@@ -14,6 +14,7 @@ export interface AdviceSignals {
   unreceivedJobs: number;
   overloaded: number | null;
   maintenanceDue: number;
+  lateJobs: number;
   weakIndicators: Indicator[];
 }
 
@@ -100,6 +101,15 @@ export function buildAdvice(s: AdviceSignals): Advice[] {
       href: "/app/planning/equilibre",
       stakeCents: 0,
       priority: 2,
+    });
+  if (s.lateJobs)
+    out.push({
+      key: "chantiers-retard",
+      title: `${s.lateJobs} ${plural(s.lateJobs, "chantier en retard", "chantiers en retard")}`,
+      detail: "La fin probable dépasse la date prévue : renforcez l'équipe ou prévenez le client de la nouvelle date.",
+      href: "/app/chantiers/retards",
+      stakeCents: 0,
+      priority: 1,
     });
   if (s.maintenanceDue)
     out.push({

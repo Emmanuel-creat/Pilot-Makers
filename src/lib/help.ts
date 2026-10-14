@@ -1974,6 +1974,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "retards-de-chantier",
+    category: "regles",
+    title: "Repérer un chantier en retard et prévenir le client",
+    summary: "L'avancement saisi comparé au temps écoulé, la fin probable, une solution pour rattraper et un e-mail au client avec la nouvelle date.",
+    steps: [
+      "Dans Chantiers, ouvrez Retards : chaque chantier commencé affiche son avancement face au temps écoulé entre ses dates de début et de fin.",
+      "La fin probable se calcule d'après le reste à faire des tâches (heures ou jours de main-d'œuvre) et le nombre de personnes affectées, sinon d'après le rythme constaté.",
+      "Un chantier est signalé quand la fin probable dépasse la date prévue d'au moins deux jours ouvrés, ou quand la date de fin est passée.",
+      "Quand une personne de plus ferait gagner du temps, la page l'indique et renvoie vers l'équilibre de charge pour trouver qui est libre.",
+      "Prévenir le client envoie un e-mail simple avec la nouvelle date. En activant la prévenance automatique, il est prévenu chaque fois que la date recule, au plus une fois par semaine.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

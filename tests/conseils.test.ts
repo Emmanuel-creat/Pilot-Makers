@@ -14,6 +14,7 @@ const empty: AdviceSignals = {
   unreceivedJobs: 0,
   overloaded: null,
   maintenanceDue: 0,
+  lateJobs: 0,
   weakIndicators: [],
 };
 

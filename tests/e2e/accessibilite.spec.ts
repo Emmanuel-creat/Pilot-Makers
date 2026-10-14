@@ -1505,6 +1505,15 @@ test("clients : entretiens préventifs des équipements", async ({ page }) => {
   await expect(list).toContainText("dernier entretien le");
 });
 
+test("chantiers : retards détectés et prévenance du client", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.getByRole("link", { name: "Retards" }).click();
+  await expect(page.getByRole("heading", { name: "Retards de chantier" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Prévenance automatique" })).toBeVisible();
+  await audit(page, "retards de chantier");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

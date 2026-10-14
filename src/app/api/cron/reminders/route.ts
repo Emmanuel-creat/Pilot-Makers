@@ -9,6 +9,7 @@ import { runCertificationReminders } from "@/lib/services/certifications";
 import { runFleetReminders } from "@/lib/services/fleet";
 import { runMonthlyReports } from "@/lib/services/monthly-report";
 import { runMaintenanceNotices } from "@/lib/services/maintenance";
+import { runDelayNotices } from "@/lib/services/delays";
 
 /** À appeler régulièrement par une tâche planifiée, avec l'en-tête Authorization: Bearer CRON_SECRET. */
 export async function POST(req: Request) {
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
       fleet: await runFleetReminders(db),
       monthlyReports: await runMonthlyReports(db),
       maintenance: await runMaintenanceNotices(db),
+      delays: await runDelayNotices(db),
     });
   } catch (e) {
     return errorResponse(e);
