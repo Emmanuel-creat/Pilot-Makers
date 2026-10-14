@@ -2092,6 +2092,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "facture-fournisseur-catalogue",
+    category: "catalogue",
+    title: "Mettre à jour le catalogue avec une facture fournisseur",
+    summary: "Déposez la facture électronique d'un négoce : ses prix nets deviennent les prix d'achat de vos articles, avec les mêmes alertes de marge qu'un fichier de prix.",
+    steps: [
+      "Ouvrez Catalogue puis Tarifs fournisseurs.",
+      "Choisissez la facture reçue : un PDF Factur-X ou un fichier XML (CII ou UBL). Une simple photo ou un PDF scanné ne contient pas de lignes lisibles.",
+      "Laissez le fournisseur vide pour reprendre celui de la facture, ou saisissez le nom sous lequel il figure dans votre catalogue.",
+      "Voir les changements affiche les articles reliés par leur référence chez le fournisseur ou leur code EAN, l'ancien et le nouveau prix d'achat. Un prix donné pour 100 pièces est ramené à la pièce.",
+      "Appliquer met à jour les prix d'achat et les ouvrages qui les contiennent. Vos prix de vente ne changent pas : les articles qui passent sous votre marge minimale sont signalés.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

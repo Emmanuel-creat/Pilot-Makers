@@ -1,0 +1,24 @@
+name: Exercice de reprise après sinistre
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Chaque année le 15 janvier : sauvegarde, restauration dans une base neuve, preuve d'identité.
+    - cron: "0 6 15 1 *"
+
+jobs:
+  reprise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run reprise
+      - uses: actions/upload-artifact@v4
+        with:
+          name: compte-rendu-reprise
+          path: docs/REPRISE.md

@@ -34,5 +34,14 @@
     "fix": "Le bouton est recherché par son libellé exact ; le test ne dépend plus de la date du jour.",
     "file": "tests/e2e/accessibilite.spec.ts",
     "test": "veille réglementaire annoncée sur le tableau de bord"
+  },
+  {
+    "id": "R-005",
+    "date": "2026-10-14",
+    "kind": "produit",
+    "title": "Sur téléphone, certaines cases à cocher (pointage) et boutons en forme de lien (fiche devis) offraient une cible de moins de 24 points, difficile à toucher.",
+    "fix": "Sur écran tactile, cases à cocher, boutons radio et boutons en forme de lien ont une cible d'au moins 24 points.",
+    "file": "tests/e2e/telephones.spec.ts",
+    "test": "${phone.name} : écrans principaux en portrait"
   }
 ]

@@ -186,3 +186,17 @@ textarea {
 @utility field-xs {
   @apply w-full rounded border border-line bg-surface px-2 py-1 text-ink focus:border-accent focus:outline-none disabled:opacity-70;
 }
+
+/* Sur écran tactile, cases à cocher, boutons radio et boutons en forme de lien offrent une cible d'au moins 24 px (WCAG 2.2, critère 2.5.8). */
+@media (pointer: coarse) {
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+  }
+  /* Bouton présenté comme un lien : même hauteur minimale de cible. */
+  button.link {
+    min-height: 1.5rem;
+  }
+}

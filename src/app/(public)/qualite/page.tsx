@@ -1,5 +1,7 @@
 import { LegalPage } from "@/components/LegalPage";
 import { regressionReport } from "@/lib/quality/regressions";
+import mutation from "@/lib/quality/mutation.json";
+import reprise from "@/lib/quality/reprise.json";
 
 export const metadata = { title: "Rapport de qualité" };
 
@@ -23,6 +25,16 @@ export default function Page() {
           modification du code.
         </li>
         <li>Les calculs de devis et de factures sont couverts à 100 % par leurs tests.</li>
+        <li data-testid="score-mutation">
+          Tests de mutation du {fr(mutation.date)} : sur {mutation.total} erreurs introduites volontairement dans les calculs, {mutation.killed} sont détectées par
+          les tests, soit {mutation.adjusted} % des erreurs détectables
+          {mutation.equivalent ? ` (${mutation.equivalent} ne changent aucun résultat et ne peuvent donc pas l'être)` : ""}.
+        </li>
+        <li>Les écrans principaux sont vérifiés à chaque modification sur sept téléphones parmi les plus répandus, en portrait et en paysage.</li>
+        <li data-testid="exercice-reprise">
+          Exercice de reprise après sinistre du {fr(reprise.date)} : {reprise.ok ? "réussi" : "à reprendre"}, base restaurée à l&apos;identique en{" "}
+          {String(reprise.restoreSeconds).replace(".", ",")} secondes pour un objectif de {reprise.rtoMinutes} minutes.
+        </li>
       </ul>
       <h2>Bogues corrigés</h2>
       <ul data-testid="registre-bogues">

@@ -127,3 +127,20 @@ Chaque bogue corrigé ajoute un test permanent qui échoue sans la correction. L
 `src/lib/quality/regressions.json` (identifiant R-NNN, date, type produit ou test, symptôme vu par l'utilisateur,
 correction, fichier et nom exact du test). `npm run check:regressions`, lancé par l'intégration continue, vérifie
 que chaque test référencé existe toujours. La liste est publiée sur la page publique `/qualite`.
+
+## Tests de mutation des calculs
+
+`npm run test:mutation` introduit volontairement une erreur à la fois dans le moteur de calcul (opérateur inversé,
+borne décalée, constante modifiée), relance les tests de calcul et compte les erreurs qu'ils détectent. Un mutant
+qui survit signale un comportement que rien ne vérifie : on ajoute alors un test qui l'aurait vu
+(`tests/calc-mutation.test.ts`). Le rapport est écrit dans `docs/MUTATION.md`, avec la liste des survivants ; les
+mutants équivalents (qui ne changent aucun résultat) y sont signalés comme tels. Options : `--files`, `--tests`,
+`--max`, `--report`, `--dry`. La campagne tourne aussi chaque mois et à la demande dans l'intégration continue
+(`.github/workflows/mutation.yml`), sans bloquer les mises en ligne.
+
+## Sauvegarde et reprise après sinistre
+
+`src/lib/db/backup.ts` sauvegarde toute la base en JSON produit par PostgreSQL (une empreinte SHA-256 par table) et
+la restaure dans une base neuve avec `json_populate_recordset`, tables dans l'ordre de leurs références, compteurs
+remis après le plus grand identifiant. `npm run reprise` rejoue l'exercice complet et écrit `docs/REPRISE.md` ; la
+procédure est dans `docs/PLAN-REPRISE.md`.

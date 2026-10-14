@@ -17,6 +17,33 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "reprise-apres-sinistre",
+    date: "2026-10-14",
+    title: "Reprise après sinistre éprouvée",
+    text: "Toute la base est sauvegardée avec une empreinte par table, puis restaurée et comparée lors d'un exercice rejoué chaque année. Le compte rendu figure sur la page Qualité.",
+    href: "/qualite",
+  },
+  {
+    id: "telephones-testes",
+    date: "2026-10-14",
+    title: "Vérifié sur les téléphones les plus répandus",
+    text: "Les écrans principaux sont testés à chaque modification sur sept modèles d'iPhone, Samsung, Xiaomi et Pixel, en portrait et en paysage, avec des boutons assez grands pour le doigt.",
+  },
+  {
+    id: "facture-fournisseur-catalogue",
+    date: "2026-10-14",
+    title: "Prix d'achat mis à jour depuis une facture fournisseur",
+    text: "Déposez la facture électronique d'un négoce (Factur-X ou XML) dans Tarifs fournisseurs : ses prix nets deviennent les prix d'achat de vos articles, avec l'alerte de marge.",
+    href: "/app/catalogue/tarifs-fournisseurs",
+  },
+  {
+    id: "tests-de-mutation",
+    date: "2026-10-14",
+    title: "Calculs éprouvés par des tests de mutation",
+    text: "Des erreurs sont introduites volontairement dans le moteur de calcul des devis pour vérifier que les tests les détectent. Le score est publié sur la page Qualité.",
+    href: "/qualite",
+  },
+  {
     id: "rapport-qualite",
     date: "2026-10-14",
     title: "Rapport de qualité public",

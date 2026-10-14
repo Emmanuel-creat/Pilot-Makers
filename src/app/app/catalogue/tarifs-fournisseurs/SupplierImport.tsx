@@ -17,7 +17,11 @@ interface Result {
   increases: number;
   alerts: number;
   applied: boolean;
+  /** Présent quand le fichier est une facture électronique */
+  invoice?: { number: string; supplier: string; issueDate: string; lines: number };
 }
+
+const isInvoice = (name: string) => /\.(pdf|xml)$/i.test(name);
 
 function toBase64(f: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -88,12 +92,12 @@ export function SupplierImport({ suppliers }: { suppliers: string[] }) {
         </div>
         <div>
           <label className="label" htmlFor="sp-file">
-            Fichier de prix (.csv, .xlsx ou .ods)
+            Fichier de prix (.csv, .xlsx, .ods) ou facture électronique (PDF Factur-X, XML)
           </label>
           <input
             id="sp-file"
             type="file"
-            accept=".csv,.txt,.xlsx,.ods"
+            accept=".csv,.txt,.xlsx,.ods,.pdf,.xml"
             className="block text-sm"
             onChange={async (e) => {
               const f = e.target.files?.[0];
@@ -103,7 +107,8 @@ export function SupplierImport({ suppliers }: { suppliers: string[] }) {
           />
           <p className="mt-1 text-xs text-muted">
             Colonnes reconnues : référence (ou code article, REFCIALE), EAN, libellé, unité, prix net, ou prix public et remise. Les articles du catalogue de ce
-            fournisseur sont reliés par leur référence chez le fournisseur.
+            fournisseur sont reliés par leur référence chez le fournisseur. Une facture électronique est lue ligne à ligne : ses prix nets deviennent les
+            nouveaux prix d&apos;achat ; sans fournisseur saisi, celui de la facture est retenu.
           </p>
         </div>
         {error ? (
@@ -111,7 +116,12 @@ export function SupplierImport({ suppliers }: { suppliers: string[] }) {
             <Icon name="alert" size={16} /> {error}
           </p>
         ) : null}
-        <button type="button" className="btn-primary" disabled={!file || busy || supplier.trim().length < 2} onClick={() => send(false)}>
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={!file || busy || (supplier.trim().length < 2 && !isInvoice(file.name))}
+          onClick={() => send(false)}
+        >
           <Icon name="eye" size={16} /> Voir les changements
         </button>
       </div>
@@ -119,6 +129,12 @@ export function SupplierImport({ suppliers }: { suppliers: string[] }) {
       {result ? (
         <section className="card space-y-3 p-5" aria-live="polite">
           <h2 className="font-semibold">{result.applied ? "Prix d'achat mis à jour" : "Aperçu"}</h2>
+          {result.invoice ? (
+            <p className="flex items-center gap-2 text-sm text-muted" data-testid="facture-lue">
+              <Icon name="inbox" size={16} /> Facture {result.invoice.number} de {result.invoice.supplier}
+              {result.invoice.issueDate ? ` du ${result.invoice.issueDate.split("-").reverse().join("/")}` : ""}, {result.invoice.lines} ligne(s).
+            </p>
+          ) : null}
           <p className="text-sm">
             {result.lines} ligne(s) lue(s), {result.linked} article(s) du catalogue relié(s) à {result.supplier}, {result.changes.length} prix d'achat{" "}
             {result.applied ? "modifié(s)" : "à modifier"}, dont {result.increases} hausse(s). {result.unchanged ? `${result.unchanged} prix inchangé(s).` : ""}

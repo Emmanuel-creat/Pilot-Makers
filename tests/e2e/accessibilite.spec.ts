@@ -1626,6 +1626,22 @@ test("rapport de qualité public des bogues corrigés", async ({ browser }) => {
   await context.close();
 });
 
+test("catalogue : prix d'achat mis à jour depuis une facture électronique", async ({ page }) => {
+  await login(page);
+  const xml =
+    `<?xml version="1.0"?><Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="c" xmlns:cbc="b"><cbc:ID>FA-E2E-1</cbc:ID><cbc:IssueDate>2026-10-12</cbc:IssueDate>` +
+    `<cac:AccountingSupplierParty><cac:Party><cac:PartyLegalEntity><cbc:RegistrationName>Négoce Facture</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingSupplierParty>` +
+    `<cac:LegalMonetaryTotal><cbc:TaxInclusiveAmount currencyID="EUR">12.00</cbc:TaxInclusiveAmount></cac:LegalMonetaryTotal>` +
+    `<cac:InvoiceLine><cbc:InvoicedQuantity unitCode="C62">1</cbc:InvoicedQuantity><cac:Item><cbc:Name>Mastic</cbc:Name><cac:SellersItemIdentification><cbc:ID>MS-1</cbc:ID></cac:SellersItemIdentification></cac:Item>` +
+    `<cac:Price><cbc:PriceAmount currencyID="EUR">10.00</cbc:PriceAmount></cac:Price></cac:InvoiceLine></Invoice>`;
+  await page.goto("/app/catalogue/tarifs-fournisseurs");
+  await page.getByLabel("Fournisseur").fill("");
+  await page.getByLabel(/^Fichier de prix/).setInputFiles({ name: "facture.xml", mimeType: "text/xml", buffer: Buffer.from(xml, "utf8") });
+  await page.getByRole("button", { name: "Voir les changements" }).click();
+  await expect(page.getByTestId("facture-lue")).toContainText("Facture FA-E2E-1 de Négoce Facture du 12/10/2026, 1 ligne(s).");
+  await audit(page, "facture fournisseur vers catalogue");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
@@ -1812,7 +1828,7 @@ test("catalogue : fichier de prix fournisseur et alerte de marge", async ({ page
 
   await page.goto("/app/catalogue/tarifs-fournisseurs");
   await page.getByLabel("Fournisseur").fill("Négoce E2E");
-  await page.getByLabel("Fichier de prix (.csv, .xlsx ou .ods)").setInputFiles({
+  await page.getByLabel(/^Fichier de prix/).setInputFiles({
     name: "tarif.csv",
     mimeType: "text/csv",
     buffer: Buffer.from("REFCIALE;LIBELLE240;PRIXBASE;REMISE\nCK-E2E;Colle C2 25 kg;32,00;20\n", "utf8"),

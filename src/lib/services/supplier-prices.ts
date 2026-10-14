@@ -13,6 +13,7 @@ import { badRequest, notFound } from "@/lib/http";
 import type { Ctx } from "./context";
 import { audit, requirePermission, requireWritable } from "./context";
 import { recomputeParentsOf } from "./ouvrages";
+import { invoiceLinesTable, readPurchaseInvoiceLines } from "@/lib/invoice-reader";
 
 type Field = "reference" | "ean" | "label" | "unit" | "net" | "list" | "discount";
 
@@ -89,8 +90,7 @@ export function parseSupplierTable(table: string[][]): { rows: SupplierRow[]; co
   if (table.length > 5001) throw badRequest("5 000 lignes maximum par import");
   const header = table[0].map((h) => ALIASES[headerKey(h)]);
   const columns = [...new Set(header.filter(Boolean))] as Field[];
-  if (!columns.includes("reference") && !columns.includes("ean"))
-    throw badRequest("Colonne de référence introuvable (référence, code article ou EAN)");
+  if (!columns.includes("reference") && !columns.includes("ean")) throw badRequest("Colonne de référence introuvable (référence, code article ou EAN)");
   if (!columns.includes("net") && !columns.includes("list")) throw badRequest("Colonne de prix introuvable (prix net, prix public ou tarif)");
   const rows: SupplierRow[] = [];
   for (let i = 1; i < table.length; i++) {
@@ -169,8 +169,7 @@ export async function importSupplierPrices(ctx: Ctx, raw: { supplier?: unknown; 
   const changes: CostChange[] = [];
   let unchanged = 0;
   for (const it of items) {
-    const match =
-      (it.supplier_ref && (byRef.get(it.supplier_ref.toLowerCase()) ?? byRef.get(it.supplier_ref))) || byRef.get(it.reference.toLowerCase());
+    const match = (it.supplier_ref && (byRef.get(it.supplier_ref.toLowerCase()) ?? byRef.get(it.supplier_ref))) || byRef.get(it.reference.toLowerCase());
     if (!match) continue;
     const oldCost4 = it.unit_cost4 === null ? null : Number(it.unit_cost4);
     const newCost4 = match.net4!;
@@ -307,9 +306,26 @@ export async function dismissCostAlert(ctx: Ctx, id: string) {
 
 /** Fournisseurs déjà cités dans le catalogue, pour la saisie. */
 export async function catalogSuppliers(ctx: Ctx): Promise<string[]> {
-  const rows = await ctx.db.query<{ supplier: string }>(
-    "SELECT DISTINCT supplier FROM catalog_items WHERE org_id=$1 AND supplier<>'' ORDER BY supplier",
-    [ctx.orgId],
-  );
+  const rows = await ctx.db.query<{ supplier: string }>("SELECT DISTINCT supplier FROM catalog_items WHERE org_id=$1 AND supplier<>'' ORDER BY supplier", [
+    ctx.orgId,
+  ]);
   return rows.map((r) => r.supplier);
+}
+
+/**
+ * Facture d'achat électronique (PDF Factur-X, XML CII ou UBL) lue ligne à ligne : les prix nets facturés mettent à
+ * jour les prix d'achat des articles reliés, avec le même aperçu et les mêmes alertes de marge qu'un fichier de prix.
+ * Le fournisseur choisi par l'artisan prime ; à défaut, celui de la facture.
+ */
+export async function importSupplierInvoice(ctx: Ctx, raw: { supplier?: unknown; minMarginPercent?: unknown }, bytes: Uint8Array, commit: boolean) {
+  const read = await readPurchaseInvoiceLines(bytes);
+  if (!read) throw badRequest("Facture illisible : seuls les PDF Factur-X et les fichiers XML CII ou UBL sont lus ligne à ligne.");
+  const priced = read.lines.filter((l) => l.reference || l.ean);
+  if (!priced.length) throw badRequest("Aucune ligne de la facture ne porte de référence d'article.");
+  const supplier = typeof raw.supplier === "string" && raw.supplier.trim() ? raw.supplier : read.invoice.supplier;
+  const result = await importSupplierPrices(ctx, { ...raw, supplier }, invoiceLinesTable(priced), commit);
+  return {
+    ...result,
+    invoice: { number: read.invoice.number, supplier: read.invoice.supplier, issueDate: read.invoice.issueDate, lines: read.lines.length },
+  };
 }

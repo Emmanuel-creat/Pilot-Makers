@@ -9,7 +9,9 @@ describe("registre des bogues corrigés", () => {
     for (const r of REGRESSIONS) {
       expect(r.id).toMatch(/^R-\d{3,}$/);
       expect(existsSync(r.file), r.file).toBe(true);
-      expect(readFileSync(r.file, "utf8"), `${r.id} : ${r.test}`).toContain(`"${r.test}"`);
+      const src = readFileSync(r.file, "utf8");
+      // Nom du test entre guillemets, apostrophes ou accents graves (test généré pour plusieurs téléphones).
+      expect([`"${r.test}"`, `'${r.test}'`, `\`${r.test}\``].some((q) => src.includes(q)), `${r.id} : ${r.test}`).toBe(true);
     }
   });
 

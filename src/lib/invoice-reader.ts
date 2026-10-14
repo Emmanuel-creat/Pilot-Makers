@@ -202,3 +202,121 @@ export async function readPurchaseInvoice(bytes: Uint8Array): Promise<PurchaseIn
   if (!head.startsWith("<")) return null;
   return parseInvoiceXml(new TextDecoder().decode(bytes));
 }
+
+/** Ligne d'une facture d'achat électronique : de quoi mettre à jour le prix d'achat d'un article du catalogue. */
+export interface PurchaseInvoiceLine {
+  /** Référence de l'article chez le fournisseur */
+  reference: string;
+  ean: string;
+  label: string;
+  /** Code d'unité de la norme (C62 pièce, MTK mètre carré...), traduit quand il est courant */
+  unit: string;
+  quantity: string;
+  /** Prix unitaire net HT, en dix-millièmes d'euro, ramené à une unité si le prix est donné par lot */
+  netPrice4: number | null;
+}
+
+/** Codes d'unité UN/ECE les plus fréquents dans les factures du bâtiment. */
+const UNIT_CODES: Record<string, string> = {
+  C62: "u",
+  H87: "u",
+  EA: "u",
+  XPP: "u",
+  MTR: "m",
+  MTK: "m²",
+  MTQ: "m³",
+  KGM: "kg",
+  TNE: "t",
+  LTR: "l",
+  HUR: "h",
+  DAY: "j",
+  SET: "lot",
+  XBG: "sac",
+  XPK: "paquet",
+  XRO: "rouleau",
+};
+
+/** Tous les blocs d'une balise (préfixe quelconque), dans l'ordre du document. */
+function blocks(xml: string, name: string): string[] {
+  const re = new RegExp(`<(?:[\\w.-]+:)?${name}(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?${name}>`, "g");
+  return [...xml.matchAll(re)].map((m) => m[1]);
+}
+
+/** Attribut d'une balise, ex. unitCode de BilledQuantity. */
+function attr(xml: string, name: string, attribute: string): string {
+  const m = new RegExp(`<(?:[\\w.-]+:)?${name}\\s[^>]*${attribute}="([^"]*)"`).exec(xml);
+  return m ? decodeEntities(m[1]) : "";
+}
+
+/** Prix unitaire en dix-millièmes, divisé par la quantité de base (prix pour 100 pièces, par exemple). */
+export function unitPrice4(price: string, basis: string): number | null {
+  const p = Number(price.replace(/\s/g, "").replace(",", "."));
+  if (!price.trim() || !Number.isFinite(p) || p < 0) return null;
+  const b = basis.trim() ? Number(basis.replace(/\s/g, "").replace(",", ".")) : 1;
+  if (!Number.isFinite(b) || b <= 0) return null;
+  return Math.round((p * 10000) / b);
+}
+
+const unitOf = (code: string) => UNIT_CODES[code.toUpperCase()] ?? code.toLowerCase();
+
+export function parseCiiLines(xml: string): PurchaseInvoiceLine[] {
+  return blocks(xml, "IncludedSupplyChainTradeLineItem").map((item) => {
+    const product = tag(item, "SpecifiedTradeProduct");
+    const agreement = tag(item, "SpecifiedLineTradeAgreement");
+    const net = tag(agreement, "NetPriceProductTradePrice");
+    const delivery = tag(item, "SpecifiedLineTradeDelivery");
+    return {
+      reference: text(product, "SellerAssignedID"),
+      ean: attr(product, "GlobalID", "schemeID") === "0160" || !attr(product, "GlobalID", "schemeID") ? text(product, "GlobalID").replace(/\s/g, "") : "",
+      label: text(product, "Name"),
+      unit: unitOf(attr(delivery, "BilledQuantity", "unitCode")),
+      quantity: text(delivery, "BilledQuantity"),
+      netPrice4: unitPrice4(text(net, "ChargeAmount"), text(net, "BasisQuantity")),
+    };
+  });
+}
+
+export function parseUblLines(xml: string): PurchaseInvoiceLine[] {
+  return [...blocks(xml, "InvoiceLine"), ...blocks(xml, "CreditNoteLine")].map((line) => {
+    const item = tag(line, "Item");
+    const price = tag(line, "Price");
+    const qtyTag = /InvoicedQuantity/.test(line) ? "InvoicedQuantity" : "CreditedQuantity";
+    return {
+      reference: text(item, "SellersItemIdentification", "ID"),
+      ean: text(item, "StandardItemIdentification", "ID").replace(/\s/g, ""),
+      label: text(item, "Name"),
+      unit: unitOf(attr(line, qtyTag, "unitCode")),
+      quantity: text(line, qtyTag),
+      netPrice4: unitPrice4(text(price, "PriceAmount"), text(price, "BaseQuantity")),
+    };
+  });
+}
+
+export interface PurchaseInvoiceWithLines {
+  invoice: PurchaseInvoiceData;
+  lines: PurchaseInvoiceLine[];
+}
+
+/** Facture d'achat avec ses lignes, ou null si le fichier ne contient pas de facture électronique lisible. */
+export async function readPurchaseInvoiceLines(bytes: Uint8Array): Promise<PurchaseInvoiceWithLines | null> {
+  let xml: string | null = null;
+  if (isPdf(bytes)) xml = await embeddedInvoiceXml(bytes);
+  else if (bytes.length <= MAX_XML) {
+    const body = new TextDecoder().decode(bytes).replace(/^﻿/, "");
+    if (body.trimStart().startsWith("<")) xml = body;
+  }
+  if (!xml) return null;
+  const invoice = parseInvoiceXml(xml);
+  if (!invoice) return null;
+  const lines = invoice.format === "cii" ? parseCiiLines(xml) : parseUblLines(xml);
+  return { invoice, lines };
+}
+
+/** Lignes de facture au format du fichier de prix fournisseur, pour la même mise à jour du catalogue. */
+export function invoiceLinesTable(lines: readonly PurchaseInvoiceLine[]): string[][] {
+  const price = (p: number | null) => (p === null ? "" : (p / 10000).toFixed(4).replace(".", ","));
+  return [
+    ["Référence fournisseur", "EAN", "Désignation", "Unité", "Prix net"],
+    ...lines.filter((l) => l.reference || l.ean).map((l) => [l.reference, l.ean, l.label, l.unit, price(l.netPrice4)]),
+  ];
+}
