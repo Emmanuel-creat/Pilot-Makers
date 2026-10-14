@@ -12,6 +12,8 @@ import { subcontractorAlerts } from "@/lib/services/subcontractors";
 import { clientInbox } from "@/lib/services/client-space";
 import { pct } from "@/lib/services/jobs-labels";
 import { regulatoryAlertCount } from "@/lib/services/regulatory-watch";
+import { proactiveAdvice } from "@/lib/services/advice";
+import { can } from "@/lib/services/context";
 
 export const metadata = { title: "Tableau de bord" };
 
@@ -28,6 +30,7 @@ export default async function Dashboard() {
   const subAlerts = await subcontractorAlerts(ctx);
   const inbox = await clientInbox(ctx);
   const watchAlerts = await regulatoryAlertCount(ctx);
+  const advice = can(ctx, "billing") ? await proactiveAdvice(ctx) : [];
   return (
     <>
       <PageHeader
@@ -48,6 +51,15 @@ export default async function Dashboard() {
         <Link href="/app/bienvenue" className="card mb-6 flex items-center gap-3 border-warning/40 bg-warning-soft p-4 text-sm">
           <Icon name="building" className="text-warning" />
           <span className="flex-1">Complétez le profil de votre entreprise (adresse, SIRET, assurance) pour pouvoir émettre vos devis.</span>
+          <Icon name="right" />
+        </Link>
+      ) : null}
+      {advice.length ? (
+        <Link href="/app/conseils" className="card mb-6 flex items-center gap-3 p-4 text-sm hover:border-accent" data-testid="bandeau-conseils">
+          <Icon name="star" className="text-accent" />
+          <span className="flex-1">
+            {advice.length > 1 ? `${advice.length} conseils` : "1 conseil"} pour vous, en tête : {advice[0].title.charAt(0).toLowerCase() + advice[0].title.slice(1)}.
+          </span>
           <Icon name="right" />
         </Link>
       ) : null}

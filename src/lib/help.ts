@@ -1896,6 +1896,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "conseils-proactifs",
+    category: "demarrer",
+    title: "Suivre les conseils tirés de vos chiffres",
+    summary: "Les actions les plus utiles du moment, classées par urgence et par montant en jeu, à partir de vos devis, factures, chantiers et planning.",
+    steps: [
+      "Le tableau de bord annonce le nombre de conseils et le plus important. Ouvrez-le pour voir la liste complète.",
+      "Les conseils urgents portent sur l'argent qui attend : factures en retard, devis acceptés depuis plus de 30 jours sans facture.",
+      "Viennent ensuite les devis sans réponse depuis 10 jours, ceux qui expirent sous 7 jours, les chantiers terminés à faire réceptionner et les surcharges d'équipe.",
+      "Les indicateurs faibles du score de santé complètent la liste avec une piste d'amélioration.",
+      "Le bouton Agir ouvre la bonne page. Masquez un conseil pour 30 jours s'il ne vous concerne pas pour l'instant ; il revient si la situation dure.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

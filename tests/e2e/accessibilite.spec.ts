@@ -1417,6 +1417,13 @@ test("planning : équilibre de charge de l'équipe", async ({ page }) => {
   await audit(page, "équilibre de charge");
 });
 
+test("tableau de bord : conseils proactifs", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/conseils");
+  await expect(page.getByRole("heading", { name: "Conseils", exact: true })).toBeVisible();
+  await audit(page, "conseils");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

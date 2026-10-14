@@ -101,6 +101,7 @@ import { assignCode } from "@/lib/services/barcode";
 import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { setBenchmarkOptin } from "@/lib/services/benchmark";
 import { createHealthShare, revokeHealthShare } from "@/lib/services/health-score";
+import { dismissAdvice } from "@/lib/services/advice";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
 import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
@@ -2923,4 +2924,15 @@ export async function healthShareRevokeAction(_: ActionState, fd: FormData): Pro
   }
   revalidatePath("/app/rapports/sante");
   return { ok: true, message: "Lien révoqué." };
+}
+
+export async function adviceDismissAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => dismissAdvice(ctx, { key: s(fd, "key"), days: s(fd, "days") || undefined }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/conseils");
+  revalidatePath("/app");
+  return { ok: true, message: "Conseil masqué pour 30 jours." };
 }

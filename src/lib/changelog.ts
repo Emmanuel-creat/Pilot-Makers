@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "conseils-proactifs",
+    date: "2026-10-14",
+    title: "Conseils proactifs",
+    text: "Le tableau de bord vous indique les actions les plus rentables du moment : relances, facturation, réceptions, surcharge de l'équipe.",
+    href: "/aide/conseils-proactifs",
+  },
+  {
     id: "equilibre-de-charge",
     date: "2026-10-14",
     title: "Équilibre de charge de l'équipe",
