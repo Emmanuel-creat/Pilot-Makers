@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "metre-sur-plan",
+    date: "2026-10-14",
+    title: "Métré sur plan",
+    text: "Importez un plan, indiquez une cote, puis relevez surfaces, longueurs, murs et comptages : les quantités s'ajoutent au devis.",
+    href: "/aide/metre-sur-plan",
+  },
+  {
     id: "reseaux-artisans",
     date: "2026-10-14",
     title: "Réseaux d'artisans",

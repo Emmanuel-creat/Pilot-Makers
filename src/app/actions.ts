@@ -102,6 +102,7 @@ import { setOutdoorWork, shiftJob } from "@/lib/services/weather";
 import { setBenchmarkOptin } from "@/lib/services/benchmark";
 import { deleteFinancing, saveFinancing, setFinancingStatus } from "@/lib/services/financing";
 import { createNetwork, importNetworkItems, joinNetwork, leaveNetwork, shareItems, unshareItem } from "@/lib/services/networks";
+import { addTakeoffLines, deleteTakeoff, saveTakeoff, takeoffIdsSchema } from "@/lib/services/takeoffs";
 import { formatEuros } from "@/lib/calc/format";
 import {
   cancelQuote,
@@ -2870,4 +2871,34 @@ export async function networkUnshareAction(fd: FormData) {
   const networkId = s(fd, "networkId");
   await withCtx((ctx) => unshareItem(ctx, networkId, s(fd, "itemId")));
   revalidatePath(`/app/catalogue/reseaux/${networkId}`);
+}
+
+/** Enregistre l'échelle et les relevés d'un plan (appelé depuis l'outil de métré). */
+export async function saveTakeoffAction(id: string, data: unknown): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => saveTakeoff(ctx, id, data));
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Relevés enregistrés." };
+}
+
+/** Ajoute au devis les relevés choisis, après avoir enregistré l'état courant. */
+export async function addTakeoffLinesAction(id: string, data: unknown, ids: string[]): Promise<{ ok?: boolean; error?: string; message?: string; quoteId?: string }> {
+  try {
+    const r = await withCtx(async (ctx) => {
+      await saveTakeoff(ctx, id, data);
+      return addTakeoffLines(ctx, id, takeoffIdsSchema.parse(ids));
+    });
+    revalidatePath(`/app/devis/${r.quoteId}`);
+    return { ok: true, message: `${r.added} ligne${r.added > 1 ? "s" : ""} ajoutée${r.added > 1 ? "s" : ""} au devis.`, quoteId: r.quoteId };
+  } catch (e) {
+    return toState(e) ?? { error: "Ajout impossible" };
+  }
+}
+
+export async function deleteTakeoffAction(fd: FormData) {
+  const quoteId = await withCtx((ctx) => deleteTakeoff(ctx, s(fd, "id")));
+  revalidatePath(`/app/devis/${quoteId}/metres`);
+  redirect(`/app/devis/${quoteId}/metres`);
 }

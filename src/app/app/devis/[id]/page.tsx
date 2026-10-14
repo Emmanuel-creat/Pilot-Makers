@@ -122,6 +122,15 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
           pricing={editorPricing(readPricing(org.pricing), !!ctx.entitlements.plan.features.margin)}
         />
         <QuoteMedia quoteId={id} initial={await listQuoteMedia(ctx, id)} editable />
+        <section className="card mt-6 flex flex-wrap items-center justify-between gap-3 p-4">
+          <div>
+            <h2 className="text-sm font-semibold">Métré sur plan</h2>
+            <p className="text-xs text-muted">Relevez surfaces, longueurs et murs sur le plan, puis ajoutez les quantités au devis.</p>
+          </div>
+          <Link href={`/app/devis/${id}/metres`} className="btn-secondary">
+            <Icon name="note" size={16} /> Ouvrir le métré
+          </Link>
+        </section>
         <SimilarQuotes ctx={ctx} quoteId={id} />
         <CarbonBalance ctx={ctx} quoteId={id} />
         <ProductSheets ctx={ctx} quoteId={id} />

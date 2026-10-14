@@ -96,6 +96,7 @@ import { sql as m094 } from "./migrations/094_meteo";
 import { sql as m095 } from "./migrations/095_reperes";
 import { sql as m096 } from "./migrations/096_financements";
 import { sql as m097 } from "./migrations/097_reseaux";
+import { sql as m098 } from "./migrations/098_metres";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -196,6 +197,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "095_reperes", sql: m095 },
   { id: "096_financements", sql: m096 },
   { id: "097_reseaux", sql: m097 },
+  { id: "098_metres", sql: m098 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

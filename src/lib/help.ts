@@ -1846,6 +1846,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "metre-sur-plan",
+    category: "devis",
+    title: "Relever les quantités sur un plan",
+    summary: "Surfaces, longueurs, murs et comptages mesurés à l'écran, puis ajoutés au devis.",
+    steps: [
+      "Dans le devis en préparation, ouvrez le Métré sur plan et importez l'image du plan (photo nette ou capture). Pour un plan PDF ou DWG, exportez la page en image depuis votre visionneuse.",
+      "Indiquez l'échelle : cliquez les deux extrémités d'une cote connue et saisissez sa longueur en mètres.",
+      "Choisissez un outil : Surface (cliquez les angles de la pièce), Longueur (plinthes, réseaux), Surface de mur (le linéaire multiplié par la hauteur, ouvertures déduites) ou Comptage (prises, luminaires).",
+      "Donnez à chaque relevé le libellé de la ligne, cochez ceux à reprendre et ajoutez-les au devis : quantité et unité sont remplies, il reste à saisir le prix.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

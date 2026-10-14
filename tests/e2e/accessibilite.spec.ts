@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { PDFDocument } from "pdf-lib";
 import { expect, test, type Page } from "@playwright/test";
+import { grayPng } from "../png";
 
 /**
  * Accessibilité (RGAA, WCAG 2.2 niveau AA) : analyse automatique des écrans principaux.
@@ -1326,6 +1327,45 @@ test("catalogue : réseau d'artisans et ouvrages partagés", async ({ page }) =>
   await page.getByRole("button", { name: "Partager", exact: true }).click();
   await expect(page.getByTestId("mes-partages")).toBeVisible();
   await audit(page, "réseau");
+});
+
+test("devis : métré sur plan ajouté au devis", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Carrelage du séjour");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const quoteUrl = page.url();
+  await page.getByRole("link", { name: "Ouvrir le métré" }).click();
+  await page.waitForURL(/\/metres$/);
+  await audit(page, "plans du devis");
+  await page.getByLabel("Image du plan").setInputFiles({ name: "plan.png", mimeType: "image/png", buffer: Buffer.from(grayPng(400, 300)) });
+  await page.getByLabel("Nom du plan").fill("Rez-de-chaussée");
+  await page.getByRole("button", { name: "Importer le plan" }).click();
+  await page.waitForURL(/\/metres\/[0-9a-f-]{36}$/);
+  const plan = page.getByTestId("plan");
+  await expect(plan.locator("image")).toBeAttached();
+  const at = async (fx: number, fy: number) => {
+    const box = (await plan.boundingBox())!;
+    await page.mouse.click(box.x + box.width * fx, box.y + box.height * fy);
+  };
+  await at(0.1, 0.1);
+  await at(0.6, 0.1);
+  await page.getByLabel("Longueur réelle de la cote (m)").fill("5");
+  await page.getByRole("button", { name: "Valider l'échelle" }).click();
+  await page.getByRole("toolbar", { name: "Outils de métré" }).getByRole("button", { name: "Surface", exact: true }).click();
+  await at(0.1, 0.1);
+  await at(0.6, 0.1);
+  await at(0.6, 0.5);
+  await at(0.1, 0.5);
+  await page.getByRole("button", { name: "Terminer le relevé" }).click();
+  await page.getByLabel("Libellé de la ligne").fill("Pose de carrelage");
+  await expect(page.getByTestId("quantite")).toHaveText(/m²$/);
+  await audit(page, "métré sur plan");
+  await page.getByRole("checkbox", { name: /Ajouter « Pose de carrelage » au devis/ }).check();
+  await page.getByRole("button", { name: "Ajouter au devis" }).click();
+  await page.waitForURL(quoteUrl);
+  await expect(page.locator("input[value='Pose de carrelage'], textarea").first()).toBeVisible();
 });
 
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
