@@ -46,7 +46,7 @@ test("application sur un petit écran", async ({ page }) => {
     await page.goto(path);
     await noHorizontalScroll(page, path);
   }
-  await page.goto("/app/devis");
+  await page.goto("/app/devis?q=D-2026-0001");
   // Sur téléphone, la liste montre le numéro et le client ; l'objet est masqué.
   await page.goto((await page.locator("a:visible", { hasText: "D-2026-0001" }).first().getAttribute("href"))!);
   await noHorizontalScroll(page, "fiche devis");

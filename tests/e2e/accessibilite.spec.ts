@@ -1693,6 +1693,19 @@ test("équipes : ma journée dans la langue de chacun", async ({ page }) => {
   await expect(page.getByTestId("titre-ma-journee")).toHaveText("Ma journée");
 });
 
+test("marchés : devis préparé depuis un CCTP", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/marches");
+  const cctp = ["LOT 02 - PLÂTRERIE", "2.1 Cloison en plaques de plâtre", "Localisation : chambres", "Quantité : 18 m²"].join("\n");
+  await page.getByLabel(/^Cahier des charges/).setInputFiles({ name: "cctp.txt", mimeType: "text/plain", buffer: Buffer.from(cctp) });
+  await page.getByLabel("Objet des travaux").fill("Cloisons de l'école");
+  await page.getByRole("button", { name: "Lire le CCTP et créer le devis" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await expect(page.getByLabel("Désignation", { exact: true }).last()).toHaveValue("2.1 Cloison en plaques de plâtre");
+  await expect(page.getByLabel("Quantité", { exact: true }).last()).toHaveValue("18");
+  await audit(page, "devis issu d'un CCTP");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

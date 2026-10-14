@@ -62,7 +62,7 @@ for (const phone of PHONES) {
         await page.goto(path);
         await check(page, `${phone.name} ${path}`);
       }
-      await page.goto("/app/devis");
+      await page.goto("/app/devis?q=D-2026-0001");
       await page.goto((await page.locator("a:visible", { hasText: "D-2026-0001" }).first().getAttribute("href"))!);
       await check(page, `${phone.name} fiche devis`);
     });

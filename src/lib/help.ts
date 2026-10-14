@@ -1747,7 +1747,9 @@ export const HELP_ARTICLES: HelpArticle[] = [
       "Lisez ce qui change, la date d'entrée en vigueur et l'action conseillée, avec la source.",
       "Cliquez sur « Marquer comme lu » : l'alerte disparaît pour toute l'entreprise.",
     ],
-    notes: ["Une évolution est signalée dès sa publication et jusqu'à quatre mois avant son entrée en vigueur. Faites valider votre situation par votre expert-comptable."],
+    notes: [
+      "Une évolution est signalée dès sa publication et jusqu'à quatre mois avant son entrée en vigueur. Faites valider votre situation par votre expert-comptable.",
+    ],
     link: { href: "/app/veille", label: "Ouvrir la veille" },
   },
   {
@@ -1951,7 +1953,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "marches-publics",
     category: "devis",
     title: "Répondre à un marché public avec le bordereau de l'acheteur",
-    summary: "Importez le DPGF, le BPU ou le DQE : le devis se crée avec ses lots et ses postes, chiffré avec votre catalogue, puis téléchargez le bordereau rempli.",
+    summary:
+      "Importez le DPGF, le BPU ou le DQE : le devis se crée avec ses lots et ses postes, chiffré avec votre catalogue, puis téléchargez le bordereau rempli.",
     steps: [
       "Dans Devis, ouvrez Marchés publics et choisissez le fichier de l'acheteur au format .xlsx, .ods ou .csv (un .xls s'enregistre d'abord en .xlsx).",
       "Les colonnes Désignation, Unité, Quantité et Prix unitaire sont reconnues seules, même sous un titre. Les lignes sans unité ni quantité deviennent des lots.",
@@ -1964,7 +1967,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "devises-etrangeres",
     category: "devis",
     title: "Indiquer la contre-valeur d'un devis dans une autre devise",
-    summary: "Pour un client à l'étranger, le devis affiche son total TTC en francs suisses, livres, dollars, dirhams ou francs CFA et CFP, le prix restant dû en euros.",
+    summary:
+      "Pour un client à l'étranger, le devis affiche son total TTC en francs suisses, livres, dollars, dirhams ou francs CFA et CFP, le prix restant dû en euros.",
     steps: [
       "Dans le devis, choisissez la devise du client dans Contre-valeur en devise.",
       "Indiquez le taux, en unités de la devise pour 1 euro. Les francs CFA et CFP prennent d'eux-mêmes leur parité fixe avec l'euro.",
@@ -2095,7 +2099,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "facture-fournisseur-catalogue",
     category: "catalogue",
     title: "Mettre à jour le catalogue avec une facture fournisseur",
-    summary: "Déposez la facture électronique d'un négoce : ses prix nets deviennent les prix d'achat de vos articles, avec les mêmes alertes de marge qu'un fichier de prix.",
+    summary:
+      "Déposez la facture électronique d'un négoce : ses prix nets deviennent les prix d'achat de vos articles, avec les mêmes alertes de marge qu'un fichier de prix.",
     steps: [
       "Ouvrez Catalogue puis Tarifs fournisseurs.",
       "Choisissez la facture reçue : un PDF Factur-X ou un fichier XML (CII ou UBL). Une simple photo ou un PDF scanné ne contient pas de lignes lisibles.",
@@ -2135,12 +2140,26 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "ma-journee-langues",
     category: "compte",
     title: "Ma journée : l'écran des équipes dans leur langue",
-    summary: "Chaque compagnon voit ses chantiers du jour, pointe et suit ses heures en français, anglais, portugais, espagnol, roumain, polonais, turc ou arabe.",
+    summary:
+      "Chaque compagnon voit ses chantiers du jour, pointe et suit ses heures en français, anglais, portugais, espagnol, roumain, polonais, turc ou arabe.",
     steps: [
       "Ouvrez Ma journée depuis Aujourd'hui ou depuis le Pointage, ou installez l'application et ajoutez cette page à l'écran d'accueil.",
       "Choisissez la langue puis Changer : le choix est propre à chaque personne et conservé.",
       "L'écran montre les chantiers prévus pour la personne avec l'itinéraire, le chronomètre de pointage, les heures de la semaine et leur validation, et les consignes de sécurité.",
       "Les noms de chantiers, adresses et notes restent tels que saisis. Le reste de l'application reste en français.",
+    ],
+  },
+  {
+    slug: "lecture-cctp",
+    category: "devis",
+    title: "Préparer un devis à partir d'un CCTP",
+    summary:
+      "Le cahier des charges d'un appel d'offres est lu : chaque lot devient une section du devis et chaque article une ligne, avec sa quantité quand elle est écrite.",
+    steps: [
+      "Ouvrez Devis puis Marchés publics, section Lire un cahier des charges (CCTP), et déposez le fichier en .docx, .odt, .pdf ou .txt. Un PDF scanné sans texte ne peut pas être lu.",
+      "Les lots deviennent des sections, les articles détaillés des lignes. La quantité et l'unité sont reprises quand le CCTP les donne (m², ml, u, kg...), sinon la ligne vaut 1 ensemble.",
+      "Le prix vient de l'article le plus proche du catalogue. Chaque ligne indique ce qui reste à compléter : prix absent, quantité non indiquée.",
+      "Une première note liste les DTU et normes cités. Relisez tout avant d'envoyer : le devis est une proposition de départ, jamais un chiffrage définitif.",
     ],
   },
   {

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "lecture-cctp",
+    date: "2026-10-14",
+    title: "Un devis préparé depuis le CCTP",
+    text: "Déposez le cahier des charges d'un appel d'offres : lots, articles, quantités et normes citées sont repris dans un devis à compléter, avec les prix du catalogue.",
+    href: "/app/devis/marches",
+  },
+  {
     id: "ma-journee-langues",
     date: "2026-10-14",
     title: "Ma journée, en huit langues pour les équipes",

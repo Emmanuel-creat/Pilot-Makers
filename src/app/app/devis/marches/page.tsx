@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader, Section } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
+import { SpecUpload } from "./SpecUpload";
 import { TenderUpload } from "./TenderUpload";
 
 export const metadata = { title: "Marchés publics" };
@@ -33,6 +34,12 @@ export default async function TendersPage() {
           description="Fichiers .xlsx, .ods ou .csv. Les colonnes Désignation, Unité, Quantité et Prix unitaire sont reconnues seules."
         >
           <TenderUpload customers={customers.filter((c) => c.name)} />
+        </Section>
+        <Section
+          title="Lire un cahier des charges (CCTP)"
+          description="Chaque lot du CCTP devient un lot du devis et chaque article numéroté une ligne, avec la quantité citée, la localisation et le prix de l'article le plus proche du catalogue. Les DTU et normes cités sont rappelés en tête. Relisez tout avant d'envoyer."
+        >
+          <SpecUpload customers={customers.filter((c) => c.name)} />
         </Section>
         {tenders.length ? (
           <Section title="Bordereaux importés">
