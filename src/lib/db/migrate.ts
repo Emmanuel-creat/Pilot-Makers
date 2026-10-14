@@ -108,6 +108,7 @@ import { sql as m106 } from "./migrations/106_bourse";
 import { sql as m107 } from "./migrations/107_etapes";
 import { sql as m108 } from "./migrations/108_recommandations";
 import { sql as m109 } from "./migrations/109_achats_groupes";
+import { sql as m110 } from "./migrations/110_groupements";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -220,6 +221,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "107_etapes", sql: m107 },
   { id: "108_recommandations", sql: m108 },
   { id: "109_achats_groupes", sql: m109 },
+  { id: "110_groupements", sql: m110 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

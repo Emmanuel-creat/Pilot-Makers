@@ -2053,6 +2053,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "groupement-entreprises",
+    category: "devis",
+    title: "Répondre à plusieurs entreprises à un gros chantier",
+    summary: "Constituez un groupement sur un devis : un mandataire, des cotraitants, chacun ses lots, et la convention prête à signer.",
+    steps: [
+      "Sur le devis, ouvrez Groupement d'entreprises et choisissez la forme : conjoint (chacun ses lots, payé directement) ou solidaire (chacun répond de tout le marché).",
+      "Invitez des confrères de vos réseaux d'artisans : ils reçoivent l'invitation dans Groupements d'entreprises et acceptent ou déclinent. Ajoutez aussi des entreprises qui n'utilisent pas l'application.",
+      "Attribuez chaque lot du devis à une entreprise. La répartition calcule le montant hors taxe et la part de chacun, remise globale comprise.",
+      "Les points à régler s'affichent : lot sans entreprise, invitation sans réponse, cotraitant qui a refusé.",
+      "Imprimez la répartition et la convention de groupement (mandataire, engagement, paiement, frais communs, assurances, durée) pour la faire signer par chaque membre.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

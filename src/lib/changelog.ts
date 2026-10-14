@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "groupement-entreprises",
+    date: "2026-10-14",
+    title: "Groupements d'entreprises pour les gros chantiers",
+    text: "Constituez un groupement conjoint ou solidaire sur un devis, invitez vos confrères, répartissez les lots et imprimez la convention de groupement.",
+    href: "/aide/groupement-entreprises",
+  },
+  {
     id: "achats-groupes",
     date: "2026-10-14",
     title: "Achats groupés entre artisans du réseau",

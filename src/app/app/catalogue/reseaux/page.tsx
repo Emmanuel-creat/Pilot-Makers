@@ -19,6 +19,11 @@ export default async function NetworksPage() {
         title="Réseaux d'artisans"
         subtitle="Partagez une bibliothèque d'ouvrages avec votre groupement, votre réseau ou des confrères de confiance."
         back={{ href: "/app/catalogue", label: "Catalogue" }}
+        actions={
+          <Link href="/app/groupements" className="btn-secondary">
+            Groupements d&apos;entreprises
+          </Link>
+        }
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <Section title="Vos réseaux">

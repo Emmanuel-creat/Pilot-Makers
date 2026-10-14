@@ -501,6 +501,11 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
                   <Icon name="check" size={16} /> Paiement par étapes
                 </Link>
               ) : null}
+              {!draft.amendment ? (
+                <Link href={`/app/devis/${id}/groupement`} className="btn-ghost w-full justify-start text-sm">
+                  <Icon name="team" size={16} /> Groupement d&apos;entreprises
+                </Link>
+              ) : null}
               {versions.length > 1 ? (
                 <Link href={`/app/devis/${id}/comparer`} className="btn-ghost w-full justify-start text-sm">
                   <Icon name="compare" size={16} /> Comparer les versions

@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { addConsortiumMember, answerConsortiumInvitation, assignLot, createConsortium, removeConsortiumMember } from "@/lib/services/consortia";
 import { closeGroupPurchase, commitQuantity, createGroupPurchase } from "@/lib/services/group-buying";
 import { answerRecommendation, sendRecommendation } from "@/lib/services/network-recommendations";
 import { closePost, createPost, replyToPost } from "@/lib/services/network-board";
@@ -3166,4 +3167,57 @@ export async function groupPurchaseCloseAction(_: ActionState, fd: FormData): Pr
     return toState(e);
   }
   return { ok: true, message: "Achat groupé clos." };
+}
+
+export async function consortiumCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const quoteId = s(fd, "quoteId");
+  try {
+    await withCtx((ctx) => createConsortium(ctx, quoteId, s(fd, "form"), fd.get("mandataireSolidaire") === "on"));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/devis/${quoteId}/groupement`);
+  return { ok: true, message: "Groupement créé : ajoutez vos cotraitants." };
+}
+
+export async function consortiumMemberAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const quoteId = await withCtx((ctx) =>
+      addConsortiumMember(ctx, s(fd, "consortiumId"), { orgId: s(fd, "orgId") || undefined, name: s(fd, "name"), siret: s(fd, "siret"), trade: s(fd, "trade") }),
+    );
+    revalidatePath(`/app/devis/${quoteId}/groupement`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Cotraitant ajouté." };
+}
+
+export async function consortiumLotAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const quoteId = await withCtx((ctx) => assignLot(ctx, s(fd, "consortiumId"), s(fd, "sectionId"), s(fd, "memberId")));
+    revalidatePath(`/app/devis/${quoteId}/groupement`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Lot attribué." };
+}
+
+export async function consortiumRemoveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const quoteId = await withCtx((ctx) => removeConsortiumMember(ctx, s(fd, "consortiumId"), s(fd, "memberId")));
+    revalidatePath(`/app/devis/${quoteId}/groupement`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Cotraitant retiré." };
+}
+
+export async function consortiumAnswerAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => answerConsortiumInvitation(ctx, s(fd, "id"), s(fd, "decision") === "accept"));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/groupements");
+  return { ok: true, message: "Réponse transmise au mandataire." };
 }

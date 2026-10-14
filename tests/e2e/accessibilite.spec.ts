@@ -1575,6 +1575,27 @@ test("réseau : achat groupé avec paliers de prix", async ({ page }) => {
   await audit(page, "achats groupés du réseau");
 });
 
+test("devis : groupement d'entreprises et convention", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Groupe scolaire des Tilleuls");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.goto(page.url() + "/groupement");
+  await page.getByRole("radio", { name: /Solidaire/ }).check();
+  await page.getByRole("button", { name: "Créer le groupement" }).click();
+  await expect(page.getByTestId("repartition-groupement")).toBeVisible();
+  await page.getByLabel("Raison sociale").fill("Peintures Roy");
+  await page.getByLabel("Métier").fill("Peintre");
+  await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByTestId("repartition-groupement")).toContainText("Peintures Roy");
+  await expect(page.getByTestId("convention-groupement")).toContainText("totalité du marché");
+  await audit(page, "groupement d'entreprises");
+  await page.goto("/app/groupements");
+  await expect(page.getByText("Aucune invitation")).toBeVisible();
+  await audit(page, "invitations de groupement");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
