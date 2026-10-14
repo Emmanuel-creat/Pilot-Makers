@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "chance-de-signature",
+    date: "2026-10-14",
+    title: "Chance de signature",
+    text: "Avant d'envoyer un devis, voyez sa chance d'être signé d'après vos devis passés et ce qui l'améliorerait.",
+    href: "/aide/chance-de-signature",
+  },
+  {
     id: "entretien-preventif",
     date: "2026-10-14",
     title: "Entretien préventif",

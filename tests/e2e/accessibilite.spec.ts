@@ -1124,6 +1124,18 @@ test("devis : devis similaires gagnés ou perdus", async ({ page }) => {
   await audit(page, "devis similaires");
 });
 
+test("devis : chance de signature avant l'envoi", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Pose de parquet");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  const box = page.getByTestId("chance-signature");
+  await expect(box).toContainText("Chance de signature");
+  await box.scrollIntoViewIfNeeded();
+  await audit(page, "chance de signature");
+});
+
 test("catalogue : comparateur de prix entre fournisseurs", async ({ page }) => {
   await login(page);
   await page.goto("/app/catalogue/tarifs-fournisseurs");

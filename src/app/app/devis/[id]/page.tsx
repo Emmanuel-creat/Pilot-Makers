@@ -34,6 +34,7 @@ import { listSubcontractors } from "@/lib/services/subcontractors";
 import { jobForQuote } from "@/lib/services/jobs";
 import { listIndexValues } from "@/lib/services/revision";
 import { SimilarQuotes } from "./SimilarQuotes";
+import { WinOdds } from "./WinOdds";
 import { CarbonBalance } from "./CarbonBalance";
 import { ProductSheets } from "./ProductSheets";
 import { hasFeature } from "@/lib/services/features";
@@ -131,6 +132,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
             <Icon name="note" size={16} /> Ouvrir le métré
           </Link>
         </section>
+        <WinOdds ctx={ctx} quoteId={id} />
         <SimilarQuotes ctx={ctx} quoteId={id} />
         <CarbonBalance ctx={ctx} quoteId={id} />
         <ProductSheets ctx={ctx} quoteId={id} />
@@ -617,10 +619,10 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
               </ul>
             </section>
           ) : null}
+          <WinOdds ctx={ctx} quoteId={id} />
           <SimilarQuotes ctx={ctx} quoteId={id} />
           <CarbonBalance ctx={ctx} quoteId={id} />
           <ProductSheets ctx={ctx} quoteId={id} />
-        <ProductSheets ctx={ctx} quoteId={id} />
         </aside>
       </div>
     </div>

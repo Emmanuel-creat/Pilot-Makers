@@ -1935,6 +1935,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "chance-de-signature",
+    category: "devis",
+    title: "Estimer la chance de signature d'un devis avant de l'envoyer",
+    summary: "Un pourcentage tiré de vos devis passés, ce qui le fait monter ou baisser, et des conseils pour l'améliorer.",
+    steps: [
+      "Sur un devis en préparation ou en attente, le bloc Chance de signature affiche une estimation dès que vous avez 8 devis acceptés, refusés ou expirés.",
+      "L'estimation compare ce devis à vos devis passés : montant, client particulier ou professionnel, client déjà servi, présence d'options et de photos.",
+      "Chaque caractéristique indique le taux de signature de vos devis semblables, en vert quand elle aide, en rouge quand elle pèse.",
+      "Les conseils proposent ce qui a le mieux marché chez vous : ajouter des options, joindre des photos, proposer un échelonnement sur un gros montant.",
+      "L'estimation se recalcule à chaque enregistrement : ajoutez une option ou une photo et rechargez la page pour voir l'effet.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
