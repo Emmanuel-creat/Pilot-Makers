@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { importSharedHomeRecord } from "@/lib/services/home-records";
 import { setAidStep } from "@/lib/services/energy-diagnoses";
 import { setCommitments } from "@/lib/services/commitments";
 import { resolveFeedback, sendFeedback } from "@/lib/services/feedback";
@@ -3903,4 +3904,15 @@ export async function aidStepAction(_: ActionState, fd: FormData): Promise<Actio
   }
   revalidatePath(`/app/devis/diagnostic-energetique/${id}/parcours`);
   return { ok: true, message: undo ? "Étape décochée." : "Étape enregistrée." };
+}
+
+export async function importHomeRecordAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let r: { recordId: string; imported: number };
+  try {
+    r = await withCtx((ctx) => importSharedHomeRecord(ctx, s(fd, "link"), s(fd, "customerId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/carnets");
+  redirect(`/app/carnets/${r.recordId}?repris=${r.imported}`);
 }

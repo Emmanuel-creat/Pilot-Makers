@@ -2142,6 +2142,18 @@ test("rénovation énergétique : parcours du diagnostic à l'aide versée", asy
   await audit(page, "parcours de rénovation");
 });
 
+test("carnet de logement : reprise d'un carnet transmis par un client", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/carnets");
+  const box = page.getByTestId("reprise-carnet");
+  await box.getByText("Reprendre le carnet transmis par un client").click();
+  await box.getByLabel("Lien de transmission reçu du client").fill("https://exemple.fr/carnet/LienInconnuDeVingtCaracteres");
+  await box.getByLabel("Client concerné").selectOption({ index: 1 });
+  await box.getByRole("button", { name: "Reprendre le carnet" }).click();
+  await expect(box.getByText(/Lien inconnu, expiré ou révoqué/)).toBeVisible();
+  await audit(page, "reprise de carnet");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

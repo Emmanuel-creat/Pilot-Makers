@@ -2,7 +2,7 @@ import { homeEntryAddAction, homeEntryDeleteAction, homeShareAction, homeShareRe
 import { HomeTimeline, frDate } from "@/components/HomeTimeline";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
-import { PageHeader, Section } from "@/components/ui";
+import { Notice, PageHeader, Section } from "@/components/ui";
 import { ENTRY_KINDS } from "@/lib/home-record";
 import { requirePageCtx } from "@/lib/server/session";
 import { getHomeRecord } from "@/lib/services/home-records";
@@ -10,8 +10,9 @@ import { parisDate } from "@/lib/services/quotes";
 
 export const metadata = { title: "Carnet de logement" };
 
-export default async function HomeRecordPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function HomeRecordPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ repris?: string }> }) {
   const { id } = await params;
+  const { repris } = await searchParams;
   const ctx = await requirePageCtx();
   const h = await getHomeRecord(ctx, id);
   const writable = !ctx.entitlements.readOnly && !ctx.supportAccess;
@@ -22,6 +23,13 @@ export default async function HomeRecordPage({ params }: { params: Promise<{ id:
         subtitle={`${h.address.postalCode} ${h.address.city}, logement de ${h.customer}`}
         back={{ href: "/app/carnets", label: "Carnets" }}
       />
+      {repris != null ? (
+        <Notice tone="success" title="Carnet repris">
+          {Number(repris) > 0
+            ? `${repris} entrée${Number(repris) > 1 ? "s" : ""} ajoutée${Number(repris) > 1 ? "s" : ""} à l'historique du logement, avec leur auteur.`
+            : "L'historique était déjà à jour : aucune nouvelle entrée."}
+        </Notice>
+      ) : null}
       <div className="space-y-6">
         <Section title="Garanties en cours" description="Garanties légales des chantiers réceptionnés et garanties fabricant des équipements.">
           {h.warranties.length ? (

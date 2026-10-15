@@ -48,6 +48,8 @@ export interface RecordEntry {
   brand: string;
   warrantyUntil: string | null;
   maintenanceMonths: number | null;
+  /** Entreprise qui a écrit l'entrée, quand elle vient d'un carnet transmis par un autre artisan */
+  source?: string;
 }
 
 export type TimelineItem =
@@ -77,4 +79,44 @@ export function activeWarranties(items: readonly TimelineItem[], today: string):
     }
   }
   return out.sort((a, b) => a.end.localeCompare(b.end));
+}
+
+/** Jeton d'un lien de transmission collé tel quel ou dans son adresse complète (.../carnet/JETON) */
+export function shareTokenOf(input: string): string | null {
+  const t = input.trim();
+  const m = /\/carnet\/([A-Za-z0-9_-]{20,80})(?:[/?#]|$)/.exec(t) ?? /^([A-Za-z0-9_-]{20,80})$/.exec(t);
+  return m ? m[1] : null;
+}
+
+/** Entrées à reprendre d'un carnet transmis : chantiers et entrées de l'autre artisan, avec leur auteur. */
+export function entriesToImport(items: readonly TimelineItem[], sourceName: string) {
+  return items.map((it) =>
+    it.type === "chantier"
+      ? {
+          sourceId: it.job.id,
+          date: it.date,
+          kind: "travaux" as EntryKind,
+          label: it.job.title,
+          detail: [
+            it.job.receptionDate ? `Chantier réceptionné le ${it.job.receptionDate.split("-").reverse().join("/")}.` : "Chantier non réceptionné.",
+            ...it.warranties.filter((w) => w.state !== "terminee").map((w) => `${w.label} jusqu'au ${w.end.split("-").reverse().join("/")}.`),
+          ].join(" "),
+          brand: "",
+          warrantyUntil: null as string | null,
+          maintenanceMonths: null as number | null,
+          source: sourceName,
+        }
+      : {
+          sourceId: it.entry.id,
+          date: it.entry.date,
+          kind: it.entry.kind,
+          label: it.entry.label,
+          detail: it.entry.detail,
+          brand: it.entry.brand,
+          warrantyUntil: it.entry.warrantyUntil,
+          maintenanceMonths: it.entry.maintenanceMonths,
+          // Une entrée déjà reprise garde son auteur d'origine
+          source: it.entry.source || sourceName,
+        },
+  );
 }

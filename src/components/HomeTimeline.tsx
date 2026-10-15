@@ -21,6 +21,7 @@ export function HomeTimeline({ items, action }: { items: TimelineItem[]; action?
               <p className="font-medium">{it.type === "chantier" ? it.job.title : it.entry.label}</p>
               {it.type === "entree" ? (
                 <>
+                  {it.entry.source ? <p className="text-muted">Écrit par {it.entry.source}</p> : null}
                   {it.entry.brand ? <p className="text-muted">Marque et modèle : {it.entry.brand}</p> : null}
                   {it.entry.detail ? <p className="whitespace-pre-line text-muted">{it.entry.detail}</p> : null}
                   {it.entry.maintenanceMonths ? <p className="text-muted">Entretien conseillé tous les {it.entry.maintenanceMonths} mois</p> : null}

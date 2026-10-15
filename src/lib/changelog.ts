@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "carnet-transmis",
+    date: "2026-10-15",
+    title: "Le carnet suit le logement d'un artisan à l'autre",
+    text: "Collez le lien de carnet transmis par un client : l'historique du logement rejoint votre carnet, avec l'auteur de chaque entrée.",
+    href: "/app/carnets",
+  },
+  {
     id: "parcours-renovation",
     date: "2026-10-15",
     title: "Parcours de rénovation énergétique",

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { one, type Queryable } from "@/lib/db";
-import { activeWarranties, addressKey, ENTRY_KINDS, timeline, type EntryKind, type RecordEntry, type RecordJob } from "@/lib/home-record";
+import { activeWarranties, addressKey, entriesToImport, ENTRY_KINDS, shareTokenOf, timeline, type EntryKind, type RecordEntry, type RecordJob } from "@/lib/home-record";
 import { badRequest, isUuid, notFound } from "@/lib/http";
 import { randomToken, sha256 } from "@/lib/security";
 import type { Ctx } from "./context";
@@ -41,7 +41,7 @@ async function jobsAt(db: Queryable, orgId: string, customerId: string, key: str
 
 async function entriesOf(db: Queryable, recordId: string): Promise<RecordEntry[]> {
   const rows = await db.query<Record<string, unknown>>(
-    "SELECT id, entry_date, kind, label, detail, brand, warranty_until, maintenance_months FROM home_record_entries WHERE record_id=$1 ORDER BY entry_date DESC",
+    "SELECT id, entry_date, kind, label, detail, brand, warranty_until, maintenance_months, source_name FROM home_record_entries WHERE record_id=$1 ORDER BY entry_date DESC",
     [recordId],
   );
   return rows.map((r) => ({
@@ -53,6 +53,7 @@ async function entriesOf(db: Queryable, recordId: string): Promise<RecordEntry[]
     brand: String(r.brand),
     warrantyUntil: iso(r.warranty_until),
     maintenanceMonths: r.maintenance_months == null ? null : Number(r.maintenance_months),
+    source: String(r.source_name ?? ""),
   }));
 }
 
@@ -195,4 +196,39 @@ export async function sharedHomeRecord(db: Queryable, token: string, now = new D
     [r.orgId],
   );
   return { ...r, org };
+}
+
+/**
+ * Reprend le carnet qu'un client a transmis : l'historique du logement (chantiers et entrées de l'autre artisan,
+ * y compris ce qu'il avait lui-même repris) rejoint le carnet de cette adresse chez le nouvel artisan, avec l'auteur
+ * de chaque entrée. Reprendre deux fois le même carnet n'ajoute que les nouveautés.
+ */
+export async function importSharedHomeRecord(ctx: Ctx, link: string, customerId: string, now = new Date()) {
+  requireWritable(ctx);
+  const token = shareTokenOf(link);
+  if (!token) throw badRequest("Collez le lien de transmission reçu du client");
+  if (!isUuid(customerId) || !(await one(ctx.db, "SELECT 1 FROM customers WHERE id=$1 AND org_id=$2", [customerId, ctx.orgId])))
+    throw notFound("Client introuvable");
+  const src = await loadRecord(ctx.db, "h.share_token_hash=$1 AND h.share_expires_at > $2", [sha256(token), now], parisDate(now));
+  if (!src) throw notFound("Lien inconnu, expiré ou révoqué : demandez au client un nouveau lien");
+  if (src.orgId === ctx.orgId) throw badRequest("Ce carnet est déjà le vôtre");
+  const org = await one<{ name: string }>(ctx.db, "SELECT coalesce(nullif(trade_name, ''), legal_name) AS name FROM organizations WHERE id=$1", [src.orgId]);
+  const a = src.address;
+  const rec = await one<{ id: string }>(
+    ctx.db,
+    `INSERT INTO home_records (org_id, customer_id, address_key, line1, postal_code, city) VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (org_id, customer_id, address_key) DO UPDATE SET line1=home_records.line1 RETURNING id`,
+    [ctx.orgId, customerId, addressKey(a.line1, a.postalCode, a.city), a.line1, a.postalCode, a.city],
+  );
+  let imported = 0;
+  for (const e of entriesToImport(src.items, org?.name ?? "")) {
+    const r = await ctx.db.query(
+      `INSERT INTO home_record_entries (org_id, record_id, entry_date, kind, label, detail, brand, warranty_until, maintenance_months, source_name, source_entry_id, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (record_id, source_entry_id) WHERE source_entry_id IS NOT NULL DO NOTHING RETURNING id`,
+      [ctx.orgId, rec!.id, e.date, e.kind, e.label.slice(0, 160), e.detail, e.brand, e.warrantyUntil, e.maintenanceMonths, e.source, e.sourceId, ctx.userId],
+    );
+    imported += r.length;
+  }
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "home_record.import", target: rec!.id, data: { imported }, ip: ctx.ip });
+  return { recordId: rec!.id, imported, total: src.items.length };
 }

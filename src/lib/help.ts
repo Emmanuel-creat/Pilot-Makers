@@ -2515,6 +2515,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "carnet-transmis-entre-artisans",
+    category: "clients",
+    title: "Reprendre le carnet de logement d'un autre artisan",
+    summary: "Le carnet suit le logement : quand un client vous transmet le lien de son carnet, son historique rejoint le vôtre avec l'auteur de chaque entrée.",
+    steps: [
+      "Demandez au client le lien de transmission du carnet tenu par l'artisan précédent (valable jusqu'à un an).",
+      "Ouvrez Clients puis Carnets de logement, dépliez Reprendre le carnet transmis par un client, collez le lien et choisissez le client.",
+      "Les chantiers, équipements, entretiens et diagnostics rejoignent votre carnet de la même adresse ; chaque entrée indique l'entreprise qui l'a écrite.",
+      "Reprendre à nouveau le même lien n'ajoute que les nouveautés. Quand vous transmettez à votre tour le carnet, tout l'historique suit, auteurs d'origine compris.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

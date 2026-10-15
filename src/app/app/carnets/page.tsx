@@ -3,6 +3,8 @@ import { Icon } from "@/components/Icon";
 import { Empty, PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listHomeRecords } from "@/lib/services/home-records";
+import { customerDisplayName, searchCustomers } from "@/lib/services/customers";
+import { ImportForm } from "./ImportForm";
 
 export const metadata = { title: "Carnets de logement" };
 
@@ -10,6 +12,8 @@ export default async function HomeRecordsPage({ searchParams }: { searchParams: 
   const sp = await searchParams;
   const ctx = await requirePageCtx();
   const list = await listHomeRecords(ctx, sp.client);
+  const writable = !ctx.entitlements.readOnly && !ctx.supportAccess;
+  const customers = writable ? (await searchCustomers(ctx, { limit: 500 })).map((c) => ({ id: c.id, name: customerDisplayName(c) })) : [];
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
@@ -22,6 +26,16 @@ export default async function HomeRecordsPage({ searchParams }: { searchParams: 
           </Link>
         }
       />
+      {writable && customers.length ? (
+        <details className="card mb-4" data-testid="reprise-carnet">
+          <summary className="cursor-pointer p-4 font-medium">Reprendre le carnet transmis par un client</summary>
+          <p className="px-4 text-sm text-muted">
+            Le client vous a transmis le lien du carnet tenu par un autre artisan : son historique rejoint votre carnet de la même adresse, chaque entrée avec
+            son auteur. Vos ajouts suivront le logement au prochain artisan.
+          </p>
+          <ImportForm customers={customers} />
+        </details>
+      ) : null}
       {list.length ? (
         <ul className="card divide-y divide-border text-sm" data-testid="carnets">
           {list.map((h) => (
