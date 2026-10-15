@@ -1832,6 +1832,16 @@ test("mode facile : images et commande écrite", async ({ page }) => {
   await page.waitForURL(/\/app\/pointage$/);
 });
 
+test("note de confiance : détail des critères", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise?onglet=vitrine");
+  await page.getByRole("link", { name: /Note de confiance : calculée sur vos chantiers/ }).click();
+  await page.waitForURL(/\/app\/entreprise\/confiance$/);
+  await expect(page.getByRole("heading", { name: "Détail des critères" })).toBeVisible();
+  await expect(page.getByText("Réceptions sans réserve")).toBeVisible();
+  await audit(page, "note de confiance");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

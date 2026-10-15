@@ -2274,6 +2274,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "note-de-confiance",
+    category: "compte",
+    title: "Note de confiance sur 100",
+    summary: "Une note calculée uniquement sur vos chantiers vérifiés, que vous pouvez afficher sur votre vitrine.",
+    steps: [
+      "Ouvrez Entreprise, onglet Vitrine, puis Note de confiance. La note apparaît à partir de trois chantiers réceptionnés avec procès-verbal signé dans l'application.",
+      "Six critères : chantiers réceptionnés (25 points), réceptions sans réserve (20), réserves levées (10), délais tenus à 7 jours près (20), avis des clients de ces chantiers (20), SIRET et assurance décennale (5).",
+      "Rien n'est déclaratif : un avis ne compte que s'il vient du client d'un chantier réceptionné, et une réception refusée n'est pas comptée.",
+      "L'affichage sur la vitrine est votre choix et se retire en un clic. La section Pour progresser indique ce qui ferait gagner le plus de points.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

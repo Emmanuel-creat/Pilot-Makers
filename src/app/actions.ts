@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { setTrustShown } from "@/lib/services/trust-score";
 import { importWork, publishWork, reportWork, toggleWorkVote, updateWork } from "@/lib/services/open-works";
 import { parseComposition } from "@/lib/open-works";
 import { submitQuiz } from "@/lib/services/training";
@@ -3477,4 +3478,15 @@ export async function openWorkReportAction(_: ActionState, fd: FormData): Promis
   }
   revalidatePath("/app/catalogue/base-ouverte");
   return { ok: true, message: hidden ? "Signalement enregistré : la fiche est masquée en attendant la modération" : "Signalement enregistré, merci" };
+}
+
+export async function trustDisplayAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const shown = s(fd, "shown") === "1";
+  try {
+    await withCtx((ctx) => setTrustShown(ctx, shown));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/entreprise/confiance");
+  return { ok: true, message: shown ? "La note sera affichée sur votre vitrine dès qu'elle repose sur trois chantiers réceptionnés." : "La note n'est plus affichée sur votre vitrine." };
 }

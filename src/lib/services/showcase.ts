@@ -7,6 +7,7 @@
  * seulement la ville si l'entreprise le souhaite.
  */
 
+import { publicTrust } from "./trust-score";
 import { notifyOrg } from "./push";
 import { cleanHours, DAYS, parseDayHours } from "@/lib/business-listing";
 import type { Hours, ListingSource } from "@/lib/business-listing";
@@ -188,12 +189,13 @@ export interface PublicShowcase {
   labels: PublicLabel[];
   reviews: Awaited<ReturnType<typeof publicReviews>>;
   visits: boolean;
+  trust: Awaited<ReturnType<typeof publicTrust>>;
 }
 
 export async function publicShowcase(db: Queryable, slug: string): Promise<PublicShowcase | null> {
   const r = await one<Record<string, unknown>>(
     db,
-    `SELECT s.org_id, s.slug, s.intro, s.area, s.hours, s.visit_settings, s.show_phone, s.show_email, o.trade_name, o.trade, o.city, o.postal_code, o.phone, o.email,
+    `SELECT s.org_id, s.slug, s.intro, s.area, s.hours, s.visit_settings, s.show_phone, s.show_email, s.show_trust, o.trade_name, o.trade, o.city, o.postal_code, o.phone, o.email,
             o.website, o.logo_data, o.siret, o.insurance_decennale, o.insurance_name, o.insurance_area
      FROM showcases s JOIN organizations o ON o.id=s.org_id
      WHERE s.slug=$1 AND s.enabled`,
@@ -224,6 +226,7 @@ export async function publicShowcase(db: Queryable, slug: string): Promise<Publi
     labels: await orgPublicLabels(db, String(r.org_id), parisDate(new Date())),
     reviews: await publicReviews(db, String(r.org_id)),
     visits: readVisitSettings(r.visit_settings).enabled,
+    trust: await publicTrust(db, String(r.org_id), !!r.show_trust),
   };
 }
 

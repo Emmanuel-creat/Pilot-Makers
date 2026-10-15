@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "note-de-confiance",
+    date: "2026-10-15",
+    title: "Note de confiance sur vos chantiers vérifiés",
+    text: "Réceptions signées, réserves levées, délais tenus et avis des clients : une note sur 100 que vous pouvez afficher sur votre vitrine.",
+    href: "/app/entreprise/confiance",
+  },
+  {
     id: "mode-facile",
     date: "2026-10-15",
     title: "Mode facile : images et voix",

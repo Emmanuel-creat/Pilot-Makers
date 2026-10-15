@@ -156,6 +156,11 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
         <RemindersForm initial={readSettings(reminder_settings)} allowed={!!ctx.entitlements.plan.features.reminders} canEdit={canEdit} />
       ) : tab === "vitrine" ? (
         <>
+          <p className="mb-4 text-sm">
+            <Link href="/app/entreprise/confiance" className="link">
+              Note de confiance : calculée sur vos chantiers réceptionnés, affichable sur la vitrine
+            </Link>
+          </p>
           <Showcase settings={showcase!} photos={await listShowcasePhotos(ctx)} canEdit={canEdit} orgName={org.trade_name || org.legal_name} />
           <VisitSettingsForm settings={await getVisitSettings(ctx)} slug={showcase!.slug} published={showcase!.enabled} canEdit={canEdit} />
           <Listing listing={await getListing(ctx)} canEdit={canEdit} />

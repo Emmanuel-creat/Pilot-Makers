@@ -122,6 +122,19 @@ export default async function ShowcasePage({ params, searchParams }: { params: P
                 </span>
               </p>
             ) : null}
+            {p.trust ? (
+              <p className="flex items-start gap-2" data-testid="note-confiance">
+                <Icon name="check" size={16} className="mt-0.5 text-success" />
+                <span>
+                  <span className="font-medium">
+                    Note de confiance : {p.trust.score} sur 100 ({p.trust.levelLabel.toLowerCase()})
+                  </span>
+                  <span className="block text-muted">
+                    Calculée sur {p.trust.verifiedJobs} chantiers réceptionnés avec procès-verbal signé : réserves, délais et avis des clients de ces chantiers.
+                  </span>
+                </span>
+              </p>
+            ) : null}
             {p.labels.map((l) => (
               <p key={`${l.title}-${l.number}`} className="flex items-start gap-2">
                 <Icon name="star" size={16} className="mt-0.5 text-success" />
