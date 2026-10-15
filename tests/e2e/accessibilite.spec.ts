@@ -2038,6 +2038,18 @@ test("mode absence : préparation, période et contact de secours", async ({ pag
   await expect(page.getByText(/Absence en cours/)).toHaveCount(0);
 });
 
+test("rapports : mon vrai salaire par heure travaillée", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Mon vrai salaire" }).click();
+  await page.waitForURL(/\/app\/rapports\/vrai-salaire$/);
+  await page.getByLabel("Revenu net mensuel visé, en euros").fill("3000");
+  await page.getByRole("button", { name: "Recalculer" }).click();
+  await page.waitForURL(/objectif=3000/);
+  await expect(page.getByTestId("vrai-salaire")).toContainText("Par heure travaillée");
+  await audit(page, "vrai salaire");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

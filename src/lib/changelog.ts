@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "vrai-salaire",
+    date: "2026-10-15",
+    title: "Mon vrai salaire",
+    text: "Ce qui vous reste vraiment par mois et par heure travaillée, et la hausse de prix nécessaire pour vivre correctement de votre métier.",
+    href: "/app/rapports/vrai-salaire",
+  },
+  {
     id: "mode-absence",
     date: "2026-10-15",
     title: "Mode absence",

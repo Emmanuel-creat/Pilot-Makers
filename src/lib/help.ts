@@ -2431,6 +2431,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "vrai-salaire",
+    category: "regles",
+    title: "Mon vrai salaire : ce que vous gagnez par heure",
+    summary: "Le revenu net qui vous reste vraiment, par mois et par heure travaillée, et la hausse de prix nécessaire pour atteindre votre objectif.",
+    steps: [
+      "Ouvrez Rapports puis Mon vrai salaire. Le chiffre d'affaires et les achats des douze derniers mois viennent de l'application.",
+      "Choisissez votre régime, ajustez le taux de cotisations si votre expert-comptable vous en a donné un, ajoutez les charges que l'application ne connaît pas (salaires de l'équipe, loyer) et vos heures réelles, bureau compris.",
+      "Le résultat montre votre revenu net par mois et par heure, et la part de chaque euro facturé qui part en charges, en cotisations et qui vous reste.",
+      "Indiquez le revenu mensuel visé : s'il n'est pas atteint, la hausse de prix nécessaire à charges égales s'affiche. Les taux sont indicatifs.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
