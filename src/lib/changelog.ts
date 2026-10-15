@@ -17,6 +17,12 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "dossier-de-preuves",
+    date: "2026-10-15",
+    title: "Dossier de preuves du chantier",
+    text: "Devis signé, photos datées, réception, réserves et factures réunis dans une archive aux empreintes vérifiables, pour viser zéro litige.",
+  },
+  {
     id: "indice-activite",
     date: "2026-10-15",
     title: "Indice de l'activité artisanale",

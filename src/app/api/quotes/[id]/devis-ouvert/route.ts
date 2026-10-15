@@ -8,7 +8,10 @@ export const GET = api<{ id: string }>(async ({ ctx, params }) => {
   return new Response(JSON.stringify(doc, null, 2), {
     headers: {
       "content-type": `${EXCHANGE_FORMAT.mediaType}; charset=utf-8`,
-      "content-disposition": `attachment; filename="${encodeURIComponent(filename)}"`,
+      "content-disposition": `attachment; filename="${filename
+        .normalize("NFD")
+        .replace(/[^\x20-\x7e]/g, "")
+        .replace(/"/g, "")}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       "cache-control": "private, no-store",
     },
   });

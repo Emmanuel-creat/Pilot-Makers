@@ -2324,6 +2324,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "dossier-de-preuves",
+    category: "clients",
+    title: "Dossier de preuves d'un chantier",
+    summary: "Tout ce qui a été signé, photographié et horodaté sur un chantier, dans une seule archive vérifiable, pour éviter et régler les litiges.",
+    steps: [
+      "Sur la fiche d'un chantier, ouvrez Dossier de preuves : la chronologie reprend l'envoi, la consultation et l'acceptation du devis, les photos datées, la réception, les réserves levées, les factures et les paiements.",
+      "Les points de contrôle indiquent ce qui manque : photos avant travaux, photos de fin, procès-verbal, réserves, facture.",
+      "Télécharger le dossier produit une archive ZIP avec toutes les pièces, la chronologie et le fichier des empreintes SHA-256.",
+      "Celui qui reçoit l'archive vérifie qu'aucune pièce n'a été modifiée en recalculant les empreintes. Chaque téléchargement est enregistré dans l'historique.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

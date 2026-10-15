@@ -1901,6 +1901,23 @@ test("indice de l'activité : page publique et données ouvertes", async ({ page
   expect((await r.json()).points).toHaveLength(13);
 });
 
+test("chantier : dossier de preuves téléchargeable", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Dossier de preuves" }).click();
+  await page.waitForURL(/\/preuves$/);
+  await expect(page.getByRole("heading", { name: /Points de contrôle/ })).toBeVisible();
+  await expect(page.getByText(/Devis accepté/).first()).toBeVisible();
+  await audit(page, "dossier de preuves");
+  const href = (await page.getByRole("link", { name: "Télécharger le dossier" }).getAttribute("href"))!;
+  const r = await page.request.get(href);
+  expect(r.status()).toBe(200);
+  expect(r.headers()["content-disposition"]).toMatch(/filename="Dossier-de-preuves-.*\.zip"/);
+  expect((await r.body()).subarray(0, 2).toString()).toBe("PK");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
