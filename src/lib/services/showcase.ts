@@ -8,6 +8,7 @@
  */
 
 import { publicTrust } from "./trust-score";
+import { publicAway, routeDuringAway } from "./away-mode";
 import { notifyOrg } from "./push";
 import { cleanHours, DAYS, parseDayHours } from "@/lib/business-listing";
 import type { Hours, ListingSource } from "@/lib/business-listing";
@@ -190,6 +191,7 @@ export interface PublicShowcase {
   reviews: Awaited<ReturnType<typeof publicReviews>>;
   visits: boolean;
   trust: Awaited<ReturnType<typeof publicTrust>>;
+  away: Awaited<ReturnType<typeof publicAway>>;
 }
 
 export async function publicShowcase(db: Queryable, slug: string): Promise<PublicShowcase | null> {
@@ -227,6 +229,7 @@ export async function publicShowcase(db: Queryable, slug: string): Promise<Publi
     reviews: await publicReviews(db, String(r.org_id)),
     visits: readVisitSettings(r.visit_settings).enabled,
     trust: await publicTrust(db, String(r.org_id), !!r.show_trust),
+    away: await publicAway(db, String(r.org_id)),
   };
 }
 
@@ -295,6 +298,7 @@ export async function requestFromShowcase(db: Queryable & { transaction: Ctx["db
       });
     }
     await notifyOrg(tx, s.org_id, { title: `Nouvelle demande de devis : ${l.name}`, body: l.description.slice(0, 140), url: "/app/demandes" });
+    await routeDuringAway(tx, s.org_id, { name: l.name, email: l.email, phone: l.phone, city: l.city, description: l.description });
   });
   return { ok: true };
 }

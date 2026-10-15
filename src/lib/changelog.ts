@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "mode-absence",
+    date: "2026-10-15",
+    title: "Mode absence",
+    text: "Partez l'esprit tranquille : relances automatiques, date de retour affichée aux clients, urgences transmises à votre contact de secours et bilan à votre retour.",
+    href: "/app/absence",
+  },
+  {
     id: "remise-cheques",
     date: "2026-10-15",
     title: "Bordereaux de remise de chèques",

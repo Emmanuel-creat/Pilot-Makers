@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { endAway, saveAway } from "@/lib/services/away-mode";
 import { cancelDeposit, createDeposit } from "@/lib/services/cheque-deposits";
 import { startExam, submitExam } from "@/lib/services/management-course";
 import { acquireListing, publishTemplate, settlePurchase, withdrawListing } from "@/lib/services/template-market";
@@ -3783,4 +3784,33 @@ export async function chequeDepositCancelAction(_: ActionState, fd: FormData): P
   }
   revalidatePath("/app/factures/remises");
   redirect("/app/factures/remises");
+}
+
+export async function awaySaveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      saveAway(ctx, {
+        from: s(fd, "from"),
+        to: s(fd, "to"),
+        message: s(fd, "message"),
+        backupName: s(fd, "backupName"),
+        backupPhone: s(fd, "backupPhone"),
+        backupEmail: s(fd, "backupEmail"),
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/absence");
+  return { ok: true, message: "Absence enregistrée : vos clients seront prévenus pendant cette période." };
+}
+
+export async function awayEndAction(_: ActionState): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => endAway(ctx));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/absence");
+  redirect("/app/absence?retour=1");
 }

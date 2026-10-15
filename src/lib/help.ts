@@ -2419,6 +2419,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "mode-absence",
+    category: "compte",
+    title: "Partir en congés : le mode absence",
+    summary: "Les relances tournent seules, vos clients connaissent votre date de retour et les urgences vont à votre contact de secours.",
+    steps: [
+      "Ouvrez Mode absence depuis Plus. La liste Avant de partir indique ce qui tournera seul (relances des devis et des factures) et ce qu'il faut régler : chantiers planifiés, chèques à remettre, devis en brouillon.",
+      "Indiquez les dates, un message pour les clients si vous le souhaitez, et un contact de secours (un confrère, un salarié) avec son téléphone ou son e-mail.",
+      "Pendant l'absence, votre page vitrine affiche votre date de retour. Chaque demande reçue est enregistrée, le client reçoit le message d'absence, et une demande urgente (fuite, panne, plus de chauffage) est transmise au contact de secours.",
+      "Au retour, le bilan montre les demandes reçues, les urgences transmises, les devis acceptés, les relances envoyées et les sommes encaissées. Cliquez sur Je suis de retour pour terminer l'absence.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

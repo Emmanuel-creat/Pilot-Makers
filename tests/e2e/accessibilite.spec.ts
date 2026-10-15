@@ -2021,6 +2021,23 @@ test("factures : remises de chèques en banque", async ({ page }) => {
   await audit(page, "remises de chèques");
 });
 
+test("mode absence : préparation, période et contact de secours", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Mode absence" }).click();
+  await page.waitForURL(/\/app\/absence$/);
+  await expect(page.getByTestId("absence-preparation")).toContainText("Relances des devis envoyés");
+  await page.getByLabel("Nom", { exact: true }).fill("Luc Bernard");
+  await page.getByLabel("Téléphone").fill("06 10 20 30 40");
+  await page.getByRole("button", { name: "Programmer l'absence" }).click();
+  await expect(page.getByText(/Absence enregistrée/)).toBeVisible();
+  await expect(page.getByText(/Absence en cours jusqu'au/)).toBeVisible();
+  await audit(page, "mode absence");
+  await page.getByRole("button", { name: "Je suis de retour" }).click();
+  await expect(page.getByText("Bon retour", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Absence en cours/)).toHaveCount(0);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

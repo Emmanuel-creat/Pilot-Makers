@@ -63,6 +63,13 @@ export default async function ShowcasePage({ params, searchParams }: { params: P
           </div>
         </header>
 
+        {p.away ? (
+          <p role="status" className="card flex items-start gap-2 border-warning/30 bg-warning-soft p-4 text-sm" data-testid="vitrine-absence">
+            <Icon name="calendar" size={16} className="mt-0.5 shrink-0" />
+            <span>{p.away.message}</span>
+          </p>
+        ) : null}
+
         {p.intro ? (
           <section className="card p-6" aria-labelledby="presentation">
             <h2 id="presentation" className="mb-2 font-semibold">

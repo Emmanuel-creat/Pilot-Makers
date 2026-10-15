@@ -33,6 +33,7 @@ export const MENU_MODULES: MenuModule[] = [
   { key: "comptabilite", href: "/app/comptabilite", label: "Comptabilité", icon: "archive", hint: "Exports pour le cabinet comptable.", needs: "billing" },
   { key: "catalogue", href: "/app/catalogue", label: "Catalogue", icon: "box", hint: "Prestations, fournitures et prix." },
   { key: "fin-de-journee", href: "/app/fin-de-journee", label: "Fin de journée", icon: "clock", hint: "Ce qui reste à boucler avant 18 heures." },
+  { key: "absence", href: "/app/absence", label: "Absence", icon: "sun", hint: "Partir sereinement : relances seules, urgences transmises." },
   { key: "renovations", href: "/app/renovations", label: "Rénovations coordonnées", icon: "team", hint: "Un client, plusieurs artisans, un seul pilote." },
   { key: "facile", href: "/app/facile", label: "Mode facile", icon: "mic", hint: "Grandes images et voix, sans avoir à écrire." },
   { key: "formation", href: "/app/formation", label: "Formation", icon: "star", hint: "Modules courts sur les règles qui changent." },
