@@ -2225,6 +2225,23 @@ test("carnet de logement : fichier au format ouvert téléchargé puis repris", 
   await audit(page, "carnet repris d'un fichier");
 });
 
+test("connexion unique : réglage de l'annuaire et entrée sur la page de connexion", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise");
+  await page.getByRole("link", { name: /Connexion unique/ }).click();
+  await page.waitForURL(/\/app\/entreprise\/connexion-unique$/);
+  await expect(page.getByText("/api/auth/sso/retour")).toBeVisible();
+  await audit(page, "connexion unique");
+  await page.context().clearCookies();
+  await page.goto("/connexion");
+  await page.getByText("Connexion d'entreprise").click();
+  await page.getByLabel("Adresse e-mail professionnelle").fill("paul@sans-annuaire.fr");
+  await page.getByRole("button", { name: "Continuer avec l'annuaire de l'entreprise" }).click();
+  await page.waitForURL(/\/connexion\?sso=/);
+  await expect(page.getByText("Aucune connexion d'entreprise pour cette adresse")).toBeVisible();
+  await audit(page, "connexion d'entreprise refusée");
+});
+
 test("équipe : agences et activité par établissement", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

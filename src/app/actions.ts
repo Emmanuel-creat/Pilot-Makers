@@ -111,6 +111,7 @@ import { importHomeRecordFile, importSharedHomeRecord } from "@/lib/services/hom
 import { setAidStep } from "@/lib/services/energy-diagnoses";
 import { setCommitments } from "@/lib/services/commitments";
 import { deleteRuleVersion, publishRuleVersion } from "@/lib/services/country-rules";
+import { deleteSsoConfig, saveSsoConfig } from "@/lib/services/sso";
 import { resolveFeedback, sendFeedback } from "@/lib/services/feedback";
 import { addLeftover, deleteLeftover } from "@/lib/services/material-balance";
 import { setJobCarbonSettings } from "@/lib/services/job-carbon";
@@ -3981,4 +3982,27 @@ export async function importHomeRecordFileAction(_: ActionState, fd: FormData): 
   }
   revalidatePath("/app/carnets");
   redirect(`/app/carnets/${r.recordId}?repris=${r.imported}`);
+}
+
+export async function saveSsoAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      saveSsoConfig(ctx, {
+        issuer: s(fd, "issuer"),
+        clientId: s(fd, "clientId"),
+        clientSecret: s(fd, "clientSecret"),
+        domains: s(fd, "domains"),
+        enforced: s(fd, "enforced") === "1",
+      }),
+    );
+    revalidatePath("/app/entreprise/connexion-unique");
+    return { ok: true, message: "Annuaire relié : vos équipes peuvent choisir « Connexion d'entreprise » sur la page de connexion." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteSsoAction() {
+  await withCtx((ctx) => deleteSsoConfig(ctx));
+  revalidatePath("/app/entreprise/connexion-unique");
 }

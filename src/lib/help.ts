@@ -2632,6 +2632,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "connexion-unique",
+    category: "compte",
+    title: "Relier l'annuaire de l'entreprise (connexion unique)",
+    summary: "Vos équipes se connectent avec leur compte Microsoft, Google ou Okta.",
+    steps: [
+      "Dans votre fournisseur d'identité, créez une application OpenID Connect avec l'adresse de retour indiquée dans Entreprise, Connexion unique.",
+      "Recopiez l'adresse de l'émetteur, l'identifiant et le secret de l'application, puis les domaines de messagerie de l'entreprise.",
+      "Invitez vos équipes depuis Équipe comme d'habitude. Elles choisissent ensuite « Connexion d'entreprise » sur la page de connexion.",
+      "Cochez « Imposer la connexion unique » pour refuser le mot de passe sur ces adresses : un compte fermé dans l'annuaire ne peut plus entrer.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

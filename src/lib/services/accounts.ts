@@ -2,6 +2,7 @@
  * Comptes, sessions et sécurité d'accès (module A).
  */
 
+import { ssoEnforcedFor } from "./sso";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import type { Database, Queryable } from "@/lib/db";
@@ -200,6 +201,7 @@ async function checkCredentials(db: Database, emailInput: string, password: stri
   if (!user || !ok) throw unauthorized("Adresse e-mail ou mot de passe incorrect");
   if (user.status === "suspended") throw forbidden("Ce compte est suspendu. Contactez l'assistance.");
   if (user.status === "deleted") throw unauthorized("Adresse e-mail ou mot de passe incorrect");
+  if (await ssoEnforcedFor(db, email)) throw forbidden("Votre entreprise impose sa connexion unique : choisissez « Connexion d'entreprise ».");
   return user.id;
 }
 

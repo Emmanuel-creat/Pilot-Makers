@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "connexion-unique",
+    date: "2026-10-15",
+    title: "Connexion unique pour les entreprises",
+    text: "Le gérant relie l'annuaire de l'entreprise (Microsoft, Google, Okta ou tout fournisseur OpenID Connect) : l'équipe se connecte avec son compte habituel, et un départ fermé dans l'annuaire ferme aussi l'accès.",
+    href: "/aide/connexion-unique",
+  },
+  {
     id: "carnet-format-ouvert",
     date: "2026-10-15",
     title: "Carnet du logement dans un fichier au format ouvert",

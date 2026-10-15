@@ -107,6 +107,13 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           Taux de TVA en vigueur : {rulesInfo.current.vatOptions.join(" %, ")} %. {rulesInfo.current.version.note}
         </Notice>
       ) : null}
+      {tab === "identite" && can(ctx, "settings") ? (
+        <p className="mb-4 text-sm">
+          <Link href="/app/entreprise/connexion-unique" className="link">
+            Connexion unique : relier l&apos;annuaire de l&apos;entreprise (Microsoft, Google, Okta)
+          </Link>
+        </p>
+      ) : null}
       {tab === "factures" ? (
         <InvoiceSettingsForm
           canEdit={canEdit}
