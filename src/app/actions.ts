@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { setJobCarbonSettings } from "@/lib/services/job-carbon";
 import { endAway, saveAway } from "@/lib/services/away-mode";
 import { cancelDeposit, createDeposit } from "@/lib/services/cheque-deposits";
 import { startExam, submitExam } from "@/lib/services/management-course";
@@ -3813,4 +3814,15 @@ export async function awayEndAction(_: ActionState): Promise<ActionState> {
   }
   revalidatePath("/app/absence");
   redirect("/app/absence?retour=1");
+}
+
+export async function jobCarbonAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const jobId = s(fd, "jobId");
+  try {
+    await withCtx((ctx) => setJobCarbonSettings(ctx, jobId, { tripKm: s(fd, "tripKm"), vehicle: s(fd, "vehicle"), trips: s(fd, "trips") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/chantiers/${jobId}/carbone`);
+  return { ok: true, message: "Déplacements enregistrés : le bilan est recalculé." };
 }

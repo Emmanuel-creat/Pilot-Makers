@@ -2050,6 +2050,20 @@ test("rapports : mon vrai salaire par heure travaillée", async ({ page }) => {
   await audit(page, "vrai salaire");
 });
 
+test("chantier : bilan carbone par poste et leviers", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Bilan carbone" }).click();
+  await page.waitForURL(/\/carbone$/);
+  await expect(page.getByTestId("carbone-postes")).toContainText("Produits posés");
+  await page.getByLabel("Aller-retour, en km").fill("30");
+  await page.getByRole("button", { name: "Enregistrer" }).click();
+  await expect(page.getByText(/Déplacements enregistrés/)).toBeVisible();
+  await audit(page, "bilan carbone du chantier");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

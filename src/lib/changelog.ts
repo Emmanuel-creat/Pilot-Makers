@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "bilan-carbone-chantier",
+    date: "2026-10-15",
+    title: "Bilan carbone de chaque chantier",
+    text: "Produits, déplacements et déchets : l'empreinte du chantier par poste, avec les économies possibles chiffrées pour la réduire.",
+    href: "/app/chantiers",
+  },
+  {
     id: "vrai-salaire",
     date: "2026-10-15",
     title: "Mon vrai salaire",

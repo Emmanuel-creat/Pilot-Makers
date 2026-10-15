@@ -108,6 +108,9 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <Link className="btn-secondary" href={`/app/chantiers/${job.id}/securite`}>
               <Icon name="shield" size={16} /> Plan de prévention
             </Link>
+            <Link className="btn-secondary" href={`/app/chantiers/${job.id}/carbone`}>
+              <Icon name="cloud" size={16} /> Bilan carbone
+            </Link>
             <Link className="btn-secondary" href={`/app/chantiers/${job.id}/preuves`}>
               <Icon name="lock" size={16} /> Dossier de preuves
             </Link>

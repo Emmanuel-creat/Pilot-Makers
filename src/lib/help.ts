@@ -2443,6 +2443,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "bilan-carbone-chantier",
+    category: "regles",
+    title: "Le bilan carbone de chaque chantier",
+    summary: "Produits posés, déplacements et déchets évacués : l'empreinte du chantier par poste, et les leviers pour la réduire.",
+    steps: [
+      "Ouvrez un chantier puis Bilan carbone. Les produits viennent du devis accepté, d'après la fiche environnementale du catalogue ou un ordre de grandeur.",
+      "Indiquez la distance aller-retour entre le dépôt et le chantier et le véhicule : le nombre d'allers-retours se calcule d'après les jours pointés, ou à défaut le planning.",
+      "Les déchets évacués inscrits sur le chantier sont comptés selon leur nature et leur tri. Indiquez leur poids plutôt que leur volume.",
+      "Les leviers chiffrent l'économie possible : trier les déchets, regrouper les interventions, passer à un véhicule électrique, choisir des produits biosourcés.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
