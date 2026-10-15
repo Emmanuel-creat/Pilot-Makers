@@ -2336,6 +2336,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "zero-impaye",
+    category: "factures",
+    title: "Zéro impayé : l'avance consentie à vos clients",
+    summary:
+      "Pour chaque chantier en cours, la valeur des travaux réalisés comparée à ce qui est facturé et encaissé, avec les gestes qui réduisent le risque.",
+    steps: [
+      "Ouvrez Factures puis Zéro impayé. Chaque chantier en cours issu d'un devis accepté affiche le réalisé (d'après l'avancement des tâches), le facturé, l'encaissé et l'avance au client.",
+      "Un chantier est à surveiller quand l'avance dépasse 10 % du devis, à risque au-delà de 30 %, à partir de 500 euros.",
+      "Les conseils indiquent quoi faire : paiement par étapes validées en photo, situation de travaux, relance des factures, et en dernier recours suspension après information écrite du client.",
+      "Tenez l'avancement des tâches à jour sur la fiche du chantier : c'est lui qui mesure le réalisé.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

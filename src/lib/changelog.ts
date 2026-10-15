@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "zero-impaye",
+    date: "2026-10-15",
+    title: "Zéro impayé",
+    text: "Sur chaque chantier, ce que vous avez avancé au client entre travaux réalisés et sommes encaissées, avec les gestes pour le réduire.",
+    href: "/app/factures/zero-impaye",
+  },
+  {
     id: "dossier-de-preuves",
     date: "2026-10-15",
     title: "Dossier de preuves du chantier",

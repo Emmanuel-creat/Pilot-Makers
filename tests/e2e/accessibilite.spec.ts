@@ -1918,6 +1918,15 @@ test("chantier : dossier de preuves téléchargeable", async ({ page }) => {
   expect((await r.body()).subarray(0, 2).toString()).toBe("PK");
 });
 
+test("factures : zéro impayé par chantier", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/factures");
+  await page.getByRole("link", { name: "Zéro impayé" }).click();
+  await page.waitForURL(/\/app\/factures\/zero-impaye$/);
+  await expect(page.getByTestId("avance-totale")).toBeVisible();
+  await audit(page, "zéro impayé");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -28,14 +28,24 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
         subtitle="Acomptes, factures de solde et avoirs, émis depuis les devis acceptés."
         actions={
           can(ctx, "billing") ? (
-            <Link href="/app/banque" className="btn-secondary">
-              Rapprochement bancaire
-            </Link>
+            <>
+              <Link href="/app/factures/zero-impaye" className="btn-secondary">
+                Zéro impayé
+              </Link>
+              <Link href="/app/banque" className="btn-secondary">
+                Rapprochement bancaire
+              </Link>
+            </>
           ) : null
         }
       />
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat label="Reste à encaisser" value={formatEuros(summary.toCollectCents)} hint={`${summary.openCount} facture(s)`} href="/app/factures?statut=issued" />
+        <Stat
+          label="Reste à encaisser"
+          value={formatEuros(summary.toCollectCents)}
+          hint={`${summary.openCount} facture(s)`}
+          href="/app/factures?statut=issued"
+        />
         <Stat label="En retard" value={formatEuros(summary.overdueCents)} hint={`${summary.overdueCount} facture(s)`} href="/app/factures?statut=overdue" />
         <Stat label="Factures émises" value={String(items.length)} hint="selon le filtre" />
       </div>
@@ -75,7 +85,8 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
             <button className="btn-secondary">Télécharger le fichier des écritures</button>
           </form>
           <p className="mt-2 text-xs text-muted">
-            Ventes, règlements et notes de frais au format officiel (18 colonnes, séparateur tabulation), à transmettre à votre expert-comptable. Autres formats dans Comptabilité.
+            Ventes, règlements et notes de frais au format officiel (18 colonnes, séparateur tabulation), à transmettre à votre expert-comptable. Autres formats
+            dans Comptabilité.
           </p>
         </details>
       ) : null}
