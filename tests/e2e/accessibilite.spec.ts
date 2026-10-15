@@ -2213,6 +2213,34 @@ test("administration : règles par pays publiées à une date, sans nouvelle ver
   await expect(page.getByTestId("regles-LU")).not.toContainText("Prochain changement");
 });
 
+test("coffre chiffré : pièce chiffrée sur l'appareil puis rouverte avec la phrase secrète", async ({ page }) => {
+  test.setTimeout(60_000);
+  await login(page);
+  await page.goto("/app/coffre");
+  await expect(page.getByRole("heading", { level: 1, name: "Coffre chiffré" })).toBeVisible();
+  await audit(page, "coffre chiffré");
+  const phrase = "la maison au bout du chemin";
+  await page.getByTestId("coffre-phrase").fill(phrase);
+  await page.getByRole("button", { name: "Ouvrir le coffre" }).click();
+  await page.getByTestId("coffre-fichier").setInputFiles({ name: "contrat-confidentiel.txt", mimeType: "text/plain", buffer: Buffer.from("Clause secrète 42") });
+  await expect(page.getByTestId("coffre-liste")).toContainText("contrat-confidentiel.txt");
+  await page.getByRole("button", { name: "Refermer le coffre" }).click();
+  await page.reload();
+  await page.getByTestId("coffre-phrase").fill("une phrase qui ne va pas");
+  await page.getByRole("button", { name: "Ouvrir le coffre" }).click();
+  await expect(page.locator("p[role=alert]")).toContainText("n'ouvre aucune pièce");
+  await page.getByTestId("coffre-phrase").fill(phrase);
+  await page.getByRole("button", { name: "Ouvrir le coffre" }).click();
+  const item = page.getByTestId("coffre-liste").locator("li", { hasText: "contrat-confidentiel.txt" });
+  const [download] = await Promise.all([page.waitForEvent("download"), item.getByRole("button", { name: "Ouvrir" }).click()]);
+  expect(download.suggestedFilename()).toBe("contrat-confidentiel.txt");
+  const chunks: Buffer[] = [];
+  for await (const c of (await download.createReadStream())!) chunks.push(c as Buffer);
+  expect(Buffer.concat(chunks).toString()).toBe("Clause secrète 42");
+  await item.getByRole("button", { name: "Retirer" }).click();
+  await expect(page.getByTestId("coffre-liste")).toHaveCount(0);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

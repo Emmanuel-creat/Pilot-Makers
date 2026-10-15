@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "coffre-chiffre",
+    date: "2026-10-15",
+    title: "Coffre chiffré pour les pièces confidentielles",
+    text: "Contrats de travail, pièces d'identité ou plans sensibles sont chiffrés sur votre appareil avant l'envoi, nom compris. Seule votre phrase secrète les rouvre.",
+    href: "/app/coffre",
+  },
+  {
     id: "regles-pays",
     date: "2026-10-15",
     title: "Taux de TVA à jour dès leur entrée en vigueur",

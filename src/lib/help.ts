@@ -2584,6 +2584,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "coffre-chiffre",
+    category: "compte",
+    title: "Ranger une pièce confidentielle dans le coffre chiffré",
+    summary: "Chiffrée sur votre appareil, illisible pour tous sans la phrase secrète.",
+    steps: [
+      "Ouvrez Plus, puis Coffre chiffré, et saisissez une phrase secrète d'au moins 12 caractères. Elle n'est jamais envoyée.",
+      "Cliquez sur « Ajouter une pièce » : le fichier et son nom sont chiffrés sur votre appareil, puis seuls les octets chiffrés sont envoyés.",
+      "Pour relire une pièce, rouvrez le coffre avec la même phrase et cliquez sur « Ouvrir » : le déchiffrement se fait sur votre appareil.",
+      "Une phrase perdue ne se récupère pas : transmettez-la de vive voix aux personnes de l'équipe qui en ont besoin.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
