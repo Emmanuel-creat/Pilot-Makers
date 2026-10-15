@@ -6,9 +6,9 @@ const propose = (text: string, profession = "") => localProvider.propose({ text,
 const labels = async (text: string, profession = "") => (await propose(text, profession)).sections.flatMap((s) => s.lines.map((l) => l.label));
 
 describe("bibliothèques par métier", () => {
-  it("couvre 15 métiers, chacun avec des prestations, des questions et des points de contrôle", () => {
+  it("couvre 17 métiers, chacun avec des prestations, des questions et des points de contrôle", () => {
     const trades = LIBRARY_TRADES.filter((t) => t.code !== "commun");
-    expect(trades).toHaveLength(15);
+    expect(trades).toHaveLength(17);
     for (const t of trades) {
       const lib = LIBRARY[t.code];
       expect(lib.items.length).toBeGreaterThanOrEqual(5);
@@ -38,6 +38,8 @@ describe("assistant de préparation par métier", () => {
     ["menuiserie", "Remplacer 3 fenêtres double vitrage dans le salon.", /fenêtre double vitrage/],
     ["sols", "Poser du parquet flottant dans la chambre de 14 m².", /parquet flottant/],
     ["couverture", "Remplacer des tuiles cassées et changer les gouttières sur 18 ml.", /gouttières/],
+    ["déménagement", "Déménagement d'un appartement de 30 m3 avec 40 cartons et démontage des meubles.", /chargement, transport et livraison/],
+    ["réparation", "Le lave-linge est en panne, la pompe de vidange ne fonctionne plus.", /pompe de vidange/],
     ["chauffage", "Installer une pompe à chaleur air-eau à la place de la chaudière fioul.", /pompe à chaleur/],
     ["charpente", "Traitement de la charpente contre les capricornes.", /Traitement curatif/],
     ["façade", "Ravalement de façade avec traitement des fissures.", /ravalement/],

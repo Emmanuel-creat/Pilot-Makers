@@ -1950,6 +1950,14 @@ test("données ouvertes : portail, JSON et CSV", async ({ page }) => {
   expect(csv.headers()["content-type"]).toContain("text/csv");
 });
 
+test("métiers de service : présentés sur l'accueil et proposés à l'inscription", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("metiers-liste")).toContainText("Déménageur");
+  await expect(page.getByTestId("metiers-liste")).toContainText("Réparateur");
+  await page.goto("/inscription");
+  await expect(page.locator("#trade option", { hasText: "Déménageur" })).toHaveCount(1);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

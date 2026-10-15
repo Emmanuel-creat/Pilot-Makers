@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "metiers-de-service",
+    date: "2026-10-15",
+    title: "Déménageurs et réparateurs bienvenus",
+    text: "Deux nouvelles bibliothèques de prestations, déménagement et réparation, avec leurs questions au client et leurs points de contrôle, en plus des paysagistes.",
+    href: "/app/catalogue",
+  },
+  {
     id: "donnees-ouvertes",
     date: "2026-10-15",
     title: "Données ouvertes",

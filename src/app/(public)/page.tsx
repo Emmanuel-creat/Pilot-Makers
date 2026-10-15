@@ -3,6 +3,7 @@ import { Icon } from "@/components/Icon";
 import { getDb } from "@/lib/db";
 import { formatEuros } from "@/lib/calc/format";
 import { listPlans } from "@/lib/services/billing";
+import { LIBRARY_TRADES } from "@/lib/library";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +17,16 @@ const STEPS = [
 const FEATURES = [
   { icon: "euro", title: "Calculs exacts", text: "Montants en centimes, arrondis documentés, TVA ventilée par taux. Zéro erreur arithmétique." },
   { icon: "chart", title: "Marge prévisionnelle", text: "Coût interne et prix de vente séparés. Le coût n'apparaît jamais sur le devis du client." },
-  { icon: "history", title: "Versions figées", text: "Chaque devis émis est conservé tel quel, avec son empreinte. Une modification crée une nouvelle version." },
-  { icon: "shield", title: "Mentions contrôlées", text: "Avant l'émission, le logiciel vérifie les informations obligatoires : assurance, adresse du chantier, validité." },
+  {
+    icon: "history",
+    title: "Versions figées",
+    text: "Chaque devis émis est conservé tel quel, avec son empreinte. Une modification crée une nouvelle version.",
+  },
+  {
+    icon: "shield",
+    title: "Mentions contrôlées",
+    text: "Avant l'émission, le logiciel vérifie les informations obligatoires : assurance, adresse du chantier, validité.",
+  },
   { icon: "phone", title: "Sur le chantier", text: "Conçu pour le téléphone autant que pour l'ordinateur, avec sauvegarde automatique." },
   { icon: "download", title: "Vos données", text: "Export complet à tout moment. Si vous arrêtez de payer, vos documents restent accessibles." },
 ];
@@ -34,8 +43,7 @@ export default async function Home() {
             </p>
             <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Des devis professionnels en quelques minutes.</h1>
             <p className="mt-4 text-lg text-muted">
-              Réutilisez vos tarifs, calculez automatiquement HT, TVA, TTC et marge, envoyez un PDF propre et suivez les réponses de vos
-              clients.
+              Réutilisez vos tarifs, calculez automatiquement HT, TVA, TTC et marge, envoyez un PDF propre et suivez les réponses de vos clients.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/inscription" className="btn-primary px-5 py-3 text-base">
@@ -124,12 +132,24 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-6xl px-4 pt-16" aria-labelledby="metiers">
+        <h2 id="metiers" className="text-2xl font-semibold">
+          Pour le bâtiment et les métiers de service
+        </h2>
+        <p className="mt-2 max-w-3xl text-muted" data-testid="metiers-liste">
+          {LIBRARY_TRADES.filter((t) => t.code !== "commun")
+            .map((t) => t.profession)
+            .join(", ")}
+          . Chaque métier a sa bibliothèque de prestations, ses questions à poser au client et ses points de contrôle avant envoi.
+        </p>
+      </section>
+
       <section id="tarifs" className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="text-2xl font-semibold">Tarifs</h2>
         <p className="mt-1 text-sm text-muted">Prix hors taxes, sans engagement. Offres de lancement susceptibles d'évoluer.</p>
         <p className="mt-2 text-sm" data-testid="tarifs-apprentis">
-          Apprentis et élèves en formation : abonnement gratuit jusqu&apos;à la fin de la formation. Créateurs d&apos;entreprise : moitié prix la
-          première année. La demande se fait depuis la page Abonnement.
+          Apprentis et élèves en formation : abonnement gratuit jusqu&apos;à la fin de la formation. Créateurs d&apos;entreprise : moitié prix la première
+          année. La demande se fait depuis la page Abonnement.
         </p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((p) => (
@@ -186,9 +206,8 @@ export default async function Home() {
         <div className="mx-auto max-w-3xl px-4 py-16">
           <h2 className="text-2xl font-semibold">L'assistant prépare, vous décidez</h2>
           <p className="mt-3 text-muted">
-            L'assistant transforme votre description du chantier en lignes de devis. Il réutilise d'abord vos propres tarifs, signale chaque
-            quantité estimée, pose les questions qui manquent et ne choisit jamais le taux de TVA à votre place. Aucun devis n'est émis sans votre
-            confirmation explicite.
+            L'assistant transforme votre description du chantier en lignes de devis. Il réutilise d'abord vos propres tarifs, signale chaque quantité estimée,
+            pose les questions qui manquent et ne choisit jamais le taux de TVA à votre place. Aucun devis n'est émis sans votre confirmation explicite.
           </p>
         </div>
       </section>

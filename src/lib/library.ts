@@ -1,5 +1,5 @@
 /**
- * Bibliothèques de prestations fournies par le logiciel, pour 15 métiers.
+ * Bibliothèques de prestations fournies par le logiciel, pour 17 métiers, bâtiment et services.
  *
  * Les prix sont des valeurs de départ INDICATIVES destinées à être remplacées
  * par les tarifs de l'artisan. Ils ne constituent pas des prix de marché.
@@ -36,7 +36,9 @@ export type LibraryTrade =
   | "charpente"
   | "facade"
   | "serrurerie"
-  | "exterieurs";
+  | "exterieurs"
+  | "demenagement"
+  | "reparation";
 
 export interface TradeLibrary {
   label: string;
@@ -180,10 +182,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
       "Quelles couleurs et quelle finition (mat, velours, satin) ?",
       "Les murs nécessitent-ils une préparation (rebouchage, ponçage) ?",
     ],
-    checks: [
-      "Compter les surfaces murs et plafonds séparément, ouvertures déduites",
-      "Vérifier l'état des supports (fissures, humidité, anciennes peintures)",
-    ],
+    checks: ["Compter les surfaces murs et plafonds séparément, ouvertures déduites", "Vérifier l'état des supports (fissures, humidité, anciennes peintures)"],
     items: [
       mo("Lessivage des murs", "m²", "4", ["lessivage", "lessiver"], {
         subcategory: "Préparation",
@@ -236,8 +235,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
   plomberie: {
     label: "Plomberie et sanitaires",
     profession: "Plombier",
-    detect:
-      /plomb|lavabo|vasque|\bwc\b|toilette|douche|baignoire|mitigeur|robinet|evier|chauffe eau|ballon|tuyau|canalis|fuite|sanitaire|evacuation d eau/,
+    detect: /plomb|lavabo|vasque|\bwc\b|toilette|douche|baignoire|mitigeur|robinet|evier|chauffe eau|ballon|tuyau|canalis|fuite|sanitaire|evacuation d eau/,
     questions: ["Les appareils sanitaires sont-ils fournis par le client ?", "Les arrivées d'eau et les évacuations restent-elles au même endroit ?"],
     checks: ["Repérer les arrivées d'eau et les évacuations existantes", "Prévoir la coupure d'eau et la remise en service"],
     items: [
@@ -292,10 +290,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
       "Combien de prises, d'interrupteurs et de points lumineux faut-il prévoir ?",
       "Le tableau électrique actuel est-il récent et équipé de différentiels 30 mA ?",
     ],
-    checks: [
-      "Appliquer la norme NF C 15-100 aux circuits créés ou modifiés",
-      "Prévoir l'attestation de conformité si l'installation est entièrement refaite",
-    ],
+    checks: ["Appliquer la norme NF C 15-100 aux circuits créés ou modifiés", "Prévoir l'attestation de conformité si l'installation est entièrement refaite"],
     items: [
       mo("Création d'un point lumineux", "u", "95", ["point lumineux", "luminaire", "éclairage"], {
         section: "Équipements",
@@ -335,10 +330,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
     profession: "Maçon",
     detect: /macon|mur porteur|cloison|parpaing|beton|chape|dalle|fondation|demol|ouverture|linteau|ipn|muret/,
     questions: ["Le mur concerné est-il porteur ?", "L'accès permet-il l'approche d'engins ou de matériaux lourds ?"],
-    checks: [
-      "Faire valider toute ouverture dans un mur porteur par une étude de structure",
-      "Vérifier si les travaux demandent une déclaration en mairie",
-    ],
+    checks: ["Faire valider toute ouverture dans un mur porteur par une étude de structure", "Vérifier si les travaux demandent une déclaration en mairie"],
     items: [
       mo("Démolition de cloison", "m²", "35", ["démolition", "cloison", "abattre"], {
         subcategory: "Démolition",
@@ -492,10 +484,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
     profession: "Couvreur",
     detect: /toit|couverture|tuile|ardoise|gouttiere|zinguer|faitage|velux|fenetre de toit|demoussage|ecran sous toiture/,
     questions: ["Quelle est la surface et la pente de la toiture ?", "Quel est l'accès à la toiture (hauteur, échafaudage possible) ?"],
-    checks: [
-      "Prévoir l'échafaudage ou la nacelle et les protections contre les chutes",
-      "Vérifier si une déclaration préalable est nécessaire en mairie",
-    ],
+    checks: ["Prévoir l'échafaudage ou la nacelle et les protections contre les chutes", "Vérifier si une déclaration préalable est nécessaire en mairie"],
     items: [
       mo("Installation d'échafaudage", "m²", "14", ["échafaudage"], {
         section: "Préparation du chantier",
@@ -528,10 +517,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
     label: "Chauffage et climatisation",
     profession: "Chauffagiste",
     detect: /chauff|chaudiere|radiateur|pompe a chaleur|\bpac\b|clim|plancher chauffant|poele|thermostat|entretien annuel/,
-    questions: [
-      "Quel est le mode de chauffage actuel et la surface chauffée ?",
-      "Le client souhaite-t-il demander des aides à la rénovation énergétique ?",
-    ],
+    questions: ["Quel est le mode de chauffage actuel et la surface chauffée ?", "Le client souhaite-t-il demander des aides à la rénovation énergétique ?"],
     checks: ["Vérifier la qualification RGE exigée pour les aides du client", "Dimensionner l'équipement selon les déperditions du logement"],
     items: [
       mo("Remplacement de chaudière gaz à condensation", "forfait", "3800", ["chaudière", "condensation"], {
@@ -591,10 +577,7 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
     profession: "Façadier",
     detect: /facade|ravalement|crepi|nettoyage haute pression|fissure de facade|enduit exterieur/,
     questions: ["Quelle est la surface de façade et sa hauteur ?", "Quel est l'état de l'enduit actuel (fissures, décollements) ?"],
-    checks: [
-      "Vérifier si une déclaration préalable est nécessaire en mairie",
-      "Prévoir l'échafaudage et l'autorisation d'occupation du trottoir si besoin",
-    ],
+    checks: ["Vérifier si une déclaration préalable est nécessaire en mairie", "Prévoir l'échafaudage et l'autorisation d'occupation du trottoir si besoin"],
     items: [
       mo("Nettoyage de façade haute pression", "m²", "12", ["nettoyage", "haute pression"], {
         section: "Préparation des supports",
@@ -657,6 +640,100 @@ export const LIBRARY: Record<LibraryTrade, TradeLibrary> = {
         vat_percent: "20",
         section: "Entretien",
         when: [/dechets verts|branchages/],
+      }),
+    ],
+  },
+
+  demenagement: {
+    label: "Déménagement",
+    profession: "Déménageur",
+    detect: /demenag|carton|garde meuble|monte meuble|emballage|mobilier a transporter|volume en m3/,
+    questions: [
+      "Quel est le volume à déménager, en m³, et y a-t-il des objets fragiles ou lourds (piano, coffre) ?",
+      "Quels sont les étages, l'ascenseur et la distance de portage au départ et à l'arrivée ?",
+      "Faut-il une autorisation de stationnement pour le camion ?",
+    ],
+    checks: [
+      "Joindre la déclaration de valeur du mobilier et préciser la formule (économique, standard, luxe)",
+      "Indiquer la date et la plage horaire de chargement et de livraison",
+    ],
+    items: [
+      mo("Visite technique et estimation du volume", "forfait", "0", ["visite", "volume"], {
+        vat_percent: "20",
+        category: "forfait",
+        section: "Préparation",
+        when: [/visite|estimation|volume/],
+      }),
+      mo("Déménagement, chargement, transport et livraison", "m³", "45", ["déménagement", "volume"], {
+        vat_percent: "20",
+        section: "Déménagement",
+        when: [/demenag/],
+      }),
+      mo("Kilomètres parcourus au-delà de 50 km", "km", "1.9", ["distance", "kilomètres"], {
+        vat_percent: "20",
+        category: "deplacement",
+        section: "Déménagement",
+        when: [/\d+ ?km|kilometre|distance/],
+      }),
+      mat("Cartons standard fournis", "u", "3.5", "1.2", ["cartons"], { vat_percent: "20", section: "Fournitures", when: [/carton/] }),
+      mo("Emballage de la vaisselle et des objets fragiles", "m³", "35", ["emballage", "fragile"], {
+        vat_percent: "20",
+        section: "Préparation",
+        when: [/emball|fragile|vaisselle/],
+      }),
+      mo("Démontage et remontage du mobilier", "h", "45", ["démontage", "remontage", "meubles"], {
+        vat_percent: "20",
+        section: "Déménagement",
+        when: [/demont|remont/],
+      }),
+      mo("Location de monte-meubles", "demi-journée", "290", ["monte-meubles"], { vat_percent: "20", section: "Matériel", when: [/monte meuble|lift/] }),
+      mo("Demande d'autorisation de stationnement", "forfait", "60", ["stationnement", "autorisation"], {
+        vat_percent: "20",
+        category: "forfait",
+        section: "Préparation",
+        when: [/stationnement|autorisation/],
+      }),
+      mo("Garde-meubles", "m³ par mois", "18", ["garde-meubles", "stockage"], { vat_percent: "20", section: "Stockage", when: [/garde meuble|stock/] }),
+    ],
+  },
+
+  reparation: {
+    label: "Réparation et dépannage",
+    profession: "Réparateur",
+    detect: /repar|depann|en panne|ne fonctionne plus|electromenager|lave linge|lave vaisselle|refrigerateur|four |seche linge|chaudiere en panne/,
+    questions: [
+      "Quelle est la marque, le modèle et l'âge de l'appareil ?",
+      "Quel est le symptôme exact, et depuis quand ?",
+      "L'appareil est-il encore sous garantie ?",
+    ],
+    checks: [
+      "Préciser que le diagnostic est facturé même sans réparation, si c'est le cas",
+      "Indiquer la garantie des pièces et de la main-d'œuvre après réparation",
+    ],
+    items: [
+      mo("Déplacement et diagnostic", "forfait", "59", ["déplacement", "diagnostic"], {
+        vat_percent: "20",
+        category: "deplacement",
+        section: "Intervention",
+        when: [/diagnost|depann|panne/],
+      }),
+      mo("Main-d'œuvre de réparation", "h", "55", ["réparation", "main-d'œuvre"], { vat_percent: "20", section: "Intervention", when: [/repar/] }),
+      mat("Pièce détachée", "u", "0", "0", ["pièce", "pièce détachée"], {
+        vat_percent: "20",
+        section: "Pièces",
+        when: [/piece|joint|courroie|pompe|resistance/],
+      }),
+      mo("Remplacement d'une pompe de vidange", "u", "95", ["pompe de vidange"], { vat_percent: "20", section: "Intervention", when: [/pompe|vidange/] }),
+      mo("Remplacement d'une résistance", "u", "85", ["résistance"], { vat_percent: "20", section: "Intervention", when: [/resistance|ne chauffe plus/] }),
+      mo("Entretien et détartrage d'un appareil", "u", "65", ["entretien", "détartrage"], {
+        vat_percent: "20",
+        section: "Intervention",
+        when: [/entretien|detartr/],
+      }),
+      mo("Reprise et recyclage de l'ancien appareil", "u", "25", ["recyclage", "reprise"], {
+        vat_percent: "20",
+        section: "Intervention",
+        when: [/recycl|reprise|enlev/],
       }),
     ],
   },

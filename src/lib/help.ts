@@ -110,7 +110,7 @@ export const HELP_ARTICLES: HelpArticle[] = [
     title: "Construire son catalogue",
     summary: "Bibliothèques par métier, import CSV, mise à jour groupée des prix.",
     steps: [
-      "Ajoutez la bibliothèque de votre métier depuis « Catalogue » puis « Bibliothèques ». 15 métiers sont disponibles.",
+      "Ajoutez la bibliothèque de votre métier depuis « Catalogue » puis « Bibliothèques ». 17 métiers sont disponibles, du bâtiment et des services : paysagistes, déménageurs, réparateurs.",
       "Ouvrez chaque prestation pour mettre votre prix de vente et votre coût d'achat : le coût n'apparaît jamais sur le devis du client.",
       "Pour reprendre un fichier existant, utilisez « Importer » avec un fichier CSV ; un aperçu signale chaque ligne refusée.",
       "Pour une hausse générale, sélectionnez des prestations et appliquez un pourcentage.",
