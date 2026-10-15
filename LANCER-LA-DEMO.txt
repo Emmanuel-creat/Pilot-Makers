@@ -1,0 +1,27 @@
+PILOT-MAKERS : DÉMO À LANCER SUR SON ORDINATEUR
+Version du 15/10/2026 (194 vagues de la feuille de route)
+
+1. Prérequis
+   Installer Node.js 20 ou plus récent : https://nodejs.org (version LTS).
+   Aucune base de données à installer : une base embarquée est créée dans le dossier data/.
+
+2. Lancement
+   Windows : double-cliquer sur lancer-demo-windows.bat
+   Mac ou Linux : ouvrir un terminal dans ce dossier puis taper  sh lancer-demo.sh
+   Le premier lancement installe les modules (quelques minutes, connexion internet nécessaire),
+   crée les données de démonstration puis ouvre l'application.
+
+3. Ouvrir l'application
+   Dans le navigateur : http://localhost:3000
+
+   Compte artisan        : demo@pilot-makers.fr
+   Compte administration : admin@pilot-makers.fr
+   Mot de passe (les deux) : Demo2026Pilot
+
+4. Bon à savoir
+   Les e-mails ne partent pas réellement : ils sont rangés dans la boîte d'envoi de l'application.
+   Le paiement en ligne et la signature électronique qualifiée sont simulés.
+   Pour repartir de zéro : arrêter l'application, supprimer le dossier data/, relancer.
+   Pour arrêter : fermer la fenêtre du terminal (ou Ctrl + C).
+
+Auteur : BAILLY emmanuel
