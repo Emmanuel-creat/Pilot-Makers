@@ -40,6 +40,7 @@ export async function heartbeat(ctx: Ctx, quoteId: string, sectionId: string): P
 
 /** L'éditeur se ferme : la personne disparaît tout de suite de la liste des autres. */
 export async function leave(ctx: Ctx, quoteId: string) {
+  await getQuoteRow(ctx.db, ctx, quoteId);
   await ctx.db.query("DELETE FROM quote_presence WHERE quote_id=$1 AND user_id=$2 AND org_id=$3", [quoteId, ctx.userId, ctx.orgId]);
 }
 

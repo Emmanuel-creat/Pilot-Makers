@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "cloisonnement-routes",
+    date: "2026-10-15",
+    title: "Cloisonnement vérifié route par route",
+    text: "Chaque route qui lit un devis, une facture, un chantier, un client, un article ou une commande est testée avec les identifiants d'une autre entreprise : aucune ne répond.",
+    href: "/securite",
+  },
+  {
     id: "validateur-devis-ouvert",
     date: "2026-10-15",
     title: "Validateur public du format Devis ouvert",

@@ -87,7 +87,8 @@ export async function addQuoteMedia(ctx: Ctx, quoteId: string, input: { kind: un
 }
 
 export async function listQuoteMedia(ctx: Ctx, quoteId: string): Promise<QuoteMedia[]> {
-  if (!isUuid(quoteId)) return [];
+  // Le devis d'une autre entreprise répond comme un devis inexistant, sans liste vide qui confirmerait son existence.
+  if (!isUuid(quoteId) || !(await one(ctx.db, "SELECT 1 FROM quotes WHERE id=$1 AND org_id=$2", [quoteId, ctx.orgId]))) throw notFound("Devis introuvable");
   const rows = await ctx.db.query<Record<string, unknown>>(
     "SELECT id, kind, caption, position FROM quote_media WHERE quote_id=$1 AND org_id=$2 ORDER BY position, created_at",
     [quoteId, ctx.orgId],

@@ -83,7 +83,8 @@ export async function addCatalogDocument(ctx: Ctx, itemId: string, raw: unknown,
 }
 
 export async function listCatalogDocuments(ctx: Ctx, itemId: string): Promise<CatalogDocument[]> {
-  if (!isUuid(itemId)) return [];
+  // L'article d'une autre entreprise répond comme un article inexistant.
+  if (!isUuid(itemId) || !(await one(ctx.db, "SELECT 1 FROM catalog_items WHERE id=$1 AND org_id=$2", [itemId, ctx.orgId]))) throw notFound("Article introuvable");
   const rows = await ctx.db.query<Record<string, unknown>>(
     "SELECT id, kind, title, size, created_at FROM catalog_documents WHERE item_id=$1 AND org_id=$2 AND removed_at IS NULL ORDER BY created_at",
     [itemId, ctx.orgId],
