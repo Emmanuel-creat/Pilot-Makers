@@ -18,6 +18,13 @@ export default async function TrainingPage() {
         title="Formation continue"
         subtitle={`Des modules de cinq minutes sur les règles et techniques qui changent, chacun terminé par trois questions. ${done} module${done > 1 ? "s" : ""} validé${done > 1 ? "s" : ""} sur ${MODULES.length}.`}
       />
+      <Link href="/app/formation/parcours-gestion" className="card flex items-center gap-3 p-4 hover:border-accent">
+        <Icon name="chart" size={20} />
+        <span className="min-w-0">
+          <span className="block font-medium">Parcours Gestion d&apos;entreprise artisanale</span>
+          <span className="block text-sm text-muted">Huit modules, un examen final et une attestation de réussite vérifiable en ligne.</span>
+        </span>
+      </Link>
       <ul className="grid gap-4 sm:grid-cols-2" data-testid="modules-formation">
         {MODULES.map((m) => {
           const r = mine.get(m.id);

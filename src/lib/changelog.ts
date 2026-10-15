@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "parcours-gestion",
+    date: "2026-10-15",
+    title: "Parcours gestion d'entreprise et attestation",
+    text: "Sept nouveaux modules de gestion, un examen final et une attestation de réussite vérifiable en ligne par vos clients, votre banque ou vos donneurs d'ordre.",
+    href: "/app/formation/parcours-gestion",
+  },
+  {
     id: "bourse-aux-modeles",
     date: "2026-10-15",
     title: "Bourse aux modèles de devis",

@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { startExam, submitExam } from "@/lib/services/management-course";
 import { acquireListing, publishTemplate, settlePurchase, withdrawListing } from "@/lib/services/template-market";
 import { contactTransferListing, saveTransferListing, setTransferListingStatus } from "@/lib/services/business-takeover";
 import { setDayCloseReminder } from "@/lib/services/day-close";
@@ -3734,4 +3735,30 @@ export async function templateSettleAction(_: ActionState, fd: FormData): Promis
   }
   revalidatePath("/app/modeles/bourse");
   return { ok: true, message: "Règlement confirmé : le modèle est livré à l'acheteur." };
+}
+
+export async function courseExamStartAction(_: ActionState): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => startExam(ctx));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/formation/parcours-gestion/examen/${id}`);
+}
+
+export async function courseExamSubmitAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let code: string | null = null;
+  try {
+    const answers = Array.from({ length: 12 }, (_, i) => (fd.get(`q${i}`) === null ? null : Number(fd.get(`q${i}`))));
+    const r = await withCtx((ctx) => submitExam(ctx, s(fd, "examId"), answers));
+    revalidatePath("/app/formation/parcours-gestion");
+    if (!r.passed) {
+      return { ok: false, message: `${r.score} bonnes réponses sur ${r.total} : il en faut 9. Revoyez les modules puis ouvrez un nouveau sujet.` };
+    }
+    code = r.certificate!.code;
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/verifier-attestation?code=${code}`);
 }

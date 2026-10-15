@@ -1996,6 +1996,22 @@ test("bourse aux modèles : consultation et vos publications", async ({ page }) 
   await audit(page, "bourse aux modèles");
 });
 
+test("parcours gestion : modules, examen et vérification d'attestation", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/formation");
+  await page.getByRole("link", { name: /Parcours Gestion d'entreprise artisanale/ }).click();
+  await page.waitForURL(/\/app\/formation\/parcours-gestion$/);
+  await expect(page.getByTestId("parcours-modules")).toContainText("Le prix de revient de l'heure de travail");
+  await expect(page.getByText("Validez les huit modules pour ouvrir l'examen.")).toBeVisible();
+  await audit(page, "parcours gestion");
+  await page.goto("/ouvrages");
+  await page.getByRole("link", { name: "Vérifier une attestation" }).click();
+  await page.getByLabel("Numéro d'attestation").fill("GEA-AAAA-AAAA");
+  await page.getByRole("button", { name: "Vérifier" }).click();
+  await expect(page.getByText("Aucune attestation ne porte ce numéro.")).toBeVisible();
+  await audit(page, "vérification d'attestation");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

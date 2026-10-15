@@ -2395,6 +2395,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "parcours-gestion",
+    category: "compte",
+    title: "Parcours gestion d'entreprise artisanale et attestation",
+    summary: "Huit modules de gestion, un examen final de douze questions et une attestation de réussite que vos clients peuvent vérifier.",
+    steps: [
+      "Ouvrez Formation continue puis Parcours Gestion d'entreprise artisanale : prix de revient, marge, trésorerie, TVA, facture électronique, recouvrement, assurances et indicateurs.",
+      "Validez chaque module par ses trois questions. Quand les huit sont validés, l'examen final s'ouvre : douze questions tirées au sort, réussite à neuf bonnes réponses, trois tentatives par jour.",
+      "L'examen réussi délivre une attestation numérotée. Imprimez-la ou donnez son numéro : la page publique Vérifier une attestation confirme qu'elle est authentique.",
+      "C'est une attestation de réussite, pas une certification inscrite au répertoire national des certifications professionnelles.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
