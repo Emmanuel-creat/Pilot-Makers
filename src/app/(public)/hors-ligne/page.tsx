@@ -16,8 +16,11 @@ export default function OfflinePage() {
         Le téléphone n'a pas accès au réseau pour le moment. Vos devis et factures sont en sécurité sur le serveur : rien n'est perdu.
       </p>
       <p className="mt-2 text-muted">Réessayez dès que le réseau revient, par exemple à la sortie du sous-sol ou du chantier.</p>
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
         <ReloadButton />
+        <a href="/devis-hors-ligne.html" className="btn-secondary">
+          Préparer un devis sans réseau
+        </a>
       </div>
     </div>
   );

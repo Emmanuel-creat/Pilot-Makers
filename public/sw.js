@@ -1,16 +1,18 @@
 /*
  * Service de l'application installable.
  * - Fichiers statiques (scripts, styles, icônes) : servis depuis le cache, mis à jour en arrière-plan.
- * - Pages : toujours demandées au serveur ; sans réseau, la page « hors ligne » s'affiche. Exception : les
+ * - Pages : toujours demandées au serveur ; sans réseau, la page « hors ligne » s'affiche, avec la page autonome
+ *   « Devis sans réseau » qui garde les devis préparés dans le téléphone jusqu'au retour du réseau. Exception : les
  *   20 derniers devis ouverts restent consultables et modifiables sans réseau (copie effacée à la déconnexion).
  * - Données (API, PDF) : jamais mises en cache, elles sont propres à chaque compte.
  */
-const VERSION = "pm-v3";
+const VERSION = "pm-v4";
 const PAGES = "pm-devis-v1";
 const PAGES_MAX = 20;
 const QUOTE_PAGE = /^\/app\/devis\/[0-9a-f-]{36}$/;
 const OFFLINE = "/hors-ligne";
-const PRECACHE = [OFFLINE, "/icon.svg", "/icons/icon-192.png"];
+const OFFLINE_QUOTE = "/devis-hors-ligne.html";
+const PRECACHE = [OFFLINE, OFFLINE_QUOTE, "/devis-hors-ligne.js", "/icon.svg", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,7 +33,9 @@ self.addEventListener("activate", (event) => {
 });
 
 function isStatic(url) {
-  return url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/icon.svg";
+  return (
+    url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname === "/icon.svg" || url.pathname === "/devis-hors-ligne.js"
+  );
 }
 
 self.addEventListener("fetch", (event) => {
@@ -59,7 +63,28 @@ self.addEventListener("fetch", (event) => {
             }
             return res;
           })
-          .catch(() => caches.open(PAGES).then((cache) => cache.match(url.pathname)).then((r) => r || caches.match(OFFLINE)).then((r) => r || Response.error())),
+          .catch(() =>
+            caches
+              .open(PAGES)
+              .then((cache) => cache.match(url.pathname))
+              .then((r) => r || caches.match(OFFLINE))
+              .then((r) => r || Response.error()),
+          ),
+      );
+      return;
+    }
+    // Devis sans réseau : page autonome gardée par le téléphone, mise à jour quand le réseau est là.
+    if (url.pathname === OFFLINE_QUOTE) {
+      event.respondWith(
+        fetch(req)
+          .then((res) => {
+            if (res.ok) {
+              const copy = res.clone();
+              event.waitUntil(caches.open(VERSION).then((cache) => cache.put(OFFLINE_QUOTE, copy)));
+            }
+            return res;
+          })
+          .catch(() => caches.match(OFFLINE_QUOTE).then((r) => r || Response.error())),
       );
       return;
     }

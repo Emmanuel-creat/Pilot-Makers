@@ -1,3 +1,4 @@
+import { OfflineOutbox } from "@/components/app/OfflineOutbox";
 import { PageFeedback } from "@/components/app/PageFeedback";
 import { Shell } from "@/components/app/Shell";
 import { requirePageCtx } from "@/lib/server/session";
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       {children}
       {ctx.supportAccess ? null : <PageFeedback />}
+      {ctx.supportAccess ? null : <OfflineOutbox />}
     </Shell>
   );
 }

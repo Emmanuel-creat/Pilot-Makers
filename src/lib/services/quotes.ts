@@ -47,6 +47,7 @@ import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualification
 import { enqueueWebhook } from "./webhooks";
 import { overseasIssues } from "@/lib/overseas";
 import { countryVatIssues, type CountryRules } from "@/lib/country-rules";
+import { offlineDescription, offlineQuoteSchema } from "@/lib/offline-quote";
 import { effectiveRules } from "./country-rules";
 import { currencyIssues, draftForeign, foreignMention, normalizeForeign, type ForeignCurrency } from "@/lib/currency";
 
@@ -1659,4 +1660,47 @@ export async function expireQuotes(q: Queryable, orgId?: string) {
 
 export function assertNotSupport(ctx: Ctx) {
   if (ctx.supportAccess) throw forbidden("Action impossible en accès support");
+}
+
+/** Crée le devis préparé sans réseau ; un second envoi de la même clé renvoie le devis déjà créé. */
+export async function createOfflineQuote(ctx: Ctx, raw: unknown) {
+  requireWritable(ctx);
+  const p = offlineQuoteSchema.safeParse(raw);
+  if (!p.success) throw badRequest(p.error.issues[0].message);
+  const q = p.data;
+  const done = await one<{ quote_id: string }>(ctx.db, "SELECT quote_id FROM offline_quotes WHERE org_id=$1 AND client_key=$2", [ctx.orgId, q.key]);
+  if (done) return { id: String(done.quote_id), created: false };
+  const id = await createQuote(ctx, { customerId: null, title: q.title, description: offlineDescription(q) });
+  if (q.lines.length) {
+    const d = await getDraft(ctx, id);
+    const lines = q.lines.map((l) => ({
+      id: randomUUID(),
+      kind: "item" as const,
+      catalogItemId: null,
+      nature: "autre" as const,
+      label: l.label,
+      description: "",
+      quantity: l.quantity,
+      unit: l.unit,
+      unitPrice: l.unitPrice,
+      unitCost: "",
+      discountPercent: "",
+      vatPercent: l.vatPercent,
+      estimated: false,
+      estimateNote: "",
+      internalNote: "",
+    }));
+    await saveDraft(ctx, id, { ...d, sections: [{ ...d.sections[0], lines }] }, d.draftRevision);
+  }
+  const r = await ctx.db.query<{ quote_id: string }>(
+    "INSERT INTO offline_quotes (org_id, client_key, quote_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING RETURNING quote_id",
+    [ctx.orgId, q.key, id],
+  );
+  // Deux envois simultanés de la même clé : le second devis, en trop, est retiré.
+  if (!r.length) {
+    await ctx.db.query("DELETE FROM quotes WHERE id=$1 AND org_id=$2 AND current_version=0", [id, ctx.orgId]);
+    const kept = await one<{ quote_id: string }>(ctx.db, "SELECT quote_id FROM offline_quotes WHERE org_id=$1 AND client_key=$2", [ctx.orgId, q.key]);
+    return { id: String(kept!.quote_id), created: false };
+  }
+  return { id, created: true };
 }

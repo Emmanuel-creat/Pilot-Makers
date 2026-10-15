@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Devis sans réseau | Pilot-Makers</title>
+<style>
+:root { --bg: #f6f7f9; --surface: #fff; --ink: #14202e; --muted: #5b6878; --line: #d9dee5; --accent: #1f5fae; --danger: #b42318; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0f151c; --surface: #17202a; --ink: #e8edf3; --muted: #9aa7b6; --line: #2b3746; --accent: #7fb2f0; --danger: #f2877d; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 40rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; display: grid; gap: 1rem; }
+h1 { font-size: 1.35rem; margin: 0; }
+h2 { font-size: 1.05rem; margin: 0 0 .5rem; }
+p { margin: 0; }
+.muted { color: var(--muted); font-size: .9rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: .6rem; padding: 1rem; display: grid; gap: .75rem; }
+label { display: grid; gap: .25rem; font-size: .9rem; font-weight: 600; }
+input, textarea { font: inherit; padding: .55rem .65rem; border: 1px solid var(--line); border-radius: .4rem; background: var(--bg); color: var(--ink); width: 100%; }
+.row { display: grid; grid-template-columns: 1fr 4.5rem 4rem 5.5rem 4rem auto; gap: .4rem; align-items: end; }
+@media (max-width: 34rem) { .row { grid-template-columns: 1fr 1fr 1fr; } .row label:first-child { grid-column: 1 / -1; } }
+button { font: inherit; border-radius: .45rem; padding: .6rem 1rem; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 2.75rem; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+@media (prefers-color-scheme: dark) { button.primary { color: #0d1520; } }
+button.link { border: 0; background: none; color: var(--danger); padding: .25rem; min-height: 0; text-decoration: underline; }
+ul { margin: 0; padding-left: 1.2rem; }
+#etat { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>Devis sans réseau</h1>
+    <p class="muted">Notez le devis sur place, même en zone blanche. Il reste dans le téléphone et rejoint vos devis dès que vous ouvrez l'application avec du réseau.</p>
+  </div>
+  <form id="devis" class="card" novalidate>
+    <label>Titre du devis <input name="title" required maxlength="200" placeholder="Salle de bains, rénovation complète"></label>
+    <label>Client <input name="clientName" maxlength="200" placeholder="Nom du client"></label>
+    <label>Téléphone <input name="clientPhone" maxlength="40" inputmode="tel"></label>
+    <label>Adresse du chantier <input name="clientAddress" maxlength="300"></label>
+    <fieldset style="border:0;padding:0;margin:0;display:grid;gap:.5rem">
+      <legend style="font-weight:600;font-size:.9rem;margin-bottom:.25rem">Lignes</legend>
+      <div id="lignes" style="display:grid;gap:.5rem"></div>
+      <button type="button" id="ajouter">Ajouter une ligne</button>
+    </fieldset>
+    <label>Notes <textarea name="note" rows="3" maxlength="2000" placeholder="Mesures, accès, contraintes"></textarea></label>
+    <p id="erreur" class="muted" role="alert" style="color:var(--danger)"></p>
+    <button class="primary">Garder ce devis dans le téléphone</button>
+  </form>
+  <section class="card" aria-labelledby="attente">
+    <h2 id="attente">En attente d'envoi</h2>
+    <p id="etat" role="status"></p>
+    <ul id="file"></ul>
+    <p class="muted">Avec du réseau, ouvrez <a href="/app">l'application</a> : les devis en attente y sont créés automatiquement, sans doublon.</p>
+  </section>
+</main>
+<script src="/devis-hors-ligne.js"></script>
+</body>
+</html>

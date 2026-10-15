@@ -2656,6 +2656,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "devis-sans-reseau",
+    category: "devis",
+    title: "Préparer un devis sans réseau",
+    summary: "En zone blanche ou au sous-sol, le devis attend le retour du réseau dans le téléphone.",
+    steps: [
+      "Ouvrez une fois l'application installée avec du réseau : la page « Devis sans réseau » est alors gardée par le téléphone.",
+      "Sans réseau, l'application affiche « Pas de connexion » : choisissez « Préparer un devis sans réseau », ou passez par Plus.",
+      "Notez le titre, le client, les lignes et vos notes, puis « Garder ce devis dans le téléphone ».",
+      "De retour dans une zone couverte, ouvrez l'application : le devis est créé automatiquement, une seule fois. Rattachez ensuite la fiche client avant l'envoi.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

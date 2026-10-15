@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "devis-sans-reseau",
+    date: "2026-10-15",
+    title: "Préparer un devis en zone blanche",
+    text: "Sans réseau, notez le devis dans une page gardée par le téléphone : client, lignes et notes. Il rejoint vos devis dès que l'application retrouve le réseau, sans doublon.",
+    href: "/aide/devis-sans-reseau",
+  },
+  {
     id: "livraisons-juste-a-temps",
     date: "2026-10-15",
     title: "Livraisons calées sur le planning",

@@ -2265,6 +2265,27 @@ test("commandes : livraisons calées sur le planning des chantiers", async ({ pa
   await audit(page, "livraisons juste à temps");
 });
 
+test("devis sans réseau : préparé en zone blanche puis créé au retour du réseau", async ({ page }) => {
+  await login(page);
+  await page.goto("/devis-hors-ligne.html");
+  await expect(page.getByRole("heading", { level: 1, name: "Devis sans réseau" })).toBeVisible();
+  const title = `Grange en zone blanche ${Date.now()}`;
+  await page.getByLabel("Titre du devis").fill(title);
+  await page.getByLabel("Client", { exact: true }).fill("M. Blanc");
+  await page.getByLabel("Désignation 1").fill("Reprise de maçonnerie");
+  await page.getByLabel("Prix HT").fill("850");
+  await page.getByRole("button", { name: "Garder ce devis dans le téléphone" }).click();
+  await expect(page.getByRole("status")).toHaveText("1 devis en attente d'envoi.");
+  await audit(page, "devis sans réseau");
+  await page.goto("/app/devis");
+  const sent = page.getByTestId("devis-hors-ligne-envoyes");
+  await expect(sent).toContainText("1 devis préparé sans réseau est maintenant dans l'application");
+  await sent.getByRole("link", { name: title }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await expect(page.getByLabel("Désignation", { exact: true }).first()).toHaveValue("Reprise de maçonnerie");
+  expect(await page.evaluate(() => localStorage.getItem("pm-devis-hors-ligne"))).toBe("[]");
+});
+
 test("équipe : agences et activité par établissement", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
