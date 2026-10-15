@@ -45,7 +45,14 @@ export default async function DiagnosisPage({ params }: { params: Promise<{ id: 
         title="Diagnostic énergétique"
         back={{ href: "/app/devis/diagnostic-energetique", label: "Diagnostics" }}
         subtitle={`${r.customer_name ?? "Sans client"}, ${fmtDate(r.created_at)} : ${i.housing === "maison" ? "maison" : "appartement"} de ${i.surface} m², ${PERIODS[i.period].toLowerCase()}, zone climatique ${d.zone}.`}
-        actions={<PrintButton />}
+        actions={
+          <>
+            <Link href={`/app/devis/diagnostic-energetique/${id}/parcours`} className="btn-secondary">
+              Parcours de rénovation
+            </Link>
+            <PrintButton />
+          </>
+        }
       />
       {d.sieve ? (
         <Notice tone="warning">

@@ -2124,6 +2124,24 @@ test("engagements vérifiés : mesure sur les documents", async ({ page }) => {
   await audit(page, "engagements vérifiés");
 });
 
+test("rénovation énergétique : parcours du diagnostic à l'aide versée", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis/diagnostic-energetique");
+  await page.getByLabel("Code postal du logement").fill("69003");
+  await page.getByLabel("Surface habitable (m²)").fill("80");
+  await page.getByLabel("Chauffage").selectOption("fioul");
+  await page.getByLabel("Revenu fiscal de référence (€)").fill("28000");
+  await page.getByLabel("Personnes au foyer").fill("3");
+  await page.getByRole("button", { name: "Établir le diagnostic" }).click();
+  await page.waitForURL(/\/app\/devis\/diagnostic-energetique\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Parcours de rénovation" }).click();
+  await page.waitForURL(/\/parcours$/);
+  await expect(page.getByTestId("parcours-avancement")).toContainText("1 / 11");
+  await page.getByTestId("etape-aide_compte").getByRole("button", { name: "Marquer fait" }).click();
+  await expect(page.getByTestId("parcours-avancement")).toContainText("2 / 11");
+  await audit(page, "parcours de rénovation");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

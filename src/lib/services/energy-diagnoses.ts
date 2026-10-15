@@ -4,10 +4,11 @@ import { randomUUID } from "node:crypto";
 import { one } from "@/lib/db";
 import { diagnose, diagnosisSchema, type DiagnosisInput, type WorkKey } from "@/lib/energy-diagnosis";
 import { badRequest, isUuid, notFound } from "@/lib/http";
+import { aidStepSchema, buildJourney, isAidStep, readAidSteps } from "@/lib/energy-journey";
 import type { Ctx } from "./context";
 import { audit, requireWritable } from "./context";
 import type { DraftLine } from "./quote-types";
-import { createQuote, getDraft, saveDraft } from "./quotes";
+import { createQuote, getDraft, parisDate, saveDraft } from "./quotes";
 
 interface Row {
   id: string;
@@ -106,4 +107,70 @@ export async function quoteFromDiagnosis(ctx: Ctx, id: string, keys: WorkKey[]) 
     ip: ctx.ip,
   });
   return quoteId;
+}
+
+/** Parcours complet du diagnostic au versement de l'aide */
+export async function energyJourney(ctx: Ctx, id: string, now = new Date()) {
+  const r = await getDiagnosis(ctx, id);
+  const day = (d: Date | string | null | undefined) => (d ? parisDate(new Date(d)) : null);
+  const f = r.quote_id
+    ? await one<{
+        issued_at: Date | null;
+        accepted: boolean;
+        responded_at: Date | null;
+        aid: string | null;
+        job_status: string | null;
+        start_date: Date | string | null;
+        reception_date: Date | string | null;
+        invoice_at: Date | null;
+      }>(
+        ctx.db,
+        `SELECT q.issued_at, q.accepted_version IS NOT NULL AS accepted, q.responded_at, q.energy_aid->>'estimatedAid' AS aid,
+                j.status AS job_status, j.start_date, rc.reception_date,
+                (SELECT max(i.issued_at) FROM invoices i WHERE i.quote_id=q.id AND i.kind='final') AS invoice_at
+         FROM quotes q LEFT JOIN jobs j ON j.quote_id=q.id LEFT JOIN job_receptions rc ON rc.job_id=j.id AND rc.decision <> 'refus'
+         WHERE q.id=$1 AND q.org_id=$2`,
+        [r.quote_id, ctx.orgId],
+      )
+    : null;
+  const quotedAid = Number(String(f?.aid ?? "").replace(",", "."));
+  const steps = readAidSteps((await one<{ aid_steps: unknown }>(ctx.db, "SELECT aid_steps FROM energy_diagnoses WHERE id=$1", [id]))?.aid_steps);
+  const dateOnly = (d: Date | string | null | undefined) => (d == null ? null : typeof d === "string" ? d.slice(0, 10) : parisDate(d));
+  const journey = buildJourney(
+    {
+      diagnosedOn: day(r.created_at)!,
+      quoteNumber: r.quote_number,
+      quoteIssuedOn: day(f?.issued_at),
+      acceptedOn: f?.accepted ? day(f.responded_at) : null,
+      jobStatus: f?.job_status ?? null,
+      jobStartOn: dateOnly(f?.start_date),
+      receptionOn: dateOnly(f?.reception_date),
+      finalInvoiceOn: day(f?.invoice_at),
+      estimatedAid: quotedAid > 0 ? quotedAid : r.diagnosis.bestAid,
+    },
+    steps,
+    parisDate(now),
+  );
+  return { diagnosis: r, ...journey };
+}
+
+/** Coche ou décoche une étape du dossier d'aide, avec sa date et, le cas échéant, le montant */
+export async function setAidStep(ctx: Ctx, id: string, key: string, raw: unknown | null) {
+  requireWritable(ctx);
+  if (!isAidStep(key)) throw badRequest("Étape inconnue");
+  await getDiagnosis(ctx, id);
+  if (raw == null) {
+    await ctx.db.query("UPDATE energy_diagnoses SET aid_steps = aid_steps - $3 WHERE id=$1 AND org_id=$2", [id, ctx.orgId, key]);
+  } else {
+    const p = aidStepSchema.safeParse(raw);
+    if (!p.success) throw badRequest(p.error.issues[0].message);
+    if (p.data.on > parisDate(new Date())) throw badRequest("La date ne peut pas être dans le futur");
+    await ctx.db.query("UPDATE energy_diagnoses SET aid_steps = jsonb_set(aid_steps, ARRAY[$3], $4::jsonb) WHERE id=$1 AND org_id=$2", [
+      id,
+      ctx.orgId,
+      key,
+      JSON.stringify(p.data),
+    ]);
+  }
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "energy_diagnosis.aid_step", target: id, data: { key, done: raw != null }, ip: ctx.ip });
 }

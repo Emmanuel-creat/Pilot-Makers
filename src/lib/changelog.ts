@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "parcours-renovation",
+    date: "2026-10-15",
+    title: "Parcours de rénovation énergétique",
+    text: "Diagnostic, devis, dossier d'aide, travaux et versement suivis dans un seul fil, avec une alerte si les travaux commencent avant le dépôt de la demande d'aide.",
+    href: "/app/devis/diagnostic-energetique",
+  },
+  {
     id: "engagements-verifies",
     date: "2026-10-15",
     title: "Engagements vérifiés sur la vitrine",

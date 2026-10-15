@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { setAidStep } from "@/lib/services/energy-diagnoses";
 import { setCommitments } from "@/lib/services/commitments";
 import { resolveFeedback, sendFeedback } from "@/lib/services/feedback";
 import { addLeftover, deleteLeftover } from "@/lib/services/material-balance";
@@ -3880,4 +3881,26 @@ export async function commitmentsAction(_: ActionState, fd: FormData): Promise<A
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function aidStepAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "id");
+  const undo = s(fd, "undo") === "1";
+  try {
+    const amount = s(fd, "amount").replace(/\s/g, "").replace(",", ".");
+    await withCtx((ctx) =>
+      setAidStep(
+        ctx,
+        id,
+        s(fd, "key"),
+        undo
+          ? null
+          : { on: s(fd, "on"), note: s(fd, "note") || undefined, amountCents: amount ? Math.round(Number(amount) * 100) : undefined },
+      ),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/devis/diagnostic-energetique/${id}/parcours`);
+  return { ok: true, message: undo ? "Étape décochée." : "Étape enregistrée." };
 }

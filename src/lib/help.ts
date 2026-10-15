@@ -2502,6 +2502,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "parcours-renovation-energetique",
+    category: "devis",
+    title: "Parcours de rénovation énergétique",
+    summary: "Du diagnostic au versement de l'aide, toutes les étapes d'une rénovation énergétique suivies dans un seul fil.",
+    steps: [
+      "Depuis un diagnostic énergétique, ouvrez Parcours de rénovation : onze étapes, du diagnostic au versement de l'aide.",
+      "Les étapes faites dans l'application se cochent seules : devis émis, devis signé, travaux commencés, chantier réceptionné, facture finale.",
+      "Les étapes du dossier d'aide, faites sur le site de l'aide, se cochent à la main avec leur date : compte du client, demande déposée, accord reçu avec son montant, demande de versement, aide versée.",
+      "Une alerte apparaît si les travaux commencent avant le dépôt de la demande d'aide, car l'aide serait refusée, et quand la facture finale permet de demander le versement.",
+      "L'aide estimée, accordée et versée sont comparées : un écart entre l'accord et le versement est signalé.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
