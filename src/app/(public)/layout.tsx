@@ -38,6 +38,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/indice-activite" className="hover:text-ink">
             Indice de l&apos;activité
           </Link>
+          <Link href="/donnees-ouvertes" className="hover:text-ink">
+            Données ouvertes
+          </Link>
           <Link href="/trouver-un-artisan" className="hover:text-ink">
             Trouver un artisan
           </Link>

@@ -1938,6 +1938,18 @@ test("fin de journée : points restants et rappel", async ({ page }) => {
   await expect(page.getByText(/Rappel activé/)).toBeVisible();
 });
 
+test("données ouvertes : portail, JSON et CSV", async ({ page }) => {
+  await page.goto("/ouvrages");
+  await page.getByRole("link", { name: "Données ouvertes" }).click();
+  await page.waitForURL(/\/donnees-ouvertes$/);
+  await expect(page.getByRole("heading", { name: "Prix des prestations courantes" })).toBeVisible();
+  await audit(page, "données ouvertes");
+  const json = await page.request.get("/api/public/donnees/prix-prestations");
+  expect((await json.json()).license.name).toBe("Licence Ouverte 2.0");
+  const csv = await page.request.get("/api/public/donnees/delais-paiement?format=csv");
+  expect(csv.headers()["content-type"]).toContain("text/csv");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

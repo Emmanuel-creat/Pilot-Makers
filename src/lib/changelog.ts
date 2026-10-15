@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "donnees-ouvertes",
+    date: "2026-10-15",
+    title: "Données ouvertes",
+    text: "Prix des prestations courantes par région et délais de paiement des clients, en données anonymes agrégées pour la recherche et les pouvoirs publics.",
+    href: "/donnees-ouvertes",
+  },
+  {
     id: "fin-de-journee",
     date: "2026-10-15",
     title: "Fin de journée avant 18 heures",

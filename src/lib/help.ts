@@ -2360,6 +2360,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "donnees-ouvertes",
+    category: "regles",
+    title: "Données ouvertes à la recherche et aux pouvoirs publics",
+    summary: "Activité, prix des prestations courantes et délais de paiement, publiés en données anonymes agrégées, libres de réutilisation.",
+    steps: [
+      "La page publique Données ouvertes rassemble les jeux de données, téléchargeables en JSON et en CSV.",
+      "Seules les entreprises volontaires des repères anonymes (Rapports, Repères anonymes) y contribuent, et vous pouvez vous retirer à tout moment.",
+      "Chaque valeur résume au moins dix entreprises : seulement des quartiles, des médianes, des taux et des indices, jamais un chiffre d'entreprise.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
