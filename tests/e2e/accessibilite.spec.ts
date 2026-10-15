@@ -2154,6 +2154,20 @@ test("carnet de logement : reprise d'un carnet transmis par un client", async ({
   await audit(page, "reprise de carnet");
 });
 
+test("équipe : agences et activité par établissement", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/equipe");
+  await page.getByRole("link", { name: "Agences" }).click();
+  await page.waitForURL(/\/app\/equipe\/agences$/);
+  await page.getByLabel("Nom de l'agence").fill(`Agence ${Date.now()}`);
+  await page.getByLabel("Ville").fill("Villeurbanne");
+  await page.getByRole("button", { name: "Créer l'agence" }).click();
+  await expect(page.getByTestId("activite-agences")).toBeVisible();
+  await audit(page, "agences");
+  await page.getByTestId("activite-agences").getByRole("link").first().click();
+  await expect(page.getByTestId("filtre-agence")).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

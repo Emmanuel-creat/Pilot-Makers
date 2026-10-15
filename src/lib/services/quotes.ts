@@ -245,6 +245,8 @@ export { draftToCalcInput };
 export interface QuoteListFilters {
   status?: string;
   customerId?: string;
+  /** Identifiant d'agence, ou « aucune » pour les devis sans agence */
+  agencyId?: string;
   q?: string;
   from?: string;
   to?: string;
@@ -269,6 +271,8 @@ export async function listQuotes(ctx: Ctx, f: QuoteListFilters = {}) {
   else if (f.status === "drafts") where.push(`q.status IN ('draft','incomplete')`);
   else if (f.status) where.push(`q.status = ${add(f.status)}`);
   if (f.customerId && isUuid(f.customerId)) where.push(`q.customer_id = ${add(f.customerId)}`);
+  if (f.agencyId === "aucune") where.push("q.agency_id IS NULL");
+  else if (f.agencyId && isUuid(f.agencyId)) where.push(`q.agency_id = ${add(f.agencyId)}`);
   if (f.q?.trim()) {
     const p = add(`%${f.q.trim().toLowerCase()}%`);
     where.push(
@@ -359,8 +363,9 @@ export async function createQuote(ctx: Ctx, init: { customerId?: string | null; 
     const row = await one<{ id: string }>(
       tx,
       `INSERT INTO quotes (org_id, customer_id, author_id, title, description, site_line1, site_line2, site_postal_code, site_city,
-         validity_days, payment_terms, deposit_percent, template, pdf_layout)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+         validity_days, payment_terms, deposit_percent, template, pdf_layout, agency_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+         (SELECT agency_id FROM memberships WHERE org_id=$1 AND user_id=$3)) RETURNING id`,
       [
         ctx.orgId,
         init.customerId ?? null,

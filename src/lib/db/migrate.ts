@@ -131,6 +131,7 @@ import { sql as m129 } from "./migrations/129_retours_utilisateurs";
 import { sql as m130 } from "./migrations/130_engagements";
 import { sql as m131 } from "./migrations/131_parcours_renovation";
 import { sql as m132 } from "./migrations/132_carnet_transmis";
+import { sql as m133 } from "./migrations/133_agences";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -266,6 +267,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "130_engagements", sql: m130 },
   { id: "131_parcours_renovation", sql: m131 },
   { id: "132_carnet_transmis", sql: m132 },
+  { id: "133_agences", sql: m133 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {

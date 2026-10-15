@@ -32,6 +32,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
     minTtc: sp.min ? Number(sp.min.replace(",", ".")) : undefined,
     maxTtc: sp.max ? Number(sp.max.replace(",", ".")) : undefined,
     customerId: sp.client || undefined,
+    agencyId: sp.agence || undefined,
     archived: sp.archives === "1",
     sort: (sp.sort as never) ?? "updated",
     dir: (sp.dir as never) ?? "desc",
@@ -75,6 +76,14 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
           </>
         }
       />
+      {sp.agence ? (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm" data-testid="filtre-agence">
+          <Icon name="building" size={16} /> Devis {sp.agence === "aucune" ? "sans agence" : "de l'agence choisie"}.
+          <Link href={qs({ agence: "", page: "1" })} className="link">
+            Voir tous les devis
+          </Link>
+        </p>
+      ) : null}
       <div className="mb-4 flex gap-1 overflow-x-auto pb-1" role="tablist">
         {TABS.map((t) => (
           <Link
@@ -90,6 +99,7 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
       </div>
       <form className="card mb-4 grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-6" action="/app/devis">
         <input type="hidden" name="status" value={sp.status ?? ""} />
+        {sp.agence ? <input type="hidden" name="agence" value={sp.agence} /> : null}
         <input name="q" defaultValue={sp.q} placeholder="Numéro, objet ou client" className="field lg:col-span-2" aria-label="Recherche" />
         <input name="from" type="date" defaultValue={sp.from} className="field" aria-label="Créé à partir du" />
         <input name="to" type="date" defaultValue={sp.to} className="field" aria-label="Créé jusqu'au" />

@@ -2539,6 +2539,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "agences",
+    category: "compte",
+    title: "Plusieurs agences dans la même entreprise",
+    summary: "De l'artisan seul à l'entreprise à plusieurs établissements : rattachez membres et devis à des agences et comparez leur activité.",
+    steps: [
+      "Ouvrez Équipe puis Agences et créez vos établissements, avec leur ville et, si besoin, leur SIRET d'établissement.",
+      "Rattachez chaque membre à son agence : les devis qu'il crée ensuite sont de cette agence. Sans agence, rien ne change.",
+      "Le tableau compare les douze derniers mois agence par agence : devis émis, acceptés, taux de transformation et, pour qui voit la facturation, montant accepté.",
+      "Un clic sur une agence ouvre la liste de ses devis. Supprimer une agence ne supprime ni ses membres ni ses devis, qui restent sans agence.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

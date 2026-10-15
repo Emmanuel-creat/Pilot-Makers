@@ -38,6 +38,9 @@ export default async function TeamPage() {
         subtitle={`${members.length} utilisateur(s) sur ${max} inclus dans l'offre ${ctx.entitlements.plan.name}`}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link href="/app/equipe/agences" className="btn-secondary">
+              <Icon name="building" size={16} /> Agences
+            </Link>
             <Link href="/app/equipe/apprentis" className="btn-secondary">
               <Icon name="users" size={16} /> Apprentis
             </Link>

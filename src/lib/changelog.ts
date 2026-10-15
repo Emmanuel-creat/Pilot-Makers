@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "agences",
+    date: "2026-10-15",
+    title: "Plusieurs agences, un seul outil",
+    text: "Créez vos agences, rattachez-y membres et devis, et comparez l'activité de chaque établissement sur douze mois.",
+    href: "/app/equipe/agences",
+  },
+  {
     id: "ou-va-argent",
     date: "2026-10-15",
     title: "Des prix lisibles pour vos clients",

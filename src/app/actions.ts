@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { assignMemberAgency, createAgency, deleteAgency } from "@/lib/services/agencies";
 import { importSharedHomeRecord } from "@/lib/services/home-records";
 import { setAidStep } from "@/lib/services/energy-diagnoses";
 import { setCommitments } from "@/lib/services/commitments";
@@ -3915,4 +3916,34 @@ export async function importHomeRecordAction(_: ActionState, fd: FormData): Prom
   }
   revalidatePath("/app/carnets");
   redirect(`/app/carnets/${r.recordId}?repris=${r.imported}`);
+}
+
+export async function agencyCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => createAgency(ctx, { name: s(fd, "name"), city: s(fd, "city"), siret: s(fd, "siret") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/equipe/agences");
+  return { ok: true, message: "Agence créée. Rattachez-y les membres concernés." };
+}
+
+export async function agencyDeleteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => deleteAgency(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/equipe/agences");
+  return { ok: true, message: "Agence supprimée : ses membres et ses devis restent, sans agence." };
+}
+
+export async function agencyAssignAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => assignMemberAgency(ctx, s(fd, "userId"), s(fd, "agencyId") || null));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/equipe/agences");
+  return { ok: true, message: "Rattachement enregistré pour les prochains devis." };
 }
