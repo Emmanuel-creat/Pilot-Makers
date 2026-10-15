@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "bourse-aux-modeles",
+    date: "2026-10-15",
+    title: "Bourse aux modèles de devis",
+    text: "Reprenez les devis types de confrères expérimentés, gratuits ou payants, et publiez les vôtres : coût de revient et notes internes ne sont jamais transmis.",
+    href: "/app/modeles/bourse",
+  },
+  {
     id: "reprise-entreprise",
     date: "2026-10-15",
     title: "Plateforme de reprise d'entreprises artisanales",

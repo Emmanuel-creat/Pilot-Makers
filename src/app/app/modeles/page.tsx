@@ -5,7 +5,7 @@ import { Submit } from "@/components/forms/Submit";
 import { Empty, Notice, PageHeader, fmtDate } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listTemplates } from "@/lib/services/templates";
-import { deleteTemplateAction, renameTemplateAction } from "@/app/actions";
+import { deleteTemplateAction, renameTemplateAction, templatePublishAction } from "@/app/actions";
 
 export const metadata = { title: "Modèles de devis" };
 
@@ -18,10 +18,19 @@ export default async function TemplatesPage() {
       <PageHeader
         title="Modèles de devis"
         subtitle="Vos devis types, prêts à réutiliser : sections, lignes, prix et conditions."
+        actions={
+          <Link href="/app/modeles/bourse" className="btn-secondary">
+            <Icon name="star" size={16} /> Bourse aux modèles
+          </Link>
+        }
       />
       {!allowed ? (
         <Notice tone="info" title="Inclus dans les offres Professionnel et Entreprise">
-          Les modèles existants restent utilisables. Pour en créer de nouveaux, <Link href="/app/abonnement" className="link">changez d'offre</Link>.
+          Les modèles existants restent utilisables. Pour en créer de nouveaux,{" "}
+          <Link href="/app/abonnement" className="link">
+            changez d'offre
+          </Link>
+          .
         </Notice>
       ) : null}
       {templates.length === 0 ? (
@@ -45,7 +54,7 @@ export default async function TemplatesPage() {
                 </Link>
               </div>
               <details className="mt-3">
-                <summary className="cursor-pointer text-sm text-muted">Renommer ou supprimer</summary>
+                <summary className="cursor-pointer text-sm text-muted">Renommer, publier ou supprimer</summary>
                 <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <ActionForm action={renameTemplateAction} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                     <input type="hidden" name="id" value={t.id} />
@@ -63,6 +72,30 @@ export default async function TemplatesPage() {
                     </div>
                     <Submit className="btn-secondary">Enregistrer</Submit>
                   </ActionForm>
+                  {ctx.role !== "member" ? (
+                    <ActionForm action={templatePublishAction} className="grid gap-2 sm:col-span-2 sm:grid-cols-[1fr_1fr_8rem_auto] sm:items-end">
+                      <input type="hidden" name="templateId" value={t.id} />
+                      <div>
+                        <label className="label" htmlFor={`bt-${t.id}`}>
+                          Titre dans la bourse
+                        </label>
+                        <input id={`bt-${t.id}`} name="title" className="field" defaultValue={t.name} required maxLength={120} />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor={`bs-${t.id}`}>
+                          Présentation
+                        </label>
+                        <input id={`bs-${t.id}`} name="summary" className="field" defaultValue={t.description} maxLength={1000} />
+                      </div>
+                      <div>
+                        <label className="label" htmlFor={`bp-${t.id}`}>
+                          Prix (vide : gratuit)
+                        </label>
+                        <input id={`bp-${t.id}`} name="price" className="field" inputMode="decimal" placeholder="0" />
+                      </div>
+                      <Submit className="btn-secondary">Publier dans la bourse</Submit>
+                    </ActionForm>
+                  ) : null}
                   {ctx.role !== "member" ? (
                     <form action={deleteTemplateAction}>
                       <input type="hidden" name="id" value={t.id} />

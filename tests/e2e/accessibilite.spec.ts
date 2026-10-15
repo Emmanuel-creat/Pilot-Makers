@@ -1984,6 +1984,18 @@ test("reprise d'entreprise : annonce anonyme publiée et prise de contact", asyn
   await expect(page.getByTestId("reprise-contacts")).toContainText("Julie Repreneur");
 });
 
+test("bourse aux modèles : consultation et vos publications", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/modeles");
+  await page.getByRole("link", { name: "Bourse aux modèles" }).click();
+  await page.waitForURL(/\/app\/modeles\/bourse$/);
+  await expect(page.getByRole("heading", { name: "Vos modèles dans la bourse" })).toBeVisible();
+  await page.getByLabel("Rechercher").fill("salle de bain");
+  await page.getByRole("button", { name: "Filtrer" }).click();
+  await page.waitForURL(/q=salle/);
+  await audit(page, "bourse aux modèles");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

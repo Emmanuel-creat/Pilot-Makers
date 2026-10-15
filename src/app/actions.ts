@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { acquireListing, publishTemplate, settlePurchase, withdrawListing } from "@/lib/services/template-market";
 import { contactTransferListing, saveTransferListing, setTransferListingStatus } from "@/lib/services/business-takeover";
 import { setDayCloseReminder } from "@/lib/services/day-close";
 import { importQuoteExchange } from "@/lib/services/quote-exchange";
@@ -3685,4 +3686,52 @@ export async function transferContactAction(_: ActionState, fd: FormData): Promi
     return toState(e);
   }
   return { ok: true, message: "Message transmis. Le cédant vous recontacte s'il souhaite donner suite." };
+}
+
+export async function templatePublishAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => publishTemplate(ctx, s(fd, "templateId"), { title: s(fd, "title"), summary: s(fd, "summary"), price: s(fd, "price") }));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/modeles");
+  revalidatePath("/app/modeles/bourse");
+  return { ok: true, message: "Modèle publié dans la bourse." };
+}
+
+export async function templateWithdrawAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => withdrawListing(ctx, s(fd, "listingId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/modeles/bourse");
+  return { ok: true, message: "Modèle retiré de la bourse." };
+}
+
+export async function templateAcquireAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => acquireListing(ctx, s(fd, "listingId")));
+    revalidatePath("/app/modeles/bourse");
+    revalidatePath("/app/modeles");
+    return {
+      ok: true,
+      message:
+        r.status === "regle"
+          ? "Modèle ajouté à vos modèles de devis."
+          : "Demande envoyée au vendeur : il vous transmet ses coordonnées de règlement, puis le modèle vous est livré.",
+    };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function templateSettleAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => settlePurchase(ctx, s(fd, "purchaseId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/modeles/bourse");
+  return { ok: true, message: "Règlement confirmé : le modèle est livré à l'acheteur." };
 }

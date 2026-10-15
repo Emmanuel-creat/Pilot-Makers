@@ -2383,6 +2383,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "bourse-aux-modeles",
+    category: "devis",
+    title: "Bourse aux modèles : partager, vendre ou reprendre un devis type",
+    summary: "Des modèles de devis publiés par des artisans expérimentés, gratuits ou payants, ajoutés à vos modèles en un clic.",
+    steps: [
+      "Ouvrez Modèles de devis puis Bourse aux modèles : recherchez par mot ou par métier. Chaque modèle montre ses sections, quelques lignes et l'expérience de son auteur.",
+      "Un modèle gratuit s'ajoute aussitôt à vos modèles. Pour un modèle payant, le vendeur reçoit votre demande, vous transmet ses coordonnées de règlement, et le modèle vous est livré dès qu'il confirme l'avoir reçu.",
+      "Pour publier, ouvrez un modèle dans Modèles de devis, Renommer, publier ou supprimer. Laissez le prix vide pour le céder gratuitement ; la vente est ouverte à partir de 10 devis acceptés.",
+      "Le coût de revient, les notes internes et les liens vers votre catalogue ne sont jamais transmis : seules les sections, les lignes et les prix de vente le sont.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

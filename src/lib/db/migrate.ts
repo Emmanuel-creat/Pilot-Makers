@@ -121,6 +121,7 @@ import { sql as m119 } from "./migrations/119_note_confiance";
 import { sql as m120 } from "./migrations/120_renovation_coordonnee";
 import { sql as m121 } from "./migrations/121_fin_de_journee";
 import { sql as m122 } from "./migrations/122_reprise_entreprise";
+import { sql as m123 } from "./migrations/123_bourse_modeles";
 
 /** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
 export const migrations: { id: string; sql: string }[] = [
@@ -246,6 +247,7 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "120_renovation_coordonnee", sql: m120 },
   { id: "121_fin_de_journee", sql: m121 },
   { id: "122_reprise_entreprise", sql: m122 },
+  { id: "123_bourse_modeles", sql: m123 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {
