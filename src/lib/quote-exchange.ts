@@ -234,6 +234,39 @@ export function fromExchange(raw: unknown): { doc: ExchangeDocument; sections: I
   return { doc, sections, warnings };
 }
 
+export interface ExchangeValidation {
+  valid: boolean;
+  /** Erreurs bloquantes, avec le chemin du champ (20 au plus) */
+  errors: string[];
+  /** Écarts non bloquants : totaux déclarés différents, lignes incomplètes */
+  warnings: string[];
+  summary: { number: string; seller: string; sections: number; lines: number; totalHt: string; totalTtc: string } | null;
+}
+
+/** Validation d'un fichier Devis ouvert par n'importe quel logiciel : toutes les erreurs d'un coup, pas seulement la première. */
+export function validateExchange(raw: unknown): ExchangeValidation {
+  const p = exchangeSchema.safeParse(raw);
+  if (!p.success) {
+    const errors = p.error.issues.slice(0, 20).map((i) => `${i.path.length ? `${i.path.join(".")} : ` : ""}${i.message}`);
+    if (p.error.issues.length > 20) errors.push(`Et ${p.error.issues.length - 20} autres erreurs.`);
+    return { valid: false, errors, warnings: [], summary: null };
+  }
+  const { doc, sections, warnings } = fromExchange(raw);
+  return {
+    valid: true,
+    errors: [],
+    warnings,
+    summary: {
+      number: doc.document.number,
+      seller: doc.document.seller.name,
+      sections: sections.length,
+      lines: sections.reduce((n, s) => n + s.lines.length, 0),
+      totalHt: doc.document.totals.totalHt,
+      totalTtc: doc.document.totals.totalTtc,
+    },
+  };
+}
+
 /** Schéma JSON publié pour les éditeurs de logiciels. */
 export const JSON_SCHEMA = {
   $schema: "https://json-schema.org/draft/2020-12/schema",

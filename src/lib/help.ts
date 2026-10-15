@@ -2562,6 +2562,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "valider-devis-ouvert",
+    category: "devis",
+    title: "Vérifier un fichier Devis ouvert",
+    summary: "Le validateur public contrôle qu'un fichier d'échange de devis est conforme, pour que toute la filière parle le même format.",
+    steps: [
+      "Ouvrez la page publique du format Devis ouvert, rubrique Vérifier un fichier, et choisissez un fichier .devis.json ou collez son contenu.",
+      "Toutes les erreurs sont listées d'un coup avec le champ concerné ; un fichier conforme est résumé (lots, lignes, totaux) et les totaux sont recalculés à partir des lignes.",
+      "Les éditeurs de logiciels peuvent faire le même contrôle depuis leurs programmes en envoyant le fichier à l'adresse /api/public/devis-ouvert/valider. Rien n'est conservé.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

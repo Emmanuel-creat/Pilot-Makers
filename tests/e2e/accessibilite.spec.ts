@@ -2181,6 +2181,18 @@ test("public : créer son entreprise artisanale en une journée", async ({ page 
   await audit(page, "créer son entreprise");
 });
 
+test("public : validateur du format Devis ouvert", async ({ page }) => {
+  await page.goto("/format-devis-ouvert");
+  await page.getByRole("button", { name: "Utiliser l'exemple" }).click();
+  await page.getByRole("button", { name: "Vérifier le fichier" }).click();
+  await expect(page.getByTestId("resultat-validation")).toContainText("Fichier conforme au format Devis ouvert");
+  await audit(page, "validateur devis ouvert");
+  const r = await page.request.post("/api/public/devis-ouvert/valider", { data: { format: "devis-ouvert", version: "1.0", document: {} } });
+  const body = await r.json();
+  expect(body.valid).toBe(false);
+  expect(body.errors.length).toBeGreaterThan(1);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

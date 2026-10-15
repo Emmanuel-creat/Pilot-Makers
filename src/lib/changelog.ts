@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "validateur-devis-ouvert",
+    date: "2026-10-15",
+    title: "Validateur public du format Devis ouvert",
+    text: "Tout logiciel de la filière peut vérifier ses fichiers d'échange de devis : erreurs listées champ par champ et totaux recalculés.",
+    href: "/format-devis-ouvert",
+  },
+  {
     id: "creer-son-entreprise",
     date: "2026-10-15",
     title: "Créer son entreprise en une journée",

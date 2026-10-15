@@ -1,4 +1,5 @@
 import { EXCHANGE_FORMAT, NATURES } from "@/lib/quote-exchange";
+import { Validator } from "./Validator";
 
 export const metadata = {
   title: "Devis ouvert : format d'échange de devis du bâtiment",
@@ -76,6 +77,18 @@ export default function ExchangeFormatPage() {
         <pre className="overflow-x-auto rounded-lg bg-surface-2 p-4 text-xs">
           <code>{JSON.stringify(EXAMPLE, null, 2)}</code>
         </pre>
+      </section>
+
+      <section className="space-y-2" aria-labelledby="valider">
+        <h2 id="valider" className="text-xl font-semibold">
+          Vérifier un fichier
+        </h2>
+        <p>
+          Éditeurs, négoces, maîtres d&apos;œuvre : vérifiez qu&apos;un fichier produit par votre logiciel est conforme. Toutes les erreurs sont listées avec le
+          champ concerné, et les totaux sont recalculés. Le même contrôle est ouvert à vos programmes par un simple envoi POST du fichier à{" "}
+          <code className="text-sm">/api/public/devis-ouvert/valider</code>. Rien n&apos;est conservé.
+        </p>
+        <Validator example={JSON.stringify(EXAMPLE, null, 2)} />
       </section>
 
       <section className="space-y-2">

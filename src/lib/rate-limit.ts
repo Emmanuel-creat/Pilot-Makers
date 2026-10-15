@@ -46,6 +46,8 @@ export const RATE_RULES = {
   "public.message": rule(20, 3600, "Trop de messages envoyés depuis cette adresse."),
   /** Demandes de devis déposées sur une page vitrine, par adresse IP */
   "public.lead": rule(5, 3600, "Trop de demandes envoyées depuis cette adresse."),
+  /** Validateur public du format Devis ouvert, par adresse IP */
+  "public.validate": rule(60, 3600, "Trop de fichiers vérifiés depuis cette adresse."),
   /** Photos du journal de chantier, par entreprise */
   "job.photo": rule(300, 3600, "Trop de photos envoyées en peu de temps."),
   /** Connexions par clé d'accès, par adresse IP */
