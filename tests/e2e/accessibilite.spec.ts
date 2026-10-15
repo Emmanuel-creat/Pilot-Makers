@@ -456,6 +456,55 @@ test("devis : cotes du métré dictées à la voix", async ({ page }) => {
   await expect(dialog.getByTestId("metre-total")).toHaveText("Total : 33,81 m²");
 });
 
+test("devis : cotes du métré prises au télémètre laser Bluetooth", async ({ page }) => {
+  // Télémètre Leica DISTO simulé : trois mesures envoyées dès l'abonnement aux notifications.
+  await page.addInitScript(() => {
+    const SERVICE = "3ab10100-f831-4395-b29d-570977d5bf94";
+    const ch = Object.assign(new EventTarget(), {
+      value: undefined as DataView | undefined,
+      async startNotifications() {
+        [4.1, 3, 2.5].forEach((m, i) =>
+          setTimeout(() => {
+            const v = new DataView(new ArrayBuffer(4));
+            v.setFloat32(0, m, true);
+            ch.value = v;
+            ch.dispatchEvent(new Event("characteristicvaluechanged"));
+          }, 200 * (i + 1)),
+        );
+        return ch;
+      },
+      async writeValue() {},
+    });
+    const device = Object.assign(new EventTarget(), {
+      name: "DISTO D2",
+      gatt: {
+        connected: true,
+        async connect() {
+          return { async getPrimaryServices() { return [{ uuid: SERVICE, async getCharacteristic() { return ch; } }]; } };
+        },
+        disconnect() {},
+      },
+    });
+    Object.defineProperty(navigator, "bluetooth", { value: { requestDevice: async () => device } });
+  });
+  await login(page);
+  await page.goto("/app/devis/nouveau");
+  await page.locator("input[name=title]").fill("Peinture au télémètre");
+  await page.getByRole("button", { name: "Commencer un devis vide" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Ligne libre" }).first().click();
+  await page.getByLabel("Désignation", { exact: true }).last().fill("Peinture des murs");
+  await page.getByRole("button", { name: "Métré", exact: true }).last().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Télémètre Bluetooth" }).click();
+  await expect(dialog.getByTestId("telemetre-etat")).toContainText("Leica DISTO (DISTO D2) connecté");
+  await expect(dialog.getByLabel("Hauteur 1")).toHaveValue("2,50");
+  await expect(dialog.getByLabel("Longueur 1")).toHaveValue("4,10");
+  await expect(dialog.getByLabel("Largeur 1")).toHaveValue("3,00");
+  await expect(dialog.getByTestId("metre-total")).toHaveText("Total : 35,5 m²");
+  await audit(page, "métré au télémètre");
+});
+
 test("banque : relevé importé, opération mise de côté puis remise", async ({ page }) => {
   await login(page);
   await page.goto("/app/factures");

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "telemetre-laser",
+    date: "2026-10-15",
+    title: "Métré au télémètre laser Bluetooth",
+    text: "Dans le métré, connectez votre Leica DISTO ou votre Bosch GLM : chaque mesure prise sur l'appareil remplit la cote suivante, sans recopier.",
+    href: "/aide/telemetre-laser",
+  },
+  {
     id: "coffre-chiffre",
     date: "2026-10-15",
     title: "Coffre chiffré pour les pièces confidentielles",

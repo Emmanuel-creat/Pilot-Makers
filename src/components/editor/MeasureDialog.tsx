@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dictation } from "@/components/Dictation";
+import { LaserMeter } from "./LaserMeter";
 import { Icon } from "@/components/Icon";
 import { parseSpokenMeasure } from "@/lib/spoken-measure";
 import { Modal } from "@/components/Modal";
@@ -35,6 +36,20 @@ export function MeasureDialog({
   const full = m.items.length + m.deductions.length >= MAX_MEASURE_ROWS;
   const dedDims = m.kind === "plinthes" ? ["Largeur"] : ["Largeur", "Hauteur"];
   const [heard, setHeard] = useState<{ ok: boolean; text: string } | null>(null);
+  /** Cote qui recevra la prochaine mesure du télémètre : la dernière sélectionnée, puis la suivante. */
+  const [target, setTarget] = useState<{ key: "items" | "deductions"; i: number; dim: number }>({ key: "items", i: 0, dim: 0 });
+  const measured = (_m: number, text: string) => {
+    const dims = target.key === "items" ? spec.dims.length : dedDims.length;
+    const dimKey = (["a", "b", "c"] as const)[target.dim];
+    setM((x) => {
+      const rows = x[target.key];
+      const next = target.i < rows.length ? rows : [...rows, blank()];
+      return { ...x, [target.key]: next.map((it, j) => (j === target.i ? { ...it, [dimKey]: text } : it)) };
+    });
+    const label = target.key === "items" ? spec.dims[target.dim] : dedDims[target.dim];
+    setHeard({ ok: true, text: `Mesure reçue : ${text} m (${label.toLowerCase()}, rangée ${target.i + 1})` });
+    setTarget((t) => (t.dim + 1 < dims ? { ...t, dim: t.dim + 1 } : { ...t, i: t.i + 1, dim: 0 }));
+  };
   const isBlank = (it: MeasureItem) => !it.label.trim() && !it.a.trim() && !(it.b ?? "").trim() && !(it.c ?? "").trim();
   /** Cote dictée : ajoutée en rangée (ou en ouverture à déduire), à la place d'une rangée vide. */
   const dictated = (text: string) => {
@@ -81,6 +96,7 @@ export function MeasureDialog({
           dims={spec.dims}
           placeholder="Pièce, pan, zone"
           onChange={(i, p) => set("items", i, p)}
+          onFocusDim={(i, dim) => setTarget({ key: "items", i, dim })}
           onRemove={m.items.length > 1 ? (i) => del("items", i) : undefined}
         />
         <div className="flex flex-wrap items-center gap-2">
@@ -88,6 +104,7 @@ export function MeasureDialog({
             <Icon name="plus" size={14} /> Ajouter une rangée
           </button>
           <Dictation raw label="Dicter les cotes" onText={dictated} />
+          <LaserMeter onDistance={measured} />
         </div>
         {heard ? (
           <p role="status" className={`text-xs ${heard.ok ? "text-muted" : "text-danger"}`}>
@@ -104,6 +121,7 @@ export function MeasureDialog({
               dims={dedDims}
               placeholder="Porte, fenêtre"
               onChange={(i, p) => set("deductions", i, p)}
+              onFocusDim={(i, dim) => setTarget({ key: "deductions", i, dim })}
               onRemove={(i) => del("deductions", i)}
             />
             <button type="button" className="btn-ghost min-h-8 text-sm" onClick={() => add("deductions")} disabled={full}>
@@ -158,8 +176,10 @@ function Rows({
   dims,
   placeholder,
   onChange,
+  onFocusDim,
   onRemove,
 }: {
+  onFocusDim?: (i: number, dim: number) => void;
   title: string;
   prefix: string;
   rows: MeasureItem[];
@@ -198,6 +218,7 @@ function Rows({
                 inputMode="decimal"
                 value={row[keys[k]] ?? ""}
                 onChange={(e) => onChange(i, { [keys[k]]: e.target.value })}
+                onFocus={() => onFocusDim?.(i, k)}
                 aria-label={`${d} ${i + 1}`}
               />
             </label>

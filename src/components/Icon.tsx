@@ -55,6 +55,7 @@ const PATHS: Record<string, string> = {
   section: "M4 5.5h16M4 10.5h10M4 15.5h10M4 20h16",
   hammer: "M14 4.5 19.5 10l-2 2L12 6.5zM12.5 8 4.5 16a1.8 1.8 0 0 0 2.5 2.5l8-8",
   lock: "M6 10.5h12v10H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3",
+  ruler: "M3 9h18v6H3zM7 9v3M11 9v3M15 9v3M19 9v2",
   key: "M8 15.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM11 11.5h9.5M17.5 11.5v3M20.5 11.5v2",
   device: "M5 5h14v10H5zM2.5 18.5h19M10 15v3.5M14 15v3.5",
   chart: "M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3",

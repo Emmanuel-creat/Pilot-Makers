@@ -2596,6 +2596,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "telemetre-laser",
+    category: "devis",
+    title: "Prendre les cotes avec un télémètre laser Bluetooth",
+    summary: "Leica DISTO et Bosch GLM : la mesure remplit la cote du métré.",
+    steps: [
+      "Allumez le télémètre et activez son Bluetooth. Sur l'ordinateur ou la tablette, utilisez Chrome ou Edge.",
+      "Dans une ligne du devis, ouvrez « Métré » puis cliquez sur « Télémètre Bluetooth » et choisissez l'appareil.",
+      "Touchez la cote à remplir, puis mesurez : la valeur arrive en mètres et la cote suivante est prête pour la mesure d'après.",
+      "Vérifiez le total et cliquez sur « Reporter » pour reporter la quantité sur la ligne.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
