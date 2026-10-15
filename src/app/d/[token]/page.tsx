@@ -1,5 +1,6 @@
 import { Logo } from "@/components/Icon";
 import { SnapshotView } from "@/components/SnapshotView";
+import { PriceBreakdown } from "@/components/PriceBreakdown";
 import { plainSummary } from "@/lib/plain-summary";
 import { Notice } from "@/components/ui";
 import { getDb } from "@/lib/db";
@@ -115,6 +116,7 @@ export default async function ClientQuotePage({ params }: { params: Promise<{ to
           </ul>
         </section>
       ) : null}
+      <PriceBreakdown s={s} />
       <div className="mt-4">
         <SnapshotView s={s} />
       </div>

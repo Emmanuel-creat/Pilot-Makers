@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "ou-va-argent",
+    date: "2026-10-15",
+    title: "Des prix lisibles pour vos clients",
+    text: "La page de consultation du devis montre où va l'argent du client : fournitures, main-d'œuvre, déplacements, TVA, et le prix de l'heure expliqué.",
+    href: "/aide/ou-va-votre-argent",
+  },
+  {
     id: "carnet-transmis",
     date: "2026-10-15",
     title: "Le carnet suit le logement d'un artisan à l'autre",

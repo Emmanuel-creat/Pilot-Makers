@@ -122,6 +122,8 @@ test("devis vide, émission, acceptation en ligne, factures et paiement", async 
   // Résumé en langage simple pour la cliente particulière.
   await expect(cp.getByRole("heading", { name: "Ce devis en bref" })).toBeVisible();
   await expect(cp.getByText(/c'est la somme que vous paierez/)).toBeVisible();
+  // Répartition du prix, sans la marge de l'entreprise.
+  await expect(cp.getByTestId("ou-va-argent")).toContainText("Où va votre argent");
   // Copie traduite proposée au client étranger.
   const translated = await cp.request.get(new URL(link).pathname.replace("/d/", "/api/public/quotes/") + "/pdf?langue=en");
   expect(translated.status()).toBe(200);

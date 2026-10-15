@@ -2527,6 +2527,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "ou-va-votre-argent",
+    category: "devis",
+    title: "Où va l'argent du client",
+    summary: "Sur la page de consultation du devis, le client voit son prix réparti entre fournitures, main-d'œuvre, déplacements et TVA.",
+    steps: [
+      "La répartition est calculée à partir de la nature de chaque ligne du devis : fournitures, main-d'œuvre, déplacement, sous-traitance, forfait ou autre. Renseignez-la bien dans l'éditeur.",
+      "La remise globale est répartie au prorata, la TVA est montrée à part comme reversée à l'État.",
+      "Quand la main-d'œuvre est comptée en heures, le nombre d'heures et le prix de l'heure sont indiqués, avec ce que ce prix couvre (salaire, charges, assurance, outillage, véhicule).",
+      "Votre marge et vos coûts ne sont jamais montrés : seuls les montants déjà écrits dans le devis le sont.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
