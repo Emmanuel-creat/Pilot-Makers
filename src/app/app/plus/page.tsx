@@ -35,6 +35,7 @@ export default async function MorePage() {
     ["/app/formation", "Formation continue", "star"],
     ["/app/assistance", "Assistance", "help"],
     ["/app/menu", "Personnaliser le menu", "edit"],
+    ["/app/mes-retours", "Mes retours", "note"],
     ["/app/nouveautes", unread ? `Nouveautés (${unread} non lue${unread > 1 ? "s" : ""})` : "Nouveautés", "star"],
     ...(ctx.isPlatformAdmin && !ctx.supportAccess ? [["/admin", "Administration", "shield"]] : []),
   ];

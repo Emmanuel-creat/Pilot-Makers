@@ -2099,6 +2099,21 @@ test("heures rendues : temps gagné de l'entreprise et compteur public", async (
   expect((await r.json()).durations.length).toBeGreaterThan(5);
 });
 
+test("retours : avis en bas de page et suivi des réponses", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/clients");
+  const form = page.getByRole("form", { name: "Votre avis sur cette page" });
+  await form.getByText("Ajouter un commentaire (facultatif)").click();
+  await form.getByLabel("Votre avis en quelques mots").fill("La recherche par ville serait pratique");
+  await form.getByRole("button", { name: "À améliorer" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Merci, votre avis est transmis" })).toBeVisible();
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Mes retours" }).click();
+  await page.waitForURL(/\/app\/mes-retours$/);
+  await expect(page.getByText("La recherche par ville serait pratique")).toBeVisible();
+  await audit(page, "mes retours");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

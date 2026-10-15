@@ -2478,6 +2478,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "retours-utilisateurs",
+    category: "compte",
+    title: "Donner votre avis sur une page",
+    summary: "En bas de chaque page, dites si elle vous est utile : les réponses sont relues chaque semaine pour améliorer l'application.",
+    steps: [
+      "En bas de chaque page de l'application, répondez Utile ou À améliorer ; un commentaire facultatif permet de dire ce qui manque ou ce qui gêne.",
+      "Une seule réponse est gardée par rubrique et par jour : répondre à nouveau remplace la précédente. Les identifiants de vos devis ou clients ne sont jamais transmis.",
+      "Chaque semaine, l'équipe compare la satisfaction de chaque rubrique à la semaine précédente et traite d'abord les rubriques qui gênent le plus.",
+      "Retrouvez vos commentaires et les réponses de l'équipe dans Plus puis Mes retours.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

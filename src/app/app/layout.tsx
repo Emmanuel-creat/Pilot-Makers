@@ -1,3 +1,4 @@
+import { PageFeedback } from "@/components/app/PageFeedback";
 import { Shell } from "@/components/app/Shell";
 import { requirePageCtx } from "@/lib/server/session";
 import { getMenu } from "@/lib/services/menu-prefs";
@@ -18,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       menu={{ main: menu.main.map(item), mobile: menu.mobile.map(item) }}
     >
       {children}
+      {ctx.supportAccess ? null : <PageFeedback />}
     </Shell>
   );
 }

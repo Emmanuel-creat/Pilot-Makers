@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "retours-utilisateurs",
+    date: "2026-10-15",
+    title: "Votre avis en bas de chaque page",
+    text: "Dites si une page vous est utile ou à améliorer : les réponses sont relues chaque semaine et vous retrouvez nos réponses dans Mes retours.",
+    href: "/app/mes-retours",
+  },
+  {
     id: "heures-rendues",
     date: "2026-10-15",
     title: "Temps gagné, mesuré et publié",

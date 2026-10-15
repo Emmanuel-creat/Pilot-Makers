@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { resolveFeedback, sendFeedback } from "@/lib/services/feedback";
 import { addLeftover, deleteLeftover } from "@/lib/services/material-balance";
 import { setJobCarbonSettings } from "@/lib/services/job-carbon";
 import { endAway, saveAway } from "@/lib/services/away-mode";
@@ -3849,4 +3850,18 @@ export async function leftoverDeleteAction(_: ActionState, fd: FormData): Promis
     return toState(e);
   }
   return { ok: true, message: "Reste supprimé." };
+}
+
+export async function feedbackAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => sendFeedback(ctx, { path: s(fd, "path"), useful: s(fd, "useful") === "1", comment: s(fd, "comment") }));
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Merci, votre avis est transmis à l'équipe." };
+}
+
+export async function resolveFeedbackAction(fd: FormData) {
+  await withCtx((ctx) => resolveFeedback(ctx, s(fd, "id"), s(fd, "response")));
+  revalidatePath("/admin/retours");
 }
