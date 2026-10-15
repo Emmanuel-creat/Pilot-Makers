@@ -13,6 +13,7 @@ import { badRequest, conflict, isUuid, notFound } from "@/lib/http";
 import { BLACK, fr, GREY, LEFT, Page, WIDTH } from "@/lib/pdf/reception-pdf";
 import { sanitize } from "@/lib/pdf/quote-pdf";
 import { deliveryDeltas, expectedCreditCents, type DeliveredLine } from "@/lib/supplier-returns";
+import { deliveryAdvice } from "@/lib/just-in-time";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import type { Ctx } from "./context";
 import { audit, requirePermission, requireWritable } from "./context";
@@ -522,4 +523,53 @@ export async function orderPdf(ctx: Ctx, id: string): Promise<{ number: string; 
   p.gap(16);
   p.line("Merci de rappeler le numéro de commande sur le bon de livraison et la facture.", 9, p.regular, GREY);
   return { number: order.number, pdf: await doc.save() };
+}
+
+/* ------------------------------------------------------------------ */
+/* Livraisons juste à temps                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Commandes en cours et leur date de livraison comparée au premier jour de travaux planifié du chantier
+ * (affectation d'équipe à venir, sinon date de début du chantier).
+ */
+export async function justInTimeOrders(ctx: Ctx, today: string) {
+  requirePermission(ctx, "costs");
+  const rows = await ctx.db.query<{ id: string; number: string; supplier: string; status: OrderStatus; delivery_date: unknown; job_id: string; job_title: string; work_start: unknown }>(
+    `SELECT o.id, o.number, o.supplier, o.status, o.delivery_date, o.job_id, j.title AS job_title,
+            coalesce((SELECT min(a.start_date) FROM job_assignments a WHERE a.job_id=j.id AND a.end_date >= $2::date), j.start_date) AS work_start
+       FROM purchase_orders o JOIN jobs j ON j.id=o.job_id
+      WHERE o.org_id=$1 AND o.status IN ('brouillon','envoye','recu_partiel')
+      ORDER BY work_start NULLS LAST, o.number`,
+    [ctx.orgId, today],
+  );
+  return rows
+    .map((r) => {
+      const workStart = day(r.work_start);
+      // Un chantier déjà commencé reste à livrer au plus vite : la date de référence devient aujourd'hui.
+      const ref = workStart && workStart < today ? today : workStart;
+      return {
+        id: String(r.id),
+        number: r.number,
+        supplier: r.supplier,
+        status: r.status,
+        jobId: String(r.job_id),
+        jobTitle: r.job_title,
+        deliveryDate: day(r.delivery_date),
+        workStart: ref,
+        advice: deliveryAdvice({ deliveryDate: day(r.delivery_date), workStart: ref, today }),
+      };
+    })
+    .filter((o) => o.advice.state !== "sans_planning");
+}
+
+/** Cale la livraison sur la date idéale ; une commande déjà envoyée demande de prévenir le fournisseur. */
+export async function alignDelivery(ctx: Ctx, id: string, today: string) {
+  requireWritable(ctx);
+  const o = (await justInTimeOrders(ctx, today)).find((x) => x.id === id);
+  if (!o) throw notFound("Commande introuvable ou déjà reçue");
+  if (!o.advice.ideal || o.advice.state === "ok") return { date: o.deliveryDate, notifySupplier: false };
+  await ctx.db.query("UPDATE purchase_orders SET delivery_date=$3, updated_at=now() WHERE id=$1 AND org_id=$2", [id, ctx.orgId, o.advice.ideal]);
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "order.align_delivery", target: id, data: { from: o.deliveryDate, to: o.advice.ideal }, ip: ctx.ip });
+  return { date: o.advice.ideal, notifySupplier: o.status !== "brouillon" };
 }

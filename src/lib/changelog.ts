@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "livraisons-juste-a-temps",
+    date: "2026-10-15",
+    title: "Livraisons calées sur le planning",
+    text: "Chaque commande en cours est comparée au premier jour de travaux planifié : livraison trop tôt ou trop tard signalée, et calée en un clic sur la veille ouvrée du chantier.",
+    href: "/app/commandes",
+  },
+  {
     id: "connexion-unique",
     date: "2026-10-15",
     title: "Connexion unique pour les entreprises",

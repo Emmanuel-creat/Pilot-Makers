@@ -9,18 +9,22 @@ import { one } from "@/lib/db";
 import { requirePageCtx } from "@/lib/server/session";
 import { can } from "@/lib/services/context";
 import { draftsBySupplier, listGroups } from "@/lib/services/order-groups";
+import { justInTimeOrders } from "@/lib/services/purchase-orders";
+import { parisDate } from "@/lib/services/quotes";
+import { JustInTime } from "./JustInTime";
 
 export const metadata = { title: "Commandes groupées" };
 
 export default async function OrderGroupsPage() {
   const ctx = await requirePageCtx();
   if (!can(ctx, "costs")) notFound();
-  const [drafts, groups, org] = await Promise.all([
+  const [drafts, groups, org, jit] = await Promise.all([
     draftsBySupplier(ctx),
     listGroups(ctx),
     one<{ address_line1: string; postal_code: string; city: string }>(ctx.db, "SELECT address_line1, postal_code, city FROM organizations WHERE id=$1", [
       ctx.orgId,
     ]),
+    justInTimeOrders(ctx, parisDate(new Date())),
   ]);
   const canEdit = !ctx.entitlements.readOnly && !ctx.supportAccess;
   const depot = [org?.address_line1, [org?.postal_code, org?.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
@@ -32,6 +36,7 @@ export default async function OrderGroupsPage() {
         subtitle="Réunissez les commandes en brouillon de plusieurs chantiers chez un même fournisseur : un seul bon, une seule livraison."
       />
       <div className="space-y-6">
+        <JustInTime rows={jit} canEdit={canEdit} />
         {drafts.length ? (
           drafts.map((g, gi) => (
             <Section key={g.supplier} title={g.supplier} description={`${g.orders.length} commandes en brouillon à regrouper.`}>

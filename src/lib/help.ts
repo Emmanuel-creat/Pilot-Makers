@@ -2644,6 +2644,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "livraisons-juste-a-temps",
+    category: "catalogue",
+    title: "Faire livrer le matériel la veille des travaux",
+    summary: "Les commandes se calent sur le planning du chantier.",
+    steps: [
+      "Ouvrez Commandes groupées : la rubrique « Livraisons juste à temps » compare chaque commande en cours au premier jour où une équipe est planifiée sur le chantier.",
+      "Une livraison plus de trois jours ouvrés avant les travaux est signalée (stockage, casse, vol), une livraison après le début aussi (équipe qui attend).",
+      "Cliquez sur « Caler au » pour demander la livraison la veille ouvrée des travaux, week-ends et jours fériés exclus.",
+      "Si la commande est déjà envoyée, prévenez le fournisseur de la nouvelle date. Quand le planning bouge, la rubrique le signale de nouveau.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

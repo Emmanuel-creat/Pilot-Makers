@@ -32,6 +32,7 @@ import { formatMinutes } from "@/lib/services/timesheet-calc";
 import { deleteExpense, reviewExpenses } from "@/lib/services/expenses";
 import { addPurchase, deletePurchase, setBudgetThreshold } from "@/lib/services/job-costs";
 import {
+  alignDelivery,
   cancelOrder,
   createOrder,
   deleteLine,
@@ -160,6 +161,7 @@ import {
   createRevision,
   recordResponseManually,
   revokeShareLinks,
+  parisDate,
 } from "@/lib/services/quotes";
 import { saveReminderSettings } from "@/lib/services/reminders";
 import { convertLeadToQuote, createLead, updateLead } from "@/lib/services/leads";
@@ -4005,4 +4007,18 @@ export async function saveSsoAction(_: ActionState, fd: FormData): Promise<Actio
 export async function deleteSsoAction() {
   await withCtx((ctx) => deleteSsoConfig(ctx));
   revalidatePath("/app/entreprise/connexion-unique");
+}
+
+export async function alignDeliveryAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const r = await withCtx((ctx) => alignDelivery(ctx, s(fd, "id"), parisDate(new Date())));
+    revalidatePath("/app/commandes");
+    const date = r.date ? r.date.split("-").reverse().join("/") : "";
+    return {
+      ok: true,
+      message: r.notifySupplier ? `Livraison décalée au ${date}. La commande est déjà envoyée : prévenez le fournisseur.` : `Livraison calée au ${date}.`,
+    };
+  } catch (e) {
+    return toState(e);
+  }
 }

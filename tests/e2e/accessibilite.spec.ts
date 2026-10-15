@@ -2242,6 +2242,29 @@ test("connexion unique : réglage de l'annuaire et entrée sur la page de connex
   await audit(page, "connexion d'entreprise refusée");
 });
 
+test("commandes : livraisons calées sur le planning des chantiers", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("button", { name: "Commande vide" }).click();
+  await page.waitForURL(/\/commandes\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Fournisseur", { exact: true }).fill("Négoce juste à temps");
+  await page.locator("#po-date").fill("2099-01-05");
+  await page.getByRole("button", { name: "Enregistrer", exact: true }).click();
+  await expect(page.getByText("Commande enregistrée.")).toBeVisible();
+  await page.goto("/app/commandes");
+  await expect(page.getByRole("heading", { level: 1, name: "Commandes groupées" })).toBeVisible();
+  const jit = page.getByTestId("juste-a-temps");
+  if (await jit.isVisible()) {
+    const row = jit.locator("li", { hasText: "Négoce juste à temps" }).first();
+    await expect(row).toContainText("après le début des travaux");
+    await row.getByRole("button", { name: /Caler au/ }).click();
+    await expect(jit.locator("li", { hasText: "Négoce juste à temps" })).toHaveCount(0);
+  }
+  await audit(page, "livraisons juste à temps");
+});
+
 test("équipe : agences et activité par établissement", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
