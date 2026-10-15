@@ -2573,6 +2573,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "regles-par-pays",
+    title: "Taux de TVA et mentions qui changent",
+    category: "regles",
+    summary: "Les règles de votre pays sont mises à jour à leur date d'entrée en vigueur, sans rien installer.",
+    steps: [
+      "Les taux de TVA proposés dans vos devis et les mentions propres à votre pays (France, Belgique, Suisse, Luxembourg) suivent les règles en vigueur le jour où vous travaillez.",
+      "Quand un changement est annoncé, il est publié avec sa date et sa source. L'onglet Identité de la page Entreprise vous prévient à l'avance, avec les nouveaux taux.",
+      "Le jour venu, l'éditeur propose les nouveaux taux et le contrôle avant émission signale une ligne qui garde un ancien taux. Les devis déjà émis ne changent jamais.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

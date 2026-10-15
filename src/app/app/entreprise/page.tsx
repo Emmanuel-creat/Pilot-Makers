@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHeader, fmtDate } from "@/components/ui";
+import { Notice, PageHeader, fmtDate } from "@/components/ui";
+import { countryRulesInfo } from "@/lib/services/country-rules";
 import { requirePageCtx } from "@/lib/server/session";
 import { getOrganization, organizationHistory, redactForRole } from "@/lib/services/organization";
 import { readSettings } from "@/lib/services/reminders";
@@ -28,7 +29,7 @@ import { listLabels } from "@/lib/services/labels";
 import { AccountingForm } from "./AccountingForm";
 import { getPlan } from "@/lib/services/accounting-plan";
 import { listRge } from "@/lib/services/aids";
-import { parisDate } from "@/lib/services/quotes";
+import { frDate, parisDate } from "@/lib/services/quotes";
 
 export const metadata = { title: "Entreprise" };
 
@@ -81,6 +82,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
       (k !== "webhooks" || webhooksOn) &&
       (k !== "api" || apiOn),
   );
+  const rulesInfo = tab === "identite" ? await countryRulesInfo(ctx.db, org.country) : null;
   const { created_at: _c, updated_at: _u, reminder_settings, invoice_reminder_settings, pricing, ...values } = org;
   return (
     <div className="mx-auto max-w-4xl">
@@ -96,6 +98,15 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
           </Link>
         ))}
       </nav>
+      {rulesInfo?.next ? (
+        <Notice tone="warning" title={`Règles ${rulesInfo.current.label} : changement le ${frDate(rulesInfo.next.effectiveFrom)}`}>
+          À partir de cette date, les taux de TVA proposés dans vos devis seront {rulesInfo.next.vatOptions.join(" %, ")} %. {rulesInfo.next.note}
+        </Notice>
+      ) : rulesInfo?.current.version ? (
+        <Notice title={`Règles ${rulesInfo.current.label} à jour au ${frDate(rulesInfo.current.version.effectiveFrom)}`}>
+          Taux de TVA en vigueur : {rulesInfo.current.vatOptions.join(" %, ")} %. {rulesInfo.current.version.note}
+        </Notice>
+      ) : null}
       {tab === "factures" ? (
         <InvoiceSettingsForm
           canEdit={canEdit}

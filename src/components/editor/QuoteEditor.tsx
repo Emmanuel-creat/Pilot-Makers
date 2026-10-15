@@ -144,7 +144,10 @@ export function QuoteEditor({
   pricing,
   revisionEnabled = true,
   rge = [],
+  countryVatOptions,
 }: {
+  /** Taux du pays en vigueur aujourd'hui, versions publiées comprises */
+  countryVatOptions?: string[];
   /** Qualifications RGE de l'entreprise, pour contrôler les devis visant des aides */
   rge?: RgeQualification[];
   initial: QuoteDraft;
@@ -188,7 +191,7 @@ export function QuoteEditor({
   const focusedSection = useRef("");
   const franchise = org.vat_regime === "franchise";
   const vatExempt = franchise || d.reverseCharge;
-  const vatOptions = rulesFor(org.country).vatOptions;
+  const vatOptions = countryVatOptions ?? rulesFor(org.country).vatOptions;
 
   /* Calculs et contrôles en direct (même moteur que le serveur) */
   const calc = useMemo(() => computeQuote(draftToCalcInput(d, vatExempt)), [d, vatExempt]);

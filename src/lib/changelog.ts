@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "regles-pays",
+    date: "2026-10-15",
+    title: "Taux de TVA à jour dès leur entrée en vigueur",
+    text: "Quand un taux de TVA change en France, en Belgique, en Suisse ou au Luxembourg, la nouvelle règle est publiée avec sa date : vos devis l'appliquent ce jour-là, et l'onglet Identité vous prévient à l'avance.",
+    href: "/aide/regles-par-pays",
+  },
+  {
     id: "stockage-objet",
     date: "2026-10-15",
     title: "Fichiers lus par des liens à durée limitée",

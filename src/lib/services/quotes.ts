@@ -46,7 +46,8 @@ import { documentsMention, quoteDocuments, type SnapshotDocument } from "./datas
 import { aidIssues, aidMentions, energyAidSchema, normalizeAid, rgeQualifications, type EnergyAid, type RgeQualification } from "./aids";
 import { enqueueWebhook } from "./webhooks";
 import { overseasIssues } from "@/lib/overseas";
-import { countryVatIssues } from "@/lib/country-rules";
+import { countryVatIssues, type CountryRules } from "@/lib/country-rules";
+import { effectiveRules } from "./country-rules";
 import { currencyIssues, draftForeign, foreignMention, normalizeForeign, type ForeignCurrency } from "@/lib/currency";
 
 const DAY = 86_400_000;
@@ -530,10 +531,16 @@ export async function saveDraft(ctx: Ctx, id: string, raw: unknown, expectedRevi
 }
 
 /** Taux de TVA à vérifier quand le chantier (ou, à défaut, le client) est outre-mer. */
-function quoteOverseasIssues(org: Parameters<typeof quoteVatExempt>[0] & { country?: string }, customer: Customer | null, d: { reverseCharge?: boolean; site: { postalCode: string } }, calc: ReturnType<typeof computeQuote>) {
+function quoteOverseasIssues(
+  org: Parameters<typeof quoteVatExempt>[0] & { country?: string },
+  customer: Customer | null,
+  d: { reverseCharge?: boolean; site: { postalCode: string } },
+  calc: ReturnType<typeof computeQuote>,
+  rules?: CountryRules,
+) {
   const postal = d.site.postalCode || customer?.billing_postal_code || "";
   const vatBps = calc.vatGroups.map((g) => g.vatBp);
-  return [...overseasIssues(postal, vatBps, quoteVatExempt(org, d)), ...countryVatIssues(org.country, vatBps, quoteVatExempt(org, d))];
+  return [...overseasIssues(postal, vatBps, quoteVatExempt(org, d)), ...countryVatIssues(org.country, vatBps, quoteVatExempt(org, d), rules)];
 }
 
 /** Aperçu des calculs et contrôles, sans rien enregistrer. */
@@ -544,7 +551,7 @@ export async function previewQuote(ctx: Ctx, id: string, raw?: unknown) {
   const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
   const customer = d.customerId ? await one<Customer>(ctx.db, "SELECT * FROM customers WHERE id=$1 AND org_id=$2", [d.customerId, ctx.orgId]) : null;
   const issues = checkCompliance(complianceInput(org, customer, d, calc));
-  issues.push(...quoteOverseasIssues(org, customer, d, calc), ...currencyIssues(d.foreignCurrency));
+  issues.push(...quoteOverseasIssues(org, customer, d, calc, await effectiveRules(ctx.db, org.country)), ...currencyIssues(d.foreignCurrency));
   const today = parisDate(new Date());
   issues.push(
     ...aidIssues(
@@ -801,7 +808,7 @@ async function issueInTransaction(ctx: Ctx, id: string, expectedRevision?: numbe
     // Recalcul côté serveur : les totaux envoyés par le navigateur ne sont jamais utilisés.
     const calc = computeQuote(draftToCalcInput(d, quoteVatExempt(org, d)));
     const issues = checkCompliance(complianceInput(org, customer, d, calc));
-    issues.push(...quoteOverseasIssues(org, customer, d, calc), ...currencyIssues(d.foreignCurrency));
+    issues.push(...quoteOverseasIssues(org, customer, d, calc, await effectiveRules(tx, org.country)), ...currencyIssues(d.foreignCurrency));
     const rge = await rgeQualifications(tx, ctx.orgId);
     issues.push(...aidIssues(normalizeAid(d.energyAid), rge, parisDate(new Date()), parisDate(addDays(new Date(), d.validityDays)), calc.totalTtcCents));
     const blocking = issues.filter((i) => i.blocking);

@@ -2193,6 +2193,26 @@ test("public : validateur du format Devis ouvert", async ({ page }) => {
   expect(body.errors.length).toBeGreaterThan(1);
 });
 
+test("administration : règles par pays publiées à une date, sans nouvelle version", async ({ page }) => {
+  await page.goto("/connexion");
+  await page.locator("#email").fill("admin@pilot-makers.fr");
+  await page.locator("#password").fill("Demo2026Pilot");
+  await page.locator("form button[type=submit]").click();
+  await page.waitForURL(/\/(app|admin)(\/|$)/);
+  await page.goto("/admin/regles-pays");
+  await expect(page.getByRole("heading", { level: 1, name: "Règles par pays" })).toBeVisible();
+  await expect(page.getByTestId("regles-BE")).toContainText("21 %, 12 %, 6 %, 0 %");
+  await audit(page, "admin règles par pays");
+  await page.locator("select[name=country]").selectOption("LU");
+  await page.locator("input[name=effectiveFrom]").fill("2099-01-01");
+  await page.locator("input[name=vatRates]").fill("18 ; 15 ; 9 ; 3 ; 0");
+  await page.locator("input[name=note]").fill("Essai de publication");
+  await page.getByRole("button", { name: "Publier la version" }).click();
+  await expect(page.getByTestId("regles-LU")).toContainText("Prochain changement le 01/01/2099");
+  await page.getByTestId("regles-LU").getByRole("button", { name: "Retirer" }).click();
+  await expect(page.getByTestId("regles-LU")).not.toContainText("Prochain changement");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

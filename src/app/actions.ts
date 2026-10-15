@@ -110,6 +110,7 @@ import { assignMemberAgency, createAgency, deleteAgency } from "@/lib/services/a
 import { importSharedHomeRecord } from "@/lib/services/home-records";
 import { setAidStep } from "@/lib/services/energy-diagnoses";
 import { setCommitments } from "@/lib/services/commitments";
+import { deleteRuleVersion, publishRuleVersion } from "@/lib/services/country-rules";
 import { resolveFeedback, sendFeedback } from "@/lib/services/feedback";
 import { addLeftover, deleteLeftover } from "@/lib/services/material-balance";
 import { setJobCarbonSettings } from "@/lib/services/job-carbon";
@@ -3946,4 +3947,21 @@ export async function agencyAssignAction(_: ActionState, fd: FormData): Promise<
   }
   revalidatePath("/app/equipe/agences");
   return { ok: true, message: "Rattachement enregistré pour les prochains devis." };
+}
+
+export async function publishRuleVersionAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      publishRuleVersion(ctx, { country: s(fd, "country"), effectiveFrom: s(fd, "effectiveFrom"), vatRates: s(fd, "vatRates"), mentions: s(fd, "mentions"), note: s(fd, "note") }),
+    );
+    revalidatePath("/admin/regles-pays");
+    return { ok: true, message: "Version publiée : elle s'applique aux devis à partir de sa date, sans nouvelle version de l'application." };
+  } catch (e) {
+    return toState(e);
+  }
+}
+
+export async function deleteRuleVersionAction(fd: FormData) {
+  await withCtx((ctx) => deleteRuleVersion(ctx, s(fd, "id")));
+  revalidatePath("/admin/regles-pays");
 }

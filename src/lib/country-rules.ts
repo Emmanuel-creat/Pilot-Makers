@@ -151,9 +151,10 @@ export function companyIdLine(org: { country?: string; siret: string; siren: str
 }
 
 /** Avertissement si le devis d'une entreprise étrangère utilise des taux de TVA d'un autre pays. */
-export function countryVatIssues(raw: string | null | undefined, vatBps: number[], vatExempt = false): CalcIssue[] {
-  const r = rulesFor(raw);
-  if (r.code === "FR" || vatExempt) return [];
+export function countryVatIssues(raw: string | null | undefined, vatBps: number[], vatExempt = false, rules?: CountryRules): CalcIssue[] {
+  const r = rules ?? rulesFor(raw);
+  // La France garde ses propres contrôles, sauf si une version publiée modifie ses taux.
+  if ((r.code === "FR" && r === COUNTRIES.FR) || vatExempt) return [];
   const wrong = [...new Set(vatBps)].filter((v) => !r.vatRatesBp.includes(v));
   if (!wrong.length) return [];
   return [
@@ -165,4 +166,57 @@ export function countryVatIssues(raw: string | null | undefined, vatBps: number[
         .join(", ")} ne font pas partie des taux du pays (${r.vatOptions.join(" %, ")} %).`,
     },
   ];
+}
+
+/** Version des règles d'un pays publiée par l'administration, applicable à partir d'une date, sans nouvelle version du logiciel. */
+export interface RuleVersion {
+  country: CountryCode;
+  /** AAAA-MM-JJ */
+  effectiveFrom: string;
+  vatOptions: string[];
+  mentions: string[];
+  note: string;
+}
+
+export const isCountryCode = (v: string): v is CountryCode => v in COUNTRIES;
+
+/** Liste de taux saisie librement (« 21 ; 12 ; 6 ; 0 ») : taux affichés et points de base, ou message d'erreur. */
+export function parseVatList(raw: string): { options: string[]; bps: number[] } | string {
+  const parts = raw
+    .split(/[;\s/|]+/)
+    .map((p) => p.trim().replace(/%$/, "").replace(".", ","))
+    .filter(Boolean);
+  if (!parts.length) return "Indiquez au moins un taux de TVA";
+  const options: string[] = [];
+  const bps: number[] = [];
+  for (const p of parts) {
+    if (!/^\d{1,2}(,\d{1,2})?$/.test(p)) return `Taux illisible : ${p}`;
+    const bp = Math.round(Number(p.replace(",", ".")) * 100);
+    if (bp > 3000) return `Taux trop élevé : ${p} %`;
+    if (!bps.includes(bp)) {
+      bps.push(bp);
+      options.push(p);
+    }
+  }
+  return { options, bps };
+}
+
+/** Règles du pays à une date : la dernière version publiée déjà en vigueur l'emporte sur les règles livrées avec le logiciel. */
+export function applyRuleVersions(code: CountryCode, versions: RuleVersion[], onDate: string): CountryRules & { version: RuleVersion | null } {
+  const base = COUNTRIES[code];
+  const v =
+    versions
+      .filter((x) => x.country === code && x.effectiveFrom <= onDate)
+      .sort((a, b) => (a.effectiveFrom < b.effectiveFrom ? 1 : -1))[0] ?? null;
+  if (!v) return { ...base, version: null };
+  const parsed = parseVatList(v.vatOptions.join(";"));
+  const vat = typeof parsed === "string" ? { options: base.vatOptions, bps: base.vatRatesBp } : parsed;
+  return { ...base, vatOptions: vat.options, vatRatesBp: vat.bps, mentions: v.mentions, version: v };
+}
+
+/** Prochaine version programmée d'un pays (date future), pour prévenir avant le changement. */
+export function nextRuleVersion(code: CountryCode, versions: RuleVersion[], onDate: string): RuleVersion | null {
+  return (
+    versions.filter((x) => x.country === code && x.effectiveFrom > onDate).sort((a, b) => (a.effectiveFrom < b.effectiveFrom ? -1 : 1))[0] ?? null
+  );
 }

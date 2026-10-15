@@ -12,6 +12,7 @@ const NAV = [
   ["/admin/erreurs", "Erreurs"],
   ["/admin/assistance", "Assistance"],
   ["/admin/retours", "Retours"],
+  ["/admin/regles-pays", "Règles par pays"],
   ["/admin/journal", "Journal"],
   ["/admin/versions", "Versions"],
   ["/admin/statut", "Statut"],

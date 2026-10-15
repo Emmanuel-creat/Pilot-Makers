@@ -1,3 +1,4 @@
+import { effectiveRules } from "@/lib/services/country-rules";
 import { listRge } from "@/lib/services/aids";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -101,6 +102,7 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
           key={`${draft.id}-${draft.draftRevision}`}
           initial={draft}
           rge={await listRge(ctx)}
+          countryVatOptions={(await effectiveRules(ctx.db, org.country)).vatOptions}
           revisionEnabled={!!draft.priceRevision || (await hasFeature(ctx, "revision_prix"))}
           org={{
             trade_name: org.trade_name,
