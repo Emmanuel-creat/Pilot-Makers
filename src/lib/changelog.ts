@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "format-devis-ouvert",
+    date: "2026-10-15",
+    title: "Devis ouvert, le format d'échange de devis",
+    text: "Exportez un devis dans un format ouvert lisible par tout logiciel, et importez en brouillon les devis reçus, totaux vérifiés.",
+    href: "/format-devis-ouvert",
+  },
+  {
     id: "renovation-coordonnee",
     date: "2026-10-15",
     title: "Rénovation coordonnée",

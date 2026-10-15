@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { PDFDocument } from "pdf-lib";
 import { expect, test, type Page } from "@playwright/test";
@@ -1867,6 +1868,25 @@ test("rénovation coordonnée : dossier piloté puis lien du client", async ({ p
   await expect(page.getByRole("heading", { name: "Rénovation complète maison test" })).toBeVisible();
   await expect(page.getByTestId("renovation-total-client")).toContainText("3 000");
   await audit(page, "rénovation coordonnée côté client");
+});
+
+test("devis ouvert : export d'un devis puis import en brouillon", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/devis?q=D-2026-0001");
+  await page.goto((await page.locator("a:visible", { hasText: "D-2026-0001" }).first().getAttribute("href"))!);
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Devis ouvert" }).click();
+  const file = await (await download).path();
+  await page.goto("/app/devis");
+  await page.getByRole("link", { name: "Importer", exact: true }).click();
+  await page.waitForURL(/\/app\/devis\/importer$/);
+  await audit(page, "import devis ouvert");
+  await page.getByLabel("Fichier .devis.json").setInputFiles({ name: "devis.devis.json", mimeType: "application/json", buffer: readFileSync(file!) });
+  await page.getByRole("button", { name: "Importer en brouillon" }).click();
+  await page.waitForURL(/\/app\/devis\/[0-9a-f-]{36}$/);
+  await page.goto("/format-devis-ouvert");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Devis ouvert");
+  await audit(page, "format devis ouvert");
 });
 
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {

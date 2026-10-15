@@ -2299,6 +2299,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "format-devis-ouvert",
+    category: "devis",
+    title: "Échanger un devis au format ouvert Devis ouvert",
+    summary: "Envoyez un devis à un autre logiciel ou à un confrère, et reprenez un devis reçu, sans ressaisie.",
+    steps: [
+      "Sur un devis émis, le bouton Devis ouvert télécharge un fichier .devis.json : lots, lignes, quantités, prix HT, taux de TVA et totaux.",
+      "Les coûts de revient, marges et notes internes ne sont jamais dans le fichier.",
+      "Pour reprendre un devis reçu, ouvrez Devis puis Importer, choisissez le fichier et, si vous le souhaitez, le client : un brouillon est créé.",
+      "Les totaux sont recalculés à l'import ; un écart avec ceux du fichier est signalé en haut du brouillon. Relisez toujours avant d'émettre.",
+      "Le format est public et libre de droits : sa description et son schéma sont sur la page Format Devis ouvert.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -45,7 +45,7 @@ import { INVOICE_KINDS, INVOICE_STATUSES, invoicedProgress, listInvoices } from 
 
 export const metadata = { title: "Devis" };
 
-export default async function QuotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ assistant?: string }> }) {
+export default async function QuotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ assistant?: string; import?: string }> }) {
   const { id } = await params;
   const sp = await searchParams;
   const ctx = await requirePageCtx();
@@ -84,6 +84,11 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
       : null;
     return (
       <>
+        {sp.import === "ecarts" ? (
+          <Notice tone="warning" title="Devis importé à relire">
+            Les totaux recalculés diffèrent de ceux du fichier reçu, ou des lignes sont incomplètes : vérifiez les quantités, prix et taux avant d&apos;émettre.
+          </Notice>
+        ) : null}
         {draft.currentVersion === 0 ? (
           <div className="mb-2 flex justify-end">
             <form action={deleteDraftAction}>
@@ -225,6 +230,9 @@ export default async function QuotePage({ params, searchParams }: { params: Prom
             </a>
             <a href={`/api/quotes/${id}/pdf?version=${current.version}&download=1`} className="btn-secondary">
               <Icon name="download" size={16} /> Télécharger
+            </a>
+            <a href={`/api/quotes/${id}/devis-ouvert`} className="btn-secondary" title="Format ouvert d'échange, lisible par d'autres logiciels">
+              <Icon name="upload" size={16} /> Devis ouvert
             </a>
             {current.snapshot.documents?.length ? (
               <a href={`/api/quotes/${id}/documents?version=${current.version}`} target="_blank" rel="noreferrer" className="btn-secondary">

@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { importQuoteExchange } from "@/lib/services/quote-exchange";
 import { addRenovationParticipant, answerRenovationInvite, createRenovation, removeRenovationParticipant, shareRenovation, updateRenovationParticipant } from "@/lib/services/renovation";
 import { setTrustShown } from "@/lib/services/trust-score";
 import { importWork, publishWork, reportWork, toggleWorkVote, updateWork } from "@/lib/services/open-works";
@@ -3559,4 +3560,18 @@ export async function renovationShareAction(_: ActionState, fd: FormData): Promi
   } catch (e) {
     return toState(e);
   }
+}
+
+export async function quoteExchangeImportAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let r: { id: string; warnings: string[] };
+  try {
+    const file = fd.get("file");
+    const json = file instanceof File && file.size ? await file.text() : s(fd, "json");
+    if (!json.trim()) return { error: "Choisissez un fichier .devis.json" };
+    r = await withCtx((ctx) => importQuoteExchange(ctx, json, s(fd, "customerId") || null));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/devis");
+  redirect(`/app/devis/${r.id}${r.warnings.length ? "?import=ecarts" : ""}`);
 }

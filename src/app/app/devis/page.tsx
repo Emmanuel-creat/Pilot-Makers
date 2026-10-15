@@ -66,6 +66,9 @@ export default async function QuotesPage({ searchParams }: { searchParams: Promi
             <Link href="/app/devis/diagnostic-energetique" className="btn-secondary">
               <Icon name="sun" /> Diagnostic énergétique
             </Link>
+            <Link href="/app/devis/importer" className="btn-secondary">
+              <Icon name="download" /> Importer
+            </Link>
             <Link href="/app/devis/nouveau" className="btn-primary">
               <Icon name="plus" /> Créer un devis
             </Link>
