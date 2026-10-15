@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { submitQuiz } from "@/lib/services/training";
 import { applyLivePrices } from "@/lib/services/live-pricing";
 import { addBiosourcedVariant } from "@/lib/services/biosourced";
 import { saveMatchingProfile } from "@/lib/services/matching";
@@ -3407,4 +3408,19 @@ export async function livePricesAction(_: ActionState, fd: FormData): Promise<Ac
     ok: true,
     message: `${r.updated} prix actualisé${r.updated > 1 ? "s" : ""}${r.revised ? " : le devis repasse en brouillon, émettez puis renvoyez la nouvelle version" : ""}`,
   };
+}
+
+export async function quizAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const moduleId = s(fd, "moduleId");
+  let r: Awaited<ReturnType<typeof submitQuiz>>;
+  try {
+    const answers = [0, 1, 2].map((i) => (fd.get(`q${i}`) === null ? null : Number(fd.get(`q${i}`))));
+    r = await withCtx((ctx) => submitQuiz(ctx, moduleId, answers));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/formation");
+  const wrong = r.corrections.filter((c) => !c.ok).map((c) => c.why);
+  const head = r.passed ? `Module validé : ${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3.` : `${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3 : relisez l'essentiel puis réessayez.`;
+  return { ok: r.passed, message: [head, ...wrong].join(" ") };
 }

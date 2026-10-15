@@ -2235,6 +2235,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "formation-continue",
+    category: "compte",
+    title: "Formation continue intégrée",
+    summary: "Des modules de cinq minutes sur les règles et techniques qui changent : facture électronique, amiante, plomb, travail en hauteur, déchets, RGE.",
+    steps: [
+      "Ouvrez Formation continue depuis Plus, ou ajoutez la brique au menu. Chaque module tient en quelques points essentiels, avec sa source officielle.",
+      "Répondez aux trois questions : deux bonnes réponses suffisent pour valider. En cas d'erreur, l'explication s'affiche et vous pouvez réessayer.",
+      "Un module validé le reste. Le dirigeant et les administrateurs voient le nombre de modules validés par chaque membre de l'équipe.",
+      "Ces modules aident à se tenir à jour ; ils ne remplacent ni une formation certifiante ni les textes officiels.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

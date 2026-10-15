@@ -1781,6 +1781,21 @@ test("devis : alternatives biosourcées", async ({ page }) => {
   await audit(page, "alternatives biosourcées");
 });
 
+test("formation continue : module validé", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Formation continue" }).click();
+  await page.waitForURL(/\/app\/formation$/);
+  await audit(page, "formation continue");
+  await page.getByRole("link", { name: "Travail en hauteur : les protections collectives d'abord" }).click();
+  await page.getByLabel("Le garde-corps ou l'échafaudage").check();
+  await page.getByLabel("Non", { exact: true }).check();
+  await page.getByLabel(/Avant chaque utilisation/).check();
+  await audit(page, "module de formation");
+  await page.getByRole("button", { name: "Valider mes réponses" }).click();
+  await expect(page.getByText(/Module validé : 3 bonnes réponses sur 3/)).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

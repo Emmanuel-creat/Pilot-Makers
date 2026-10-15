@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "formation-continue",
+    date: "2026-10-14",
+    title: "Formation continue en cinq minutes",
+    text: "Six modules courts sur la facture électronique, l'amiante, le plomb, le travail en hauteur, les déchets et le RGE, validés par trois questions.",
+    href: "/app/formation",
+  },
+  {
     id: "devis-vivant",
     date: "2026-10-14",
     title: "Devis vivant",
