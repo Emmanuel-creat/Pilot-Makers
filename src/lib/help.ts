@@ -2467,6 +2467,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "temps-gagne",
+    category: "compte",
+    title: "Temps gagné et heures rendues aux artisans",
+    summary: "Le temps que l'application vous rend chaque mois, tâche par tâche, et le compteur public de toutes les entreprises.",
+    steps: [
+      "Ouvrez Rapports puis Temps gagné : devis émis, factures, relances, avis aux clients, paiements rapprochés, heures pointées, commandes et bordereaux, chacun compté avec une durée prudente de ce qu'il aurait pris à la main.",
+      "Le total de toutes les entreprises est publié sur la page publique Heures rendues, sans aucun chiffre d'entreprise, à partir de dix entreprises.",
+      "La méthode et les durées retenues sont publiées sur la même page, et les chiffres sont ouverts au format JSON.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

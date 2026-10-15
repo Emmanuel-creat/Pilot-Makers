@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "heures-rendues",
+    date: "2026-10-15",
+    title: "Temps gagné, mesuré et publié",
+    text: "Voyez le temps que l'application vous rend chaque mois, tâche par tâche ; le total de toutes les entreprises est publié sur la page Heures rendues.",
+    href: "/app/rapports/temps-gagne",
+  },
+  {
     id: "bilan-matiere",
     date: "2026-10-15",
     title: "Bilan matière et réemploi des restes",

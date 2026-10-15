@@ -2083,6 +2083,22 @@ test("chantier : bilan matière et restes en fin de chantier", async ({ page }) 
   await audit(page, "matière et réemploi");
 });
 
+test("heures rendues : temps gagné de l'entreprise et compteur public", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports");
+  await page.getByRole("link", { name: "Temps gagné" }).click();
+  await page.waitForURL(/\/app\/rapports\/temps-gagne$/);
+  await expect(page.getByTestId("temps-gagne")).toContainText("Depuis le 1er janvier");
+  await audit(page, "temps gagné");
+  await page.goto("/ouvrages");
+  await page.getByRole("link", { name: "Heures rendues" }).click();
+  await page.waitForURL(/\/heures-rendues$/);
+  await expect(page.getByTestId("heures-rendues")).toBeVisible();
+  await audit(page, "heures rendues");
+  const r = await page.request.get("/api/public/heures-rendues");
+  expect((await r.json()).durations.length).toBeGreaterThan(5);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
