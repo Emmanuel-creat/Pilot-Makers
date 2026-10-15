@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { addRenovationParticipant, answerRenovationInvite, createRenovation, removeRenovationParticipant, shareRenovation, updateRenovationParticipant } from "@/lib/services/renovation";
 import { setTrustShown } from "@/lib/services/trust-score";
 import { importWork, publishWork, reportWork, toggleWorkVote, updateWork } from "@/lib/services/open-works";
 import { parseComposition } from "@/lib/open-works";
@@ -3489,4 +3490,73 @@ export async function trustDisplayAction(_: ActionState, fd: FormData): Promise<
   }
   revalidatePath("/app/entreprise/confiance");
   return { ok: true, message: shown ? "La note sera affichée sur votre vitrine dès qu'elle repose sur trois chantiers réceptionnés." : "La note n'est plus affichée sur votre vitrine." };
+}
+
+export async function renovationCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createRenovation(ctx, { customerId: s(fd, "customerId"), title: s(fd, "title"), trade: s(fd, "trade") }));
+  } catch (e) {
+    return toState(e);
+  }
+  redirect(`/app/renovations/${id}`);
+}
+
+export async function renovationAddAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "projectId");
+  try {
+    await withCtx((ctx) =>
+      addRenovationParticipant(ctx, id, { orgId: s(fd, "orgId") || undefined, name: s(fd, "name"), trade: s(fd, "trade"), amount: s(fd, "amount") }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/renovations/${id}`);
+  return { ok: true, message: s(fd, "orgId") ? "Invitation envoyée au confrère." : "Entreprise ajoutée au dossier." };
+}
+
+export async function renovationAnswerAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const accept = s(fd, "accept") === "1";
+  try {
+    const projectId = await withCtx((ctx) => answerRenovationInvite(ctx, s(fd, "participantId"), accept));
+    revalidatePath(`/app/renovations/${projectId}`);
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/renovations");
+  return { ok: true, message: accept ? "Vous participez au dossier : rattachez votre devis." : "Invitation déclinée." };
+}
+
+export async function renovationUpdateAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const kind = s(fd, "kind");
+  const input =
+    kind === "quote" ? { quoteId: s(fd, "quoteId") } : kind === "amount" ? { amount: s(fd, "amount") } : { start: s(fd, "start"), end: s(fd, "end"), trade: s(fd, "trade") || undefined };
+  try {
+    const projectId = await withCtx((ctx) => updateRenovationParticipant(ctx, s(fd, "participantId"), input));
+    revalidatePath(`/app/renovations/${projectId}`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: kind === "quote" ? "Devis rattaché au dossier." : "Enregistré." };
+}
+
+export async function renovationRemoveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const projectId = await withCtx((ctx) => removeRenovationParticipant(ctx, s(fd, "participantId")));
+    revalidatePath(`/app/renovations/${projectId}`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Entreprise retirée du dossier." };
+}
+
+export async function renovationShareAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const id = s(fd, "projectId");
+  try {
+    const url = await withCtx((ctx) => shareRenovation(ctx, id));
+    revalidatePath(`/app/renovations/${id}`);
+    return { ok: true, message: `Lien du client créé. Copiez-le maintenant, il ne sera plus affiché : ${url}` };
+  } catch (e) {
+    return toState(e);
+  }
 }

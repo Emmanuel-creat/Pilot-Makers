@@ -27,6 +27,7 @@ export default async function MorePage() {
     ["/app/compte", "Mon compte", "user"],
     ["/app/boite-envoi", "E-mails envoyés", "mail"],
     ...(can(ctx, "billing") ? [["/app/banque", "Banque", "card"]] : []),
+    ["/app/renovations", "Rénovations coordonnées", "team"],
     ["/app/facile", "Mode facile (images et voix)", "mic"],
     ["/app/entraide", "Entraide entre artisans", "team"],
     ["/app/formation", "Formation continue", "star"],

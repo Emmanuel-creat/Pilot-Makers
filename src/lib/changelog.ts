@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "renovation-coordonnee",
+    date: "2026-10-15",
+    title: "Rénovation coordonnée",
+    text: "Un client, un dossier, plusieurs artisans et un seul pilote : devis rassemblés, lots enchaînés et un lien unique pour le client.",
+    href: "/app/renovations",
+  },
+  {
     id: "note-de-confiance",
     date: "2026-10-15",
     title: "Note de confiance sur vos chantiers vérifiés",

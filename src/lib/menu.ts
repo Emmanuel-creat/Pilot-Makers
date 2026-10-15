@@ -32,6 +32,7 @@ export const MENU_MODULES: MenuModule[] = [
   { key: "rapports", href: "/app/rapports", label: "Rapports", icon: "chart", hint: "Chiffre d'affaires, TVA, trésorerie." },
   { key: "comptabilite", href: "/app/comptabilite", label: "Comptabilité", icon: "archive", hint: "Exports pour le cabinet comptable.", needs: "billing" },
   { key: "catalogue", href: "/app/catalogue", label: "Catalogue", icon: "box", hint: "Prestations, fournitures et prix." },
+  { key: "renovations", href: "/app/renovations", label: "Rénovations coordonnées", icon: "team", hint: "Un client, plusieurs artisans, un seul pilote." },
   { key: "facile", href: "/app/facile", label: "Mode facile", icon: "mic", hint: "Grandes images et voix, sans avoir à écrire." },
   { key: "formation", href: "/app/formation", label: "Formation", icon: "star", hint: "Modules courts sur les règles qui changent." },
   { key: "entraide", href: "/app/entraide", label: "Entraide", icon: "team", hint: "Questions et conseils entre artisans." },

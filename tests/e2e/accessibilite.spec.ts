@@ -1842,6 +1842,33 @@ test("note de confiance : détail des critères", async ({ page }) => {
   await audit(page, "note de confiance");
 });
 
+test("rénovation coordonnée : dossier piloté puis lien du client", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Rénovations coordonnées" }).click();
+  await page.waitForURL(/\/app\/renovations$/);
+  await page.locator("#rc-client").selectOption({ index: 1 });
+  await page.getByLabel("Intitulé du dossier").fill("Rénovation complète maison test");
+  await page.getByLabel("Votre lot").selectOption("carrelage");
+  await page.getByRole("button", { name: "Créer le dossier" }).click();
+  await page.waitForURL(/\/app\/renovations\/[0-9a-f-]{36}$/);
+  await page.getByLabel("Entreprise hors application").fill("Peintures Roy");
+  await page.getByLabel("Lot", { exact: true }).last().selectOption("peinture");
+  await page.getByLabel("Montant TTC (facultatif)").fill("3 000");
+  await page.getByRole("button", { name: "Ajouter", exact: true }).click();
+  await expect(page.getByText("Entreprise ajoutée au dossier.")).toBeVisible();
+  await expect(page.getByTestId("renovation-total")).toContainText("3 000");
+  await audit(page, "rénovation coordonnée");
+  await page.getByRole("button", { name: "Créer le lien du client" }).click();
+  const msg = page.getByText(/Lien du client créé/);
+  await expect(msg).toBeVisible();
+  const url = (await msg.textContent())!.match(/https?:\/\/\S+\/renovation\/[A-Za-z0-9_-]+/)![0];
+  await page.goto(new URL(url).pathname);
+  await expect(page.getByRole("heading", { name: "Rénovation complète maison test" })).toBeVisible();
+  await expect(page.getByTestId("renovation-total-client")).toContainText("3 000");
+  await audit(page, "rénovation coordonnée côté client");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

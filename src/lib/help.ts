@@ -2286,6 +2286,19 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "renovation-coordonnee",
+    category: "clients",
+    title: "Rénovation coordonnée : un client, plusieurs artisans, un seul pilote",
+    summary:
+      "Rassemblez les devis de plusieurs entreprises autour d'un même client, fixez l'enchaînement des lots et donnez au client un seul lien et un seul interlocuteur.",
+    steps: [
+      "Ouvrez Rénovations coordonnées depuis Plus, choisissez le client et créez le dossier : vous en êtes le pilote.",
+      "Invitez les confrères de vos réseaux : chacun accepte, puis rattache son propre devis. Ajoutez aussi les entreprises hors application avec le montant de leur devis.",
+      "Fixez le lot et les dates de chaque entreprise : le dossier signale les dates manquantes, l'ordre inhabituel des lots et les chevauchements.",
+      "Créez le lien du client : il voit toutes les entreprises dans l'ordre des travaux, leurs devis, le total et vos coordonnées. Chaque entreprise reste responsable de son lot et ne voit que le montant de son propre devis.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
