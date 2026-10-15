@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "fin-de-journee",
+    date: "2026-10-15",
+    title: "Fin de journée avant 18 heures",
+    text: "Ce qui reste à boucler aujourd'hui, en quelques minutes, et un rappel à 16 h 30 pour ne plus faire d'administratif le soir.",
+    href: "/app/fin-de-journee",
+  },
+  {
     id: "zero-impaye",
     date: "2026-10-15",
     title: "Zéro impayé",

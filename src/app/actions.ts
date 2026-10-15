@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { setDayCloseReminder } from "@/lib/services/day-close";
 import { importQuoteExchange } from "@/lib/services/quote-exchange";
 import { addRenovationParticipant, answerRenovationInvite, createRenovation, removeRenovationParticipant, shareRenovation, updateRenovationParticipant } from "@/lib/services/renovation";
 import { setTrustShown } from "@/lib/services/trust-score";
@@ -3574,4 +3575,15 @@ export async function quoteExchangeImportAction(_: ActionState, fd: FormData): P
   }
   revalidatePath("/app/devis");
   redirect(`/app/devis/${r.id}${r.warnings.length ? "?import=ecarts" : ""}`);
+}
+
+export async function dayCloseReminderAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const on = s(fd, "on") === "1";
+  try {
+    await withCtx((ctx) => setDayCloseReminder(ctx, on));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/fin-de-journee");
+  return { ok: true, message: on ? "Rappel activé : une notification à 16 h 30 s'il reste quelque chose à boucler." : "Rappel désactivé." };
 }

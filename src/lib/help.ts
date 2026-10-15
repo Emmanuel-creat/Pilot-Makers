@@ -2349,6 +2349,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "fin-de-journee",
+    category: "compte",
+    title: "Fin de journée : tout fini avant 18 heures",
+    summary: "La liste de ce qui reste à boucler aujourd'hui, avec le temps estimé, et un rappel à 16 h 30 si vous le souhaitez.",
+    steps: [
+      "Ouvrez Fin de journée depuis Plus ou depuis Aujourd'hui : heures à pointer, étapes validées à facturer, factures de solde, demandes en attente, devis commencés, justificatifs de frais.",
+      "Chaque point ouvre directement l'écran où il se règle. Une liste vide signifie une journée bouclée.",
+      "Activez le rappel : à 16 h 30, une notification vous prévient s'il reste quelque chose, une seule fois par jour, et seulement dans ce cas.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

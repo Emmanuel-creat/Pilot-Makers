@@ -1927,6 +1927,17 @@ test("factures : zéro impayé par chantier", async ({ page }) => {
   await audit(page, "zéro impayé");
 });
 
+test("fin de journée : points restants et rappel", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Fin de journée" }).click();
+  await page.waitForURL(/\/app\/fin-de-journee$/);
+  await expect(page.getByRole("heading", { name: "Rappel à 16 h 30" })).toBeVisible();
+  await audit(page, "fin de journée");
+  await page.getByRole("button", { name: "Activer le rappel" }).click();
+  await expect(page.getByText(/Rappel activé/)).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

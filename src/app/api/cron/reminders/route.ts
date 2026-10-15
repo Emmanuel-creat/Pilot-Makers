@@ -10,6 +10,7 @@ import { runFleetReminders } from "@/lib/services/fleet";
 import { runMonthlyReports } from "@/lib/services/monthly-report";
 import { runMaintenanceNotices } from "@/lib/services/maintenance";
 import { runDelayNotices } from "@/lib/services/delays";
+import { runDayCloseReminders } from "@/lib/services/day-close";
 
 /** À appeler régulièrement par une tâche planifiée, avec l'en-tête Authorization: Bearer CRON_SECRET. */
 export async function POST(req: Request) {
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       monthlyReports: await runMonthlyReports(db),
       maintenance: await runMaintenanceNotices(db),
       delays: await runDelayNotices(db),
+      dayClose: await runDayCloseReminders(db),
     });
   } catch (e) {
     return errorResponse(e);

@@ -89,6 +89,11 @@ export default async function TodayPage() {
             Ma journée pour les équipes de chantier, en huit langues
           </Link>
         </p>
+        <p className="text-sm">
+          <Link href="/app/fin-de-journee" className="link inline-flex min-h-6 items-center">
+            Fin de journée : ce qui reste à boucler avant 18 heures
+          </Link>
+        </p>
         <p className="text-xs text-muted">
           Installez l&apos;application sur votre téléphone : un appui long sur son icône ouvre directement cette page. Pour un widget d&apos;écran
           d&apos;accueil, voir{" "}
