@@ -1816,6 +1816,22 @@ test("catalogue : base ouverte des ouvrages", async ({ page }) => {
   await audit(page, "base des ouvrages publique");
 });
 
+test("mode facile : images et commande écrite", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/plus");
+  await page.getByRole("link", { name: "Mode facile (images et voix)" }).click();
+  await page.waitForURL(/\/app\/facile$/);
+  await expect(page.getByTestId("facile-phrase")).toContainText("Aujourd'hui");
+  await expect(page.getByRole("button", { name: "Écouter : Faire un devis" })).toBeVisible();
+  await audit(page, "mode facile");
+  await page.getByLabel("Ou écrire un mot").fill("bonjour");
+  await page.getByRole("button", { name: "Aller" }).click();
+  await expect(page.getByTestId("facile-reponse")).toContainText("Je n'ai pas compris");
+  await page.getByLabel("Ou écrire un mot").fill("pointer mes heures");
+  await page.getByRole("button", { name: "Aller" }).click();
+  await page.waitForURL(/\/app\/pointage$/);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

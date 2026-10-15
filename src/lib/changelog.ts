@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "mode-facile",
+    date: "2026-10-15",
+    title: "Mode facile : images et voix",
+    text: "De grandes images, des phrases lues à voix haute et une commande vocale qui ouvre le bon écran, pour travailler sans avoir à écrire.",
+    href: "/app/facile",
+  },
+  {
     id: "base-ouverte-ouvrages",
     date: "2026-10-15",
     title: "La base ouverte des ouvrages",

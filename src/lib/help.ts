@@ -2202,7 +2202,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "demandes-de-particuliers",
     category: "devis",
     title: "Recevoir des demandes de particuliers",
-    summary: "Les particuliers décrivent leurs travaux sur la page Trouver un artisan ; chaque demande part vers trois entreprises au plus de leur département.",
+    summary:
+      "Les particuliers décrivent leurs travaux sur la page Trouver un artisan ; chaque demande part vers trois entreprises au plus de leur département.",
     steps: [
       "Ouvrez Demandes puis Demandes de particuliers. Cochez les types de travaux acceptés, indiquez vos départements (ex. 69, 01, 38) et le nombre de demandes que vous acceptez par semaine.",
       "L'activation exige le SIREN et l'assurance professionnelle dans le profil de l'entreprise : les particuliers ne sont mis en relation qu'avec des entreprises identifiées et assurées.",
@@ -2214,7 +2215,8 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "alternatives-biosourcees",
     category: "devis",
     title: "Proposer une alternative biosourcée",
-    summary: "Pour l'isolation, les fenêtres, les peintures, les parquets, les enduits et les sols souples, le devis propose des matériaux biosourcés comparés sur 50 ans.",
+    summary:
+      "Pour l'isolation, les fenêtres, les peintures, les parquets, les enduits et les sols souples, le devis propose des matériaux biosourcés comparés sur 50 ans.",
     steps: [
       "Dans le devis, sous le bilan carbone, ouvrez Alternatives biosourcées et cycle de vie.",
       "Chaque ligne concernée affiche les alternatives : émissions sur 50 ans en comptant les remplacements, gain par rapport à la solution prévue, carbone stocké dans le matériau, écart de prix indicatif sur la fourniture et fin de vie.",
@@ -2250,12 +2252,25 @@ export const HELP_ARTICLES: HelpArticle[] = [
     slug: "base-ouverte-ouvrages",
     category: "devis",
     title: "La base ouverte des ouvrages",
-    summary: "Des fiches techniques partagées entre artisans, sans prix et sous licence ouverte : mode opératoire, composition par unité, temps de pose, normes.",
+    summary:
+      "Des fiches techniques partagées entre artisans, sans prix et sous licence ouverte : mode opératoire, composition par unité, temps de pose, normes.",
     steps: [
       "Ouvrez Catalogue puis Base ouverte. Cherchez par mot ou par corps d'état ; la base se consulte aussi sans compte sur la page publique Base des ouvrages.",
       "Reprendre dans mon catalogue crée un article avec l'unité, le mode opératoire, la composition et le temps de pose. Le prix reste à 0 € : indiquez le vôtre.",
       "Publiez vos propres fiches, sans prix. Elles sont signées par votre métier et votre département, jamais par le nom de l'entreprise, et réutilisables sous Licence Ouverte 2.0.",
       "Vous faites autrement ? Proposez votre version : elle est publiée comme fiche dérivée. Votez pour les fiches utiles ; une fiche signalée trois fois est masquée en attendant la modération.",
+    ],
+  },
+  {
+    slug: "mode-facile",
+    category: "compte",
+    title: "Mode facile : images et voix",
+    summary: "Pour ceux qui préfèrent parler plutôt qu'écrire : de grandes images, des phrases courtes lues à voix haute et une commande vocale.",
+    steps: [
+      "Ouvrez Mode facile depuis Plus, ou ajoutez la brique au menu. Chaque grande image ouvre un écran : faire un devis, ma journée, mes heures, mes chantiers, mes clients, mes frais.",
+      "Le bouton Écouter lit à voix haute le résumé du jour ou ce que fait chaque image.",
+      "Touchez Parler et dites ce que vous voulez faire, par exemple « faire un devis » ou « pointer mes heures » : l'écran correspondant s'ouvre. Vous pouvez aussi écrire un seul mot.",
+      "La voix ouvre seulement l'écran demandé : rien n'est envoyé ni enregistré sans que vous l'ayez confirmé.",
     ],
   },
   {
