@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "base-ouverte-ouvrages",
+    date: "2026-10-15",
+    title: "La base ouverte des ouvrages",
+    text: "Partagez vos fiches techniques sans prix, sous licence ouverte, et reprenez celles des confrères dans votre catalogue en un clic.",
+    href: "/app/catalogue/base-ouverte",
+  },
+  {
     id: "formation-continue",
     date: "2026-10-14",
     title: "Formation continue en cinq minutes",

@@ -106,6 +106,8 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { importWork, publishWork, reportWork, toggleWorkVote, updateWork } from "@/lib/services/open-works";
+import { parseComposition } from "@/lib/open-works";
 import { submitQuiz } from "@/lib/services/training";
 import { applyLivePrices } from "@/lib/services/live-pricing";
 import { addBiosourcedVariant } from "@/lib/services/biosourced";
@@ -3423,4 +3425,56 @@ export async function quizAction(_: ActionState, fd: FormData): Promise<ActionSt
   const wrong = r.corrections.filter((c) => !c.ok).map((c) => c.why);
   const head = r.passed ? `Module validé : ${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3.` : `${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3 : relisez l'essentiel puis réessayez.`;
   return { ok: r.passed, message: [head, ...wrong].join(" ") };
+}
+
+function workInput(fd: FormData) {
+  const { components, errors } = parseComposition(s(fd, "composition"));
+  if (errors.length) throw new HttpError(400, "bad_request", `Composition, ligne ${errors.join(", ")} : écrivez « quantité ; unité ; composant », par exemple 1,05 ; m² ; Carreau grès`);
+  const minutes = s(fd, "labourMinutes");
+  return { trade: s(fd, "trade"), title: s(fd, "title"), unit: s(fd, "unit"), description: s(fd, "description"), composition: components, labourMinutes: minutes ? minutes : null, refs: s(fd, "refs") };
+}
+
+export async function openWorkSaveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id = s(fd, "id");
+  try {
+    const input = workInput(fd);
+    if (id) await withCtx((ctx) => updateWork(ctx, id, input));
+    else id = await withCtx((ctx) => publishWork(ctx, input, s(fd, "derivedFrom") || null));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/catalogue/base-ouverte");
+  redirect(`/app/catalogue/base-ouverte/${id}`);
+}
+
+export async function openWorkVoteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => toggleWorkVote(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/catalogue/base-ouverte/${s(fd, "id")}`);
+  return { ok: true, message: "" };
+}
+
+export async function openWorkImportAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let itemId: string;
+  try {
+    itemId = await withCtx((ctx) => importWork(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/catalogue");
+  redirect(`/app/catalogue/${itemId}`);
+}
+
+export async function openWorkReportAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let hidden = false;
+  try {
+    hidden = (await withCtx((ctx) => reportWork(ctx, s(fd, "id"), s(fd, "reason")))).hidden;
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/catalogue/base-ouverte");
+  return { ok: true, message: hidden ? "Signalement enregistré : la fiche est masquée en attendant la modération" : "Signalement enregistré, merci" };
 }

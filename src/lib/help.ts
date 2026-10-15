@@ -2247,6 +2247,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "base-ouverte-ouvrages",
+    category: "devis",
+    title: "La base ouverte des ouvrages",
+    summary: "Des fiches techniques partagées entre artisans, sans prix et sous licence ouverte : mode opératoire, composition par unité, temps de pose, normes.",
+    steps: [
+      "Ouvrez Catalogue puis Base ouverte. Cherchez par mot ou par corps d'état ; la base se consulte aussi sans compte sur la page publique Base des ouvrages.",
+      "Reprendre dans mon catalogue crée un article avec l'unité, le mode opératoire, la composition et le temps de pose. Le prix reste à 0 € : indiquez le vôtre.",
+      "Publiez vos propres fiches, sans prix. Elles sont signées par votre métier et votre département, jamais par le nom de l'entreprise, et réutilisables sous Licence Ouverte 2.0.",
+      "Vous faites autrement ? Proposez votre version : elle est publiée comme fiche dérivée. Votez pour les fiches utiles ; une fiche signalée trois fois est masquée en attendant la modération.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

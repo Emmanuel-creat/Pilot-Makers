@@ -1796,6 +1796,26 @@ test("formation continue : module validé", async ({ page }) => {
   await expect(page.getByText(/Module validé : 3 bonnes réponses sur 3/)).toBeVisible();
 });
 
+test("catalogue : base ouverte des ouvrages", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/catalogue");
+  await page.getByRole("link", { name: "Base ouverte" }).click();
+  await page.waitForURL(/\/app\/catalogue\/base-ouverte$/);
+  await audit(page, "base ouverte des ouvrages");
+  const title = `Faïence murale 20x20 collée ${Date.now().toString(36)}`;
+  await page.getByLabel("Intitulé de l'ouvrage").fill(title);
+  await page.getByLabel("Corps d'état").last().selectOption("carrelage");
+  await page.getByLabel("Mode opératoire").fill("Support sain et plan, primaire, encollage au peigne, pose depuis une règle de départ, joints le lendemain.");
+  await page.getByLabel(/Composition par unité/).fill("1,08 ; m² ; Faïence 20x20\n4 ; kg ; Mortier-colle C1");
+  await page.getByRole("button", { name: "Publier la fiche" }).click();
+  await page.waitForURL(/\/app\/catalogue\/base-ouverte\/[0-9a-f-]{36}$/);
+  await expect(page.getByTestId("fiche-ouvrage")).toContainText("Mortier-colle C1");
+  await audit(page, "fiche d'ouvrage");
+  await page.goto("/ouvrages");
+  await expect(page.getByRole("link", { name: title })).toBeVisible();
+  await audit(page, "base des ouvrages publique");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

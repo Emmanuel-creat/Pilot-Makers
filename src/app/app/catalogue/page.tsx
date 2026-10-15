@@ -43,6 +43,9 @@ export default async function CatalogPage({
             <Link href="/app/catalogue/bibliotheques" className="btn-secondary">
               <Icon name="box" size={16} /> Bibliothèques
             </Link>
+            <Link href="/app/catalogue/base-ouverte" className="btn-secondary">
+              <Icon name="building" size={16} /> Base ouverte
+            </Link>
             <Link href="/app/catalogue/reseaux" className="btn-secondary">
               <Icon name="team" size={16} /> Réseaux
             </Link>

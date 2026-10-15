@@ -29,6 +29,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted">
           <span>Pilot-Makers, BAILLY emmanuel</span>
+          <Link href="/ouvrages" className="hover:text-ink">
+            Base des ouvrages
+          </Link>
           <Link href="/trouver-un-artisan" className="hover:text-ink">
             Trouver un artisan
           </Link>
