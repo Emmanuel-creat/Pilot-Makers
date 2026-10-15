@@ -2551,6 +2551,17 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "creer-son-entreprise",
+    category: "demarrer",
+    title: "Créer son entreprise artisanale en une journée",
+    summary: "Comparer les statuts selon son chiffre d'affaires et ses charges, puis suivre la journée type jusqu'au premier devis envoyé.",
+    steps: [
+      "Ouvrez la page publique Créer son entreprise et indiquez le chiffre d'affaires et les charges attendus : micro-entreprise, entreprise individuelle au réel, EURL et SASU sont comparées en cotisations et en revenu net par mois.",
+      "Le statut le plus intéressant est signalé, avec le plafond de la micro-entreprise et le seuil de franchise de TVA. Les montants sont des ordres de grandeur, impôt sur le revenu non compris.",
+      "La journée type suit : immatriculation sur le guichet unique, assurance décennale, compte professionnel, puis l'équipement dans l'application (identité, catalogue du métier, vitrine) et le premier devis.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -47,6 +47,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/verifier-attestation" className="hover:text-ink">
             Vérifier une attestation
           </Link>
+          <Link href="/creer-son-entreprise" className="hover:text-ink">
+            Créer son entreprise
+          </Link>
           <Link href="/heures-rendues" className="hover:text-ink">
             Heures rendues
           </Link>

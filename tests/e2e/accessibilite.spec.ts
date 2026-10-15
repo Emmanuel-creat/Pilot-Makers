@@ -2168,6 +2168,19 @@ test("équipe : agences et activité par établissement", async ({ page }) => {
   await expect(page.getByTestId("filtre-agence")).toBeVisible();
 });
 
+test("public : créer son entreprise artisanale en une journée", async ({ page }) => {
+  await page.goto("/ouvrages");
+  await page.getByRole("link", { name: "Créer son entreprise" }).click();
+  await page.waitForURL(/\/creer-son-entreprise$/);
+  await page.getByLabel("Chiffre d'affaires annuel attendu (€ HT)").fill("60000");
+  await page.getByLabel("Charges annuelles (achats, véhicule, assurance)").fill("30000");
+  await page.getByRole("button", { name: "Comparer" }).click();
+  await page.waitForURL(/ca=60000/);
+  await expect(page.getByTestId("comparaison-statuts")).toContainText("Le plus intéressant ici");
+  await expect(page.getByTestId("journee-creation")).toContainText("Immatriculer l'entreprise");
+  await audit(page, "créer son entreprise");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "creer-son-entreprise",
+    date: "2026-10-15",
+    title: "Créer son entreprise en une journée",
+    text: "Une page publique compare les statuts selon le chiffre d'affaires et les charges, puis déroule la journée de création jusqu'au premier devis.",
+    href: "/creer-son-entreprise",
+  },
+  {
     id: "agences",
     date: "2026-10-15",
     title: "Plusieurs agences, un seul outil",
