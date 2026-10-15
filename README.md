@@ -45,6 +45,8 @@ npm run dev         # http://localhost:3000
 
 Sans `DATABASE_URL`, une base PostgreSQL embarquée est créée dans `./data/pglite`. Pour une base PostgreSQL classique, renseignez `DATABASE_URL=postgres://...` puis lancez `npm run db:migrate`.
 
+Retour arrière : `npm run db:rollback -- N` défait les N dernières migrations, à lancer avant de redéployer la version précédente. Chaque migration depuis `129_retours_utilisateurs` exporte son `down` (vérifié par les tests) ; pour une migration plus ancienne, restaurez la dernière sauvegarde.
+
 Comptes de démonstration (mot de passe `Demo2026Pilot`) :
 
 - artisan : `demo@pilot-makers.fr`

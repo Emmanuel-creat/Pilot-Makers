@@ -13,3 +13,11 @@ ALTER TABLE memberships ADD COLUMN agency_id uuid REFERENCES agencies(id) ON DEL
 ALTER TABLE quotes ADD COLUMN agency_id uuid REFERENCES agencies(id) ON DELETE SET NULL;
 CREATE INDEX quotes_agency ON quotes (agency_id) WHERE agency_id IS NOT NULL;
 `;
+
+/** Retour arrière : défait exactement la migration ci-dessus. */
+export const down = /* sql */ `
+DROP INDEX quotes_agency;
+ALTER TABLE quotes DROP COLUMN agency_id;
+ALTER TABLE memberships DROP COLUMN agency_id;
+DROP TABLE agencies;
+`;

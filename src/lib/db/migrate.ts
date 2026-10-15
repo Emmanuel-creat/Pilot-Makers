@@ -127,14 +127,17 @@ import { sql as m125 } from "./migrations/125_remise_cheques";
 import { sql as m126 } from "./migrations/126_mode_absence";
 import { sql as m127 } from "./migrations/127_carbone_chantier";
 import { sql as m128 } from "./migrations/128_bilan_matiere";
-import { sql as m129 } from "./migrations/129_retours_utilisateurs";
-import { sql as m130 } from "./migrations/130_engagements";
-import { sql as m131 } from "./migrations/131_parcours_renovation";
-import { sql as m132 } from "./migrations/132_carnet_transmis";
-import { sql as m133 } from "./migrations/133_agences";
+import { sql as m129, down as d129 } from "./migrations/129_retours_utilisateurs";
+import { sql as m130, down as d130 } from "./migrations/130_engagements";
+import { sql as m131, down as d131 } from "./migrations/131_parcours_renovation";
+import { sql as m132, down as d132 } from "./migrations/132_carnet_transmis";
+import { sql as m133, down as d133 } from "./migrations/133_agences";
 
-/** Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle. */
-export const migrations: { id: string; sql: string }[] = [
+/**
+ * Migrations ordonnées. Ne jamais modifier une migration publiée : en ajouter une nouvelle.
+ * Depuis la première migration réversible, chaque migration exporte aussi `down`, qui la défait exactement.
+ */
+export const migrations: { id: string; sql: string; down?: string }[] = [
   { id: "001_initial", sql: m001 },
   { id: "002_two_factor", sql: m002 },
   { id: "003_templates_ouvrages", sql: m003 },
@@ -263,11 +266,11 @@ export const migrations: { id: string; sql: string }[] = [
   { id: "126_mode_absence", sql: m126 },
   { id: "127_carbone_chantier", sql: m127 },
   { id: "128_bilan_matiere", sql: m128 },
-  { id: "129_retours_utilisateurs", sql: m129 },
-  { id: "130_engagements", sql: m130 },
-  { id: "131_parcours_renovation", sql: m131 },
-  { id: "132_carnet_transmis", sql: m132 },
-  { id: "133_agences", sql: m133 },
+  { id: "129_retours_utilisateurs", sql: m129, down: d129 },
+  { id: "130_engagements", sql: m130, down: d130 },
+  { id: "131_parcours_renovation", sql: m131, down: d131 },
+  { id: "132_carnet_transmis", sql: m132, down: d132 },
+  { id: "133_agences", sql: m133, down: d133 },
 ];
 
 export async function runMigrations(db: Database): Promise<void> {
@@ -283,6 +286,28 @@ export async function runMigrations(db: Database): Promise<void> {
       await tx.query("INSERT INTO schema_migrations (id) VALUES ($1)", [m.id]);
     });
   }
+}
+
+/** Première migration livrée avec son retour arrière ; toutes les suivantes doivent en avoir un. */
+export const FIRST_REVERSIBLE = "129_retours_utilisateurs";
+
+/**
+ * Défait les dernières migrations appliquées, de la plus récente à la plus ancienne, chacune dans sa transaction.
+ * S'arrête sur une migration sans retour arrière : seule la sauvegarde permet alors de revenir en arrière.
+ */
+export async function rollbackMigrations(db: Database, steps = 1): Promise<string[]> {
+  const applied = await db.query<{ id: string }>("SELECT id FROM schema_migrations ORDER BY applied_at DESC, id DESC LIMIT $1", [Math.max(1, steps)]);
+  const undone: string[] = [];
+  for (const { id } of applied) {
+    const m = migrations.find((x) => x.id === id);
+    if (!m?.down) throw new Error(`La migration ${id} n'a pas de retour arrière : restaurez la dernière sauvegarde.`);
+    await db.transaction(async (tx) => {
+      for (const statement of splitStatements(m.down!)) await tx.query(statement);
+      await tx.query("DELETE FROM schema_migrations WHERE id=$1", [id]);
+    });
+    undone.push(id);
+  }
+  return undone;
 }
 
 function splitStatements(sql: string): string[] {

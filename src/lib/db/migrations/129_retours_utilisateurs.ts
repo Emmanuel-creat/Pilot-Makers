@@ -16,3 +16,8 @@ CREATE TABLE page_feedback (
 );
 CREATE INDEX page_feedback_recent ON page_feedback (created_at DESC);
 `;
+
+/** Retour arrière : défait exactement la migration ci-dessus. */
+export const down = /* sql */ `
+DROP TABLE page_feedback;
+`;
