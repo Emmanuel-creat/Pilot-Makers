@@ -2114,6 +2114,16 @@ test("retours : avis en bas de page et suivi des réponses", async ({ page }) =>
   await audit(page, "mes retours");
 });
 
+test("engagements vérifiés : mesure sur les documents", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/entreprise/confiance");
+  await page.getByRole("link", { name: "Engagements vérifiés" }).click();
+  await page.waitForURL(/\/app\/entreprise\/engagements$/);
+  await expect(page.getByTestId("engagement-acompte")).toContainText("Acompte de 30 % au plus");
+  await expect(page.getByTestId("engagement-prix")).toContainText("cas");
+  await audit(page, "engagements vérifiés");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

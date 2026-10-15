@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { setCommitments } from "@/lib/services/commitments";
 import { resolveFeedback, sendFeedback } from "@/lib/services/feedback";
 import { addLeftover, deleteLeftover } from "@/lib/services/material-balance";
 import { setJobCarbonSettings } from "@/lib/services/job-carbon";
@@ -3864,4 +3865,19 @@ export async function feedbackAction(_: ActionState, fd: FormData): Promise<Acti
 export async function resolveFeedbackAction(fd: FormData) {
   await withCtx((ctx) => resolveFeedback(ctx, s(fd, "id"), s(fd, "response")));
   revalidatePath("/admin/retours");
+}
+
+export async function commitmentsAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const chosen = await withCtx((ctx) => setCommitments(ctx, fd.getAll("key").map(String)));
+    revalidatePath("/app/entreprise/engagements");
+    return {
+      ok: true,
+      message: chosen.length
+        ? `${chosen.length} engagement${chosen.length > 1 ? "s" : ""} publié${chosen.length > 1 ? "s" : ""} sur votre vitrine, avec le taux mesuré.`
+        : "Aucun engagement n'est publié sur votre vitrine.",
+    };
+  } catch (e) {
+    return toState(e);
+  }
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { trustDisplayAction } from "@/app/actions";
 import { ActionForm } from "@/components/forms/ActionForm";
 import { Submit } from "@/components/forms/Submit";
@@ -22,6 +23,11 @@ export default async function TrustPage() {
         title="Note de confiance"
         subtitle="Calculée uniquement sur des chantiers vérifiés : procès-verbal de réception signé, réserves, délais et avis des clients de ces chantiers."
         back={{ href: "/app/entreprise?onglet=vitrine", label: "Entreprise" }}
+        actions={
+          <Link href="/app/entreprise/engagements" className="btn-secondary">
+            <Icon name="check" size={16} /> Engagements vérifiés
+          </Link>
+        }
       />
       <section className="card flex flex-wrap items-center gap-6 p-6" aria-labelledby="nc-score">
         <div className="text-center">

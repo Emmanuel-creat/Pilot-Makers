@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "engagements-verifies",
+    date: "2026-10-15",
+    title: "Engagements vérifiés sur la vitrine",
+    text: "Publiez vos promesses (acompte limité, devis détaillé, prix tenu, devis sous 7 jours) : elles sont vérifiées sur vos documents et la vitrine affiche le taux mesuré.",
+    href: "/app/entreprise/engagements",
+  },
+  {
     id: "retours-utilisateurs",
     date: "2026-10-15",
     title: "Votre avis en bas de chaque page",

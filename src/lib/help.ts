@@ -2490,6 +2490,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "engagements-verifies",
+    category: "clients",
+    title: "Engagements vérifiés sur la vitrine",
+    summary: "Publiez des promesses simples à vos clients ; l'application les vérifie sur vos documents et affiche le taux réellement mesuré.",
+    steps: [
+      "Ouvrez Entreprise, onglet Vitrine, puis Note de confiance et Engagements vérifiés.",
+      "Quatre engagements sont proposés : acompte de 30 % au plus, devis détaillé poste par poste (au moins deux postes chiffrés), prix tenu (facture finale au plus égale au devis signé et à ses avenants acceptés, à 1 % près) et devis remis sous 7 jours après la demande enregistrée.",
+      "Chacun est mesuré sur vos devis et factures des douze derniers mois. La page vous indique les numéros de devis où l'engagement n'a pas été tenu, pour corriger ; ces numéros ne sont jamais publiés.",
+      "Cochez ceux que vous voulez publier : la vitrine affiche la promesse et le taux mesuré, tenu ou non. Aucun taux n'est affiché sous trois cas.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

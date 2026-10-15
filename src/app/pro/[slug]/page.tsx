@@ -6,6 +6,7 @@ import { businessJsonLd, hasHours, hoursLines, jsonLdScript } from "@/lib/busine
 import { appUrl } from "@/lib/services/mail";
 import { publicShowcase } from "@/lib/services/showcase";
 import { labelsHeadline } from "@/lib/labels";
+import { publicSentence } from "@/lib/commitments";
 import { RequestForm } from "./RequestForm";
 import { referralOffer } from "@/lib/services/referrals";
 
@@ -141,6 +142,20 @@ export default async function ShowcasePage({ params, searchParams }: { params: P
                   </span>
                 </span>
               </p>
+            ) : null}
+            {p.commitments.length ? (
+              <div className="space-y-2 border-t border-line pt-2" data-testid="engagements">
+                <h3 className="font-medium">Engagements vérifiés</h3>
+                {p.commitments.map((c) => (
+                  <p key={c.key} className="flex items-start gap-2">
+                    <Icon name="check" size={16} className="mt-0.5 text-success" />
+                    <span>
+                      <span className="font-medium">{c.label}</span> : {c.promise}
+                      <span className="block text-muted">{publicSentence(c)}</span>
+                    </span>
+                  </p>
+                ))}
+              </div>
             ) : null}
             {p.labels.map((l) => (
               <p key={`${l.title}-${l.number}`} className="flex items-start gap-2">
