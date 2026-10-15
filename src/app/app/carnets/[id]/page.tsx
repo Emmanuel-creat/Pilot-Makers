@@ -22,6 +22,11 @@ export default async function HomeRecordPage({ params, searchParams }: { params:
         title={h.address.line1}
         subtitle={`${h.address.postalCode} ${h.address.city}, logement de ${h.customer}`}
         back={{ href: "/app/carnets", label: "Carnets" }}
+        actions={
+          <a href={`/api/carnets/${h.id}/export`} className="btn-secondary" download>
+            Télécharger le fichier du carnet
+          </a>
+        }
       />
       {repris != null ? (
         <Notice tone="success" title="Carnet repris">

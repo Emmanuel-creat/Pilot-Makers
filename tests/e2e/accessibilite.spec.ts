@@ -2203,6 +2203,28 @@ test("carnet de logement : reprise d'un carnet transmis par un client", async ({
   await audit(page, "reprise de carnet");
 });
 
+test("carnet de logement : fichier au format ouvert téléchargé puis repris", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/carnets");
+  await page.getByTestId("carnets").getByRole("link").first().click();
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Télécharger le fichier du carnet" }).click()]);
+  const chunks: Buffer[] = [];
+  for await (const c of (await download.createReadStream())!) chunks.push(c as Buffer);
+  const file = JSON.parse(Buffer.concat(chunks).toString());
+  expect(file).toMatchObject({ format: "carnet-logement", version: 1 });
+  const moved = { ...file, address: { line1: "12 quai de Saône", postalCode: "69005", city: "Lyon" } };
+  await page.goto("/app/carnets");
+  const box = page.getByTestId("reprise-carnet");
+  await box.getByText("Reprendre le carnet transmis par un client").click();
+  await box.getByLabel("Fichier du carnet").setInputFiles({ name: "carnet-logement.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(moved)) });
+  await box.getByLabel("Client à qui rattacher le carnet").selectOption({ index: 1 });
+  await box.getByRole("button", { name: "Reprendre le fichier" }).click();
+  await page.waitForURL(/\/app\/carnets\/[0-9a-f-]{36}\?repris=/);
+  await expect(page.getByRole("heading", { level: 1, name: "12 quai de Saône" })).toBeVisible();
+  await expect(page.getByText("Carnet repris")).toBeVisible();
+  await audit(page, "carnet repris d'un fichier");
+});
+
 test("équipe : agences et activité par établissement", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

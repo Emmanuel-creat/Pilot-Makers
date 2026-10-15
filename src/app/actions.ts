@@ -107,7 +107,7 @@ import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
 import { assignMemberAgency, createAgency, deleteAgency } from "@/lib/services/agencies";
-import { importSharedHomeRecord } from "@/lib/services/home-records";
+import { importHomeRecordFile, importSharedHomeRecord } from "@/lib/services/home-records";
 import { setAidStep } from "@/lib/services/energy-diagnoses";
 import { setCommitments } from "@/lib/services/commitments";
 import { deleteRuleVersion, publishRuleVersion } from "@/lib/services/country-rules";
@@ -3966,4 +3966,19 @@ export async function publishRuleVersionAction(_: ActionState, fd: FormData): Pr
 export async function deleteRuleVersionAction(fd: FormData) {
   await withCtx((ctx) => deleteRuleVersion(ctx, s(fd, "id")));
   revalidatePath("/admin/regles-pays");
+}
+
+export async function importHomeRecordFileAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let r: { recordId: string; imported: number };
+  try {
+    const file = fd.get("file");
+    if (!(file instanceof File) || !file.size) return { error: "Choisissez le fichier du carnet" };
+    if (file.size > 2_000_000) return { error: "Fichier trop lourd (2 Mo au plus)" };
+    const json = await file.text();
+    r = await withCtx((ctx) => importHomeRecordFile(ctx, json, s(fd, "customerId")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/carnets");
+  redirect(`/app/carnets/${r.recordId}?repris=${r.imported}`);
 }

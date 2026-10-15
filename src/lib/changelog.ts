@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "carnet-format-ouvert",
+    date: "2026-10-15",
+    title: "Carnet du logement dans un fichier au format ouvert",
+    text: "Le carnet se télécharge en un fichier documenté que le propriétaire garde, et se reprend depuis un fichier venu d'un autre artisan ou d'un autre logiciel.",
+    href: "/aide/carnet-format-ouvert",
+  },
+  {
     id: "ecran-montre",
     date: "2026-10-15",
     title: "Pointer depuis la montre",

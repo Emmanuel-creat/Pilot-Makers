@@ -2620,6 +2620,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "carnet-format-ouvert",
+    category: "clients",
+    title: "Échanger le carnet du logement en fichier",
+    summary: "Un format ouvert, lisible par tout logiciel, que le propriétaire garde.",
+    steps: [
+      "Dans un carnet, cliquez sur « Télécharger le fichier du carnet » : vous obtenez carnet-logement.json, avec l'adresse et chaque entrée (date, nature, libellé, marque, garantie, entretien, auteur).",
+      "Le propriétaire peut aussi le télécharger depuis le lien de transmission que vous lui avez envoyé, et le garder avec les papiers du logement.",
+      "Pour reprendre un carnet reçu en fichier, ouvrez Carnets, « Reprendre le carnet transmis par un client », choisissez le fichier et le client.",
+      "Chaque entrée garde son auteur. Reprendre deux fois le même fichier n'ajoute que les nouveautés.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

@@ -2,7 +2,19 @@
 
 import { z } from "zod";
 import { one, type Queryable } from "@/lib/db";
-import { activeWarranties, addressKey, entriesToImport, ENTRY_KINDS, shareTokenOf, timeline, type EntryKind, type RecordEntry, type RecordJob } from "@/lib/home-record";
+import {
+  activeWarranties,
+  addressKey,
+  entriesToImport,
+  ENTRY_KINDS,
+  parseExchange,
+  shareTokenOf,
+  timeline,
+  toExchange,
+  type EntryKind,
+  type RecordEntry,
+  type RecordJob,
+} from "@/lib/home-record";
 import { badRequest, isUuid, notFound } from "@/lib/http";
 import { randomToken, sha256 } from "@/lib/security";
 import type { Ctx } from "./context";
@@ -213,7 +225,26 @@ export async function importSharedHomeRecord(ctx: Ctx, link: string, customerId:
   if (!src) throw notFound("Lien inconnu, expiré ou révoqué : demandez au client un nouveau lien");
   if (src.orgId === ctx.orgId) throw badRequest("Ce carnet est déjà le vôtre");
   const org = await one<{ name: string }>(ctx.db, "SELECT coalesce(nullif(trade_name, ''), legal_name) AS name FROM organizations WHERE id=$1", [src.orgId]);
-  const a = src.address;
+  const entries = entriesToImport(src.items, org?.name ?? "").map((e) => ({ ...e, author: e.source, id: e.sourceId }));
+  const r = await mergeEntries(ctx, customerId, src.address, entries, "home_record.import");
+  return { ...r, total: src.items.length };
+}
+
+/** Identifiant stable d'une entrée venue d'ailleurs : repris tel quel s'il est au format attendu, dérivé sinon. */
+function sourceUuid(author: string, id: string) {
+  if (isUuid(id)) return id;
+  const h = sha256(`${author}|${id}`);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+/** Ajoute au carnet de l'adresse les entrées reçues ; une entrée déjà reprise n'est jamais dupliquée. */
+async function mergeEntries(
+  ctx: Ctx,
+  customerId: string,
+  a: { line1: string; postalCode: string; city: string },
+  entries: { id: string; date: string; kind: EntryKind; label: string; detail: string; brand: string; warrantyUntil: string | null; maintenanceMonths: number | null; author: string }[],
+  action: string,
+) {
   const rec = await one<{ id: string }>(
     ctx.db,
     `INSERT INTO home_records (org_id, customer_id, address_key, line1, postal_code, city) VALUES ($1,$2,$3,$4,$5,$6)
@@ -221,14 +252,62 @@ export async function importSharedHomeRecord(ctx: Ctx, link: string, customerId:
     [ctx.orgId, customerId, addressKey(a.line1, a.postalCode, a.city), a.line1, a.postalCode, a.city],
   );
   let imported = 0;
-  for (const e of entriesToImport(src.items, org?.name ?? "")) {
+  for (const e of entries) {
     const r = await ctx.db.query(
       `INSERT INTO home_record_entries (org_id, record_id, entry_date, kind, label, detail, brand, warranty_until, maintenance_months, source_name, source_entry_id, created_by)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (record_id, source_entry_id) WHERE source_entry_id IS NOT NULL DO NOTHING RETURNING id`,
-      [ctx.orgId, rec!.id, e.date, e.kind, e.label.slice(0, 160), e.detail, e.brand, e.warrantyUntil, e.maintenanceMonths, e.source, e.sourceId, ctx.userId],
+      [
+        ctx.orgId,
+        rec!.id,
+        e.date,
+        e.kind,
+        e.label.slice(0, 160),
+        e.detail,
+        e.brand,
+        e.warrantyUntil,
+        e.maintenanceMonths,
+        e.author,
+        sourceUuid(e.author, e.id),
+        ctx.userId,
+      ],
     );
     imported += r.length;
   }
-  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action: "home_record.import", target: rec!.id, data: { imported }, ip: ctx.ip });
-  return { recordId: rec!.id, imported, total: src.items.length };
+  await audit(ctx.db, { orgId: ctx.orgId, userId: ctx.userId, action, target: rec!.id, data: { imported }, ip: ctx.ip });
+  return { recordId: rec!.id, imported };
+}
+
+async function orgName(db: Queryable, orgId: string) {
+  return (await one<{ name: string }>(db, "SELECT coalesce(nullif(trade_name, ''), legal_name) AS name FROM organizations WHERE id=$1", [orgId]))?.name ?? "";
+}
+
+/** Fichier d'échange ouvert d'un carnet de l'entreprise. */
+export async function exportHomeRecord(ctx: Ctx, id: string, now = new Date()) {
+  const rec = await getHomeRecord(ctx, id, now);
+  return toExchange(rec, await orgName(ctx.db, ctx.orgId), now);
+}
+
+/** Fichier d'échange du carnet transmis, pour le propriétaire qui l'ouvre avec son lien. */
+export async function exportSharedHomeRecord(db: Queryable, token: string, now = new Date()) {
+  if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) return null;
+  const rec = await loadRecord(db, "h.share_token_hash=$1 AND h.share_expires_at > $2", [sha256(token), now], parisDate(now));
+  return rec ? toExchange(rec, await orgName(db, rec.orgId), now) : null;
+}
+
+/** Reprise d'un carnet reçu en fichier, d'un autre logiciel ou gardé par le propriétaire. */
+export async function importHomeRecordFile(ctx: Ctx, json: string, customerId: string) {
+  requireWritable(ctx);
+  if (!isUuid(customerId) || !(await one(ctx.db, "SELECT 1 FROM customers WHERE id=$1 AND org_id=$2", [customerId, ctx.orgId])))
+    throw notFound("Client introuvable");
+  if (json.length > 2_000_000) throw badRequest("Fichier trop lourd (2 Mo au plus)");
+  let raw: unknown;
+  try {
+    raw = JSON.parse(json);
+  } catch {
+    throw badRequest("Fichier illisible : un carnet au format JSON est attendu");
+  }
+  const p = parseExchange(raw);
+  if (!p.ok) throw badRequest(p.error);
+  const r = await mergeEntries(ctx, customerId, p.data.address, p.data.entries, "home_record.import_file");
+  return { ...r, skipped: p.skipped, total: p.data.entries.length };
 }

@@ -31,6 +31,12 @@ export default async function SharedHomeRecordPage({ params }: { params: Promise
                 {h.org?.email ? `, ${h.org.email}` : ""}.
               </p>
             </div>
+            <p className="text-sm">
+              <a href={`/api/public/carnet/${token}/export`} className="link" download>
+                Télécharger le fichier du carnet
+              </a>{" "}
+              <span className="text-muted">(format ouvert, à garder et à confier au prochain artisan)</span>
+            </p>
             <section className="space-y-2">
               <h2 className="font-semibold">Garanties en cours</h2>
               {h.warranties.length ? (

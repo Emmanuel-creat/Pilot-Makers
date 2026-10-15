@@ -4,7 +4,7 @@ import { Empty, PageHeader } from "@/components/ui";
 import { requirePageCtx } from "@/lib/server/session";
 import { listHomeRecords } from "@/lib/services/home-records";
 import { customerDisplayName, searchCustomers } from "@/lib/services/customers";
-import { ImportForm } from "./ImportForm";
+import { ImportFileForm, ImportForm } from "./ImportForm";
 
 export const metadata = { title: "Carnets de logement" };
 
@@ -34,6 +34,8 @@ export default async function HomeRecordsPage({ searchParams }: { searchParams: 
             son auteur. Vos ajouts suivront le logement au prochain artisan.
           </p>
           <ImportForm customers={customers} />
+          <p className="px-4 text-sm text-muted">Ou reprenez le fichier du carnet que le propriétaire a gardé, ou qu&apos;un autre logiciel a produit :</p>
+          <ImportFileForm customers={customers} />
         </details>
       ) : null}
       {list.length ? (
