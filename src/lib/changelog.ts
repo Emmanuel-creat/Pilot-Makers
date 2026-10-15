@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "bilan-matiere",
+    date: "2026-10-15",
+    title: "Bilan matière et réemploi des restes",
+    text: "Commandé, rendu, restes et posé pour chaque matériau du chantier, avec le devenir des restes et les commandes trop larges signalées.",
+    href: "/app/rapports/matiere",
+  },
+  {
     id: "bilan-carbone-chantier",
     date: "2026-10-15",
     title: "Bilan carbone de chaque chantier",

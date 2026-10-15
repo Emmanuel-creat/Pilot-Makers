@@ -2064,6 +2064,25 @@ test("chantier : bilan carbone par poste et leviers", async ({ page }) => {
   await audit(page, "bilan carbone du chantier");
 });
 
+test("chantier : bilan matière et restes en fin de chantier", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/chantiers");
+  await page.locator("a", { hasText: "Douche à l'italienne" }).first().click();
+  await page.waitForURL(/\/app\/chantiers\/[0-9a-f-]{36}$/);
+  await page.getByRole("link", { name: "Bilan matière" }).click();
+  await page.waitForURL(/\/matiere$/);
+  await page.getByLabel("Matériau, s'il n'est pas dans la liste").fill("Plinthes carrelées");
+  await page.getByLabel("Unité").fill("ml");
+  await page.getByLabel("Quantité restante").fill("3");
+  await page.getByLabel("Devenir").selectOption("reemploi");
+  await page.getByRole("button", { name: "Noter le reste" }).click();
+  await expect(page.getByTestId("restes")).toContainText("Plinthes carrelées");
+  await audit(page, "bilan matière");
+  await page.goto("/app/rapports/matiere");
+  await expect(page.getByRole("heading", { name: "Matière et réemploi" })).toBeVisible();
+  await audit(page, "matière et réemploi");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

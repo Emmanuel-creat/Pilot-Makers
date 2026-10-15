@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { addLeftover, deleteLeftover } from "@/lib/services/material-balance";
 import { setJobCarbonSettings } from "@/lib/services/job-carbon";
 import { endAway, saveAway } from "@/lib/services/away-mode";
 import { cancelDeposit, createDeposit } from "@/lib/services/cheque-deposits";
@@ -3825,4 +3826,27 @@ export async function jobCarbonAction(_: ActionState, fd: FormData): Promise<Act
   }
   revalidatePath(`/app/chantiers/${jobId}/carbone`);
   return { ok: true, message: "Déplacements enregistrés : le bilan est recalculé." };
+}
+
+export async function leftoverAddAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const jobId = s(fd, "jobId");
+  try {
+    await withCtx((ctx) =>
+      addLeftover(ctx, jobId, { orderLineId: s(fd, "orderLineId"), label: s(fd, "label"), unit: s(fd, "unit"), quantity: s(fd, "quantity"), fate: s(fd, "fate") }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath(`/app/chantiers/${jobId}/matiere`);
+  return { ok: true, message: "Reste noté." };
+}
+
+export async function leftoverDeleteAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const jobId = await withCtx((ctx) => deleteLeftover(ctx, s(fd, "id")));
+    revalidatePath(`/app/chantiers/${jobId}/matiere`);
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Reste supprimé." };
 }

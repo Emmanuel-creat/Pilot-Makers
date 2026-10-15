@@ -2455,6 +2455,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "bilan-matiere",
+    category: "catalogue",
+    title: "Bilan matière : commander juste et réemployer les restes",
+    summary: "Ce qui a été commandé, rendu, laissé en reste et réellement posé, chantier par chantier, avec le devenir de chaque reste.",
+    steps: [
+      "Ouvrez un chantier puis Bilan matière : chaque matériau commandé montre la quantité reçue, rendue au fournisseur, restée et posée, et le surplus en pourcentage et en euros.",
+      "En fin de chantier, notez les restes et leur devenir : gardés en stock, proposés au réemploi à un confrère, ou jetés.",
+      "Un surplus de plus de 10 % est signalé : réduisez la quantité commandée ou le taux de perte du matériau dans le catalogue.",
+      "Rapports, Matière et réemploi rassemble les douze derniers mois : matériaux le plus souvent commandés en trop et valeur des restes selon leur devenir.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

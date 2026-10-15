@@ -87,6 +87,9 @@ export default async function ReportsPage() {
                 <Link href="/app/rapports/conseil-financier" className="btn-secondary print:hidden">
                   <Icon name="star" size={16} /> Conseil financier
                 </Link>
+                <Link href="/app/rapports/matiere" className="btn-secondary print:hidden">
+                  <Icon name="box" size={16} /> Matière et réemploi
+                </Link>
                 <Link href="/app/rapports/vrai-salaire" className="btn-secondary print:hidden">
                   <Icon name="euro" size={16} /> Mon vrai salaire
                 </Link>

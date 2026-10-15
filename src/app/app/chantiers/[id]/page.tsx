@@ -108,6 +108,11 @@ export default async function JobPage({ params }: { params: Promise<{ id: string
             <Link className="btn-secondary" href={`/app/chantiers/${job.id}/securite`}>
               <Icon name="shield" size={16} /> Plan de prévention
             </Link>
+            {can(ctx, "costs") ? (
+              <Link className="btn-secondary" href={`/app/chantiers/${job.id}/matiere`}>
+                <Icon name="box" size={16} /> Bilan matière
+              </Link>
+            ) : null}
             <Link className="btn-secondary" href={`/app/chantiers/${job.id}/carbone`}>
               <Icon name="cloud" size={16} /> Bilan carbone
             </Link>
