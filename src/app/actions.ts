@@ -106,6 +106,7 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { cancelDeposit, createDeposit } from "@/lib/services/cheque-deposits";
 import { startExam, submitExam } from "@/lib/services/management-course";
 import { acquireListing, publishTemplate, settlePurchase, withdrawListing } from "@/lib/services/template-market";
 import { contactTransferListing, saveTransferListing, setTransferListingStatus } from "@/lib/services/business-takeover";
@@ -3761,4 +3762,25 @@ export async function courseExamSubmitAction(_: ActionState, fd: FormData): Prom
     return toState(e);
   }
   redirect(`/verifier-attestation?code=${code}`);
+}
+
+export async function chequeDepositAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  let id: string;
+  try {
+    id = await withCtx((ctx) => createDeposit(ctx, fd.getAll("ids").map(String), s(fd, "depositedOn")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/factures/remises");
+  redirect(`/app/factures/remises/${id}`);
+}
+
+export async function chequeDepositCancelAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) => cancelDeposit(ctx, s(fd, "id")));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/factures/remises");
+  redirect("/app/factures/remises");
 }

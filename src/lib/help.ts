@@ -2407,6 +2407,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "remise-cheques",
+    category: "factures",
+    title: "Remettre ses chèques en banque avec un bordereau",
+    summary: "Les chèques enregistrés sur vos factures, rassemblés sur un bordereau numéroté à imprimer et à joindre au dépôt.",
+    steps: [
+      "Enregistrez chaque chèque reçu sur sa facture, mode de paiement Chèque, avec son numéro en référence.",
+      "Ouvrez Factures puis Remises de chèques : les chèques pas encore remis s'affichent, cochés. Décochez ceux que vous gardez, choisissez la date et établissez le bordereau.",
+      "Imprimez le bordereau : titulaire, IBAN, tireurs, références, factures et total. Un chèque ne peut figurer que sur un seul bordereau.",
+      "Un chèque se présente dans un délai d'environ un an et huit jours : une alerte s'affiche à l'approche de la limite. Un bordereau établi par erreur s'annule, ses chèques reviennent dans la liste.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

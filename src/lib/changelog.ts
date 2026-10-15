@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "remise-cheques",
+    date: "2026-10-15",
+    title: "Bordereaux de remise de chèques",
+    text: "Les chèques reçus se remettent en banque avec un bordereau numéroté et imprimable ; une alerte prévient avant qu'un chèque ne soit trop ancien.",
+    href: "/app/factures/remises",
+  },
+  {
     id: "parcours-gestion",
     date: "2026-10-15",
     title: "Parcours gestion d'entreprise et attestation",

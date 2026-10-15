@@ -29,6 +29,9 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
         actions={
           can(ctx, "billing") ? (
             <>
+              <Link href="/app/factures/remises" className="btn-secondary">
+                Remises de chèques
+              </Link>
               <Link href="/app/factures/zero-impaye" className="btn-secondary">
                 Zéro impayé
               </Link>

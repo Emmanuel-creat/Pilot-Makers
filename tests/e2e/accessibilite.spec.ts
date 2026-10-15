@@ -2012,6 +2012,15 @@ test("parcours gestion : modules, examen et vérification d'attestation", async 
   await audit(page, "vérification d'attestation");
 });
 
+test("factures : remises de chèques en banque", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/factures");
+  await page.getByRole("link", { name: "Remises de chèques" }).click();
+  await page.waitForURL(/\/app\/factures\/remises$/);
+  await expect(page.getByRole("heading", { name: /Chèques à remettre/ })).toBeVisible();
+  await audit(page, "remises de chèques");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");
