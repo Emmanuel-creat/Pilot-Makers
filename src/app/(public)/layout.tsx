@@ -35,6 +35,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           <Link href="/format-devis-ouvert" className="hover:text-ink">
             Format Devis ouvert
           </Link>
+          <Link href="/indice-activite" className="hover:text-ink">
+            Indice de l&apos;activité
+          </Link>
           <Link href="/trouver-un-artisan" className="hover:text-ink">
             Trouver un artisan
           </Link>

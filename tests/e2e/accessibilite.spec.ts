@@ -1889,6 +1889,18 @@ test("devis ouvert : export d'un devis puis import en brouillon", async ({ page 
   await audit(page, "format devis ouvert");
 });
 
+test("indice de l'activité : page publique et données ouvertes", async ({ page }) => {
+  await page.goto("/format-devis-ouvert");
+  await page.getByRole("link", { name: "Indice de l'activité" }).click();
+  await page.waitForURL(/\/indice-activite$/);
+  await expect(page.getByRole("heading", { name: "Méthode" })).toBeVisible();
+  await expect(page.getByRole("table")).toBeVisible();
+  await audit(page, "indice de l'activité");
+  const r = await page.request.get("/api/public/indice-activite");
+  expect(r.ok()).toBe(true);
+  expect((await r.json()).points).toHaveLength(13);
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

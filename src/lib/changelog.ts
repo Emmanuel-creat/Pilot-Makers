@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "indice-activite",
+    date: "2026-10-15",
+    title: "Indice de l'activité artisanale",
+    text: "Chaque mois, un indice public du chiffre d'affaires, des commandes et des devis acceptés, calculé sur les entreprises volontaires sans jamais révéler leurs chiffres.",
+    href: "/indice-activite",
+  },
+  {
     id: "format-devis-ouvert",
     date: "2026-10-15",
     title: "Devis ouvert, le format d'échange de devis",

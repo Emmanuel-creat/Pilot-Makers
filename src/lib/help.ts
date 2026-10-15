@@ -2312,6 +2312,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "indice-activite-artisanale",
+    category: "regles",
+    title: "L'indice de l'activité artisanale",
+    summary: "Un indice mensuel public du chiffre d'affaires, des commandes et du taux d'acceptation des devis, calculé sur les entreprises volontaires.",
+    steps: [
+      "L'indice est publié sur la page publique Indice de l'activité, et en données ouvertes au format JSON.",
+      "Seules les entreprises qui ont choisi de contribuer aux repères anonymes (Rapports, Repères anonymes) sont comptées.",
+      "Aucune valeur d'entreprise n'est publiée : seulement des médianes, un taux global et des indices base 100, et un mois n'apparaît qu'à partir de dix entreprises.",
+      "Le mois en cours n'est publié qu'une fois terminé ; vous pouvez retirer votre contribution à tout moment.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",
