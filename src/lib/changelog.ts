@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "stockage-objet",
+    date: "2026-10-15",
+    title: "Fichiers lus par des liens à durée limitée",
+    text: "Le stockage des fichiers est prêt pour un stockage objet hébergé en France, avec des liens de lecture signés qui expirent d'eux-mêmes.",
+    href: "/securite",
+  },
+  {
     id: "cloisonnement-routes",
     date: "2026-10-15",
     title: "Cloisonnement vérifié route par route",

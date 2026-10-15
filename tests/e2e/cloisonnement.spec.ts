@@ -125,3 +125,11 @@ test("cloisonnement : aucune route d'API ne sert les données d'une autre entrep
   // Rien n'a été modifié : l'entreprise de démonstration lit toujours son devis.
   expect(await call(page.request, "GET", `/api/quotes/${ids.quote}`)).toBe(200);
 });
+
+test("fichiers : un lien non signé ou expiré ne donne rien", async ({ request }) => {
+  for (const q of ["", "?exp=1&sig=abc", `?exp=${Math.floor(Date.now() / 1000) + 600}&sig=${"0".repeat(64)}`]) {
+    const r = await request.get(`/api/fichiers/org/logo.png${q}`, { failOnStatusCode: false });
+    expect(r.status()).toBe(404);
+  }
+  expect((await request.get("/api/fichiers/..%2Fsecret", { failOnStatusCode: false })).status()).toBeGreaterThanOrEqual(400);
+});
