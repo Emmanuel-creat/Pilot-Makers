@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "reprise-entreprise",
+    date: "2026-10-15",
+    title: "Plateforme de reprise d'entreprises artisanales",
+    text: "Publiez une annonce anonyme pour trouver un repreneur, avec des chiffres en tranches tirés de votre activité réelle, et recevez les messages des candidats.",
+    href: "/app/rapports/transmission/annonce",
+  },
+  {
     id: "metiers-de-service",
     date: "2026-10-15",
     title: "Déménageurs et réparateurs bienvenus",

@@ -106,9 +106,17 @@ import { addHomeEntry, deleteHomeEntry, revokeHomeShare, shareHomeRecord } from 
 import { recordMaintenance } from "@/lib/services/maintenance";
 import { notifyCustomerDelay, setDelayAutoNotice } from "@/lib/services/delays";
 import { defineStages, invoiceStage } from "@/lib/services/payment-stages";
+import { contactTransferListing, saveTransferListing, setTransferListingStatus } from "@/lib/services/business-takeover";
 import { setDayCloseReminder } from "@/lib/services/day-close";
 import { importQuoteExchange } from "@/lib/services/quote-exchange";
-import { addRenovationParticipant, answerRenovationInvite, createRenovation, removeRenovationParticipant, shareRenovation, updateRenovationParticipant } from "@/lib/services/renovation";
+import {
+  addRenovationParticipant,
+  answerRenovationInvite,
+  createRenovation,
+  removeRenovationParticipant,
+  shareRenovation,
+  updateRenovationParticipant,
+} from "@/lib/services/renovation";
 import { setTrustShown } from "@/lib/services/trust-score";
 import { importWork, publishWork, reportWork, toggleWorkVote, updateWork } from "@/lib/services/open-works";
 import { parseComposition } from "@/lib/open-works";
@@ -2777,7 +2785,9 @@ export async function weatherShiftAction(_: ActionState, fd: FormData): Promise<
   revalidatePath("/app/planning");
   return {
     ok: true,
-    message: r.conflicts ? `Chantier décalé : ${r.conflicts} conflit${r.conflicts > 1 ? "s" : ""} à vérifier dans le planning.` : "Chantier décalé dans le planning.",
+    message: r.conflicts
+      ? `Chantier décalé : ${r.conflicts} conflit${r.conflicts > 1 ? "s" : ""} à vérifier dans le planning.`
+      : "Chantier décalé dans le planning.",
   };
 }
 
@@ -2910,7 +2920,11 @@ export async function saveTakeoffAction(id: string, data: unknown): Promise<Acti
 }
 
 /** Ajoute au devis les relevés choisis, après avoir enregistré l'état courant. */
-export async function addTakeoffLinesAction(id: string, data: unknown, ids: string[]): Promise<{ ok?: boolean; error?: string; message?: string; quoteId?: string }> {
+export async function addTakeoffLinesAction(
+  id: string,
+  data: unknown,
+  ids: string[],
+): Promise<{ ok?: boolean; error?: string; message?: string; quoteId?: string }> {
   try {
     const r = await withCtx(async (ctx) => {
       await saveTakeoff(ctx, id, data);
@@ -3198,7 +3212,12 @@ export async function consortiumCreateAction(_: ActionState, fd: FormData): Prom
 export async function consortiumMemberAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const quoteId = await withCtx((ctx) =>
-      addConsortiumMember(ctx, s(fd, "consortiumId"), { orgId: s(fd, "orgId") || undefined, name: s(fd, "name"), siret: s(fd, "siret"), trade: s(fd, "trade") }),
+      addConsortiumMember(ctx, s(fd, "consortiumId"), {
+        orgId: s(fd, "orgId") || undefined,
+        name: s(fd, "name"),
+        siret: s(fd, "siret"),
+        trade: s(fd, "trade"),
+      }),
     );
     revalidatePath(`/app/devis/${quoteId}/groupement`);
   } catch (e) {
@@ -3237,7 +3256,20 @@ export async function consortiumAnswerAction(_: ActionState, fd: FormData): Prom
   return { ok: true, message: "Réponse transmise au mandataire." };
 }
 
-const DIAGNOSIS_FIELDS = ["housing", "surface", "period", "postalCode", "heating", "roof", "walls", "floor", "windows", "ventilation", "householdSize", "income"];
+const DIAGNOSIS_FIELDS = [
+  "housing",
+  "surface",
+  "period",
+  "postalCode",
+  "heating",
+  "roof",
+  "walls",
+  "floor",
+  "windows",
+  "ventilation",
+  "householdSize",
+  "income",
+];
 
 export async function diagnosisCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
   let id: string;
@@ -3427,15 +3459,30 @@ export async function quizAction(_: ActionState, fd: FormData): Promise<ActionSt
   }
   revalidatePath("/app/formation");
   const wrong = r.corrections.filter((c) => !c.ok).map((c) => c.why);
-  const head = r.passed ? `Module validé : ${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3.` : `${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3 : relisez l'essentiel puis réessayez.`;
+  const head = r.passed
+    ? `Module validé : ${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3.`
+    : `${r.score} bonne${r.score > 1 ? "s" : ""} réponse${r.score > 1 ? "s" : ""} sur 3 : relisez l'essentiel puis réessayez.`;
   return { ok: r.passed, message: [head, ...wrong].join(" ") };
 }
 
 function workInput(fd: FormData) {
   const { components, errors } = parseComposition(s(fd, "composition"));
-  if (errors.length) throw new HttpError(400, "bad_request", `Composition, ligne ${errors.join(", ")} : écrivez « quantité ; unité ; composant », par exemple 1,05 ; m² ; Carreau grès`);
+  if (errors.length)
+    throw new HttpError(
+      400,
+      "bad_request",
+      `Composition, ligne ${errors.join(", ")} : écrivez « quantité ; unité ; composant », par exemple 1,05 ; m² ; Carreau grès`,
+    );
   const minutes = s(fd, "labourMinutes");
-  return { trade: s(fd, "trade"), title: s(fd, "title"), unit: s(fd, "unit"), description: s(fd, "description"), composition: components, labourMinutes: minutes ? minutes : null, refs: s(fd, "refs") };
+  return {
+    trade: s(fd, "trade"),
+    title: s(fd, "title"),
+    unit: s(fd, "unit"),
+    description: s(fd, "description"),
+    composition: components,
+    labourMinutes: minutes ? minutes : null,
+    refs: s(fd, "refs"),
+  };
 }
 
 export async function openWorkSaveAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -3491,7 +3538,12 @@ export async function trustDisplayAction(_: ActionState, fd: FormData): Promise<
     return toState(e);
   }
   revalidatePath("/app/entreprise/confiance");
-  return { ok: true, message: shown ? "La note sera affichée sur votre vitrine dès qu'elle repose sur trois chantiers réceptionnés." : "La note n'est plus affichée sur votre vitrine." };
+  return {
+    ok: true,
+    message: shown
+      ? "La note sera affichée sur votre vitrine dès qu'elle repose sur trois chantiers réceptionnés."
+      : "La note n'est plus affichée sur votre vitrine.",
+  };
 }
 
 export async function renovationCreateAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -3532,7 +3584,11 @@ export async function renovationAnswerAction(_: ActionState, fd: FormData): Prom
 export async function renovationUpdateAction(_: ActionState, fd: FormData): Promise<ActionState> {
   const kind = s(fd, "kind");
   const input =
-    kind === "quote" ? { quoteId: s(fd, "quoteId") } : kind === "amount" ? { amount: s(fd, "amount") } : { start: s(fd, "start"), end: s(fd, "end"), trade: s(fd, "trade") || undefined };
+    kind === "quote"
+      ? { quoteId: s(fd, "quoteId") }
+      : kind === "amount"
+        ? { amount: s(fd, "amount") }
+        : { start: s(fd, "start"), end: s(fd, "end"), trade: s(fd, "trade") || undefined };
   try {
     const projectId = await withCtx((ctx) => updateRenovationParticipant(ctx, s(fd, "participantId"), input));
     revalidatePath(`/app/renovations/${projectId}`);
@@ -3586,4 +3642,47 @@ export async function dayCloseReminderAction(_: ActionState, fd: FormData): Prom
   }
   revalidatePath("/app/fin-de-journee");
   return { ok: true, message: on ? "Rappel activé : une notification à 16 h 30 s'il reste quelque chose à boucler." : "Rappel désactivé." };
+}
+
+export async function transferListingSaveAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await withCtx((ctx) =>
+      saveTransferListing(ctx, {
+        headline: s(fd, "headline"),
+        description: s(fd, "description"),
+        reason: s(fd, "reason"),
+        accompanimentMonths: s(fd, "accompanimentMonths") || "0",
+      }),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/rapports/transmission/annonce");
+  return { ok: true, message: "Annonce enregistrée." };
+}
+
+export async function transferListingStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  const publish = s(fd, "status") === "publiee";
+  try {
+    await withCtx((ctx) => setTransferListingStatus(ctx, publish ? "publiee" : "retiree"));
+  } catch (e) {
+    return toState(e);
+  }
+  revalidatePath("/app/rapports/transmission/annonce");
+  revalidatePath("/reprendre-une-entreprise");
+  return { ok: true, message: publish ? "Annonce publiée, sans le nom de votre entreprise." : "Annonce retirée." };
+}
+
+export async function transferContactAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    await contactTransferListing(
+      await getDb(),
+      s(fd, "listingId"),
+      { name: s(fd, "name"), email: s(fd, "email"), phone: s(fd, "phone"), message: s(fd, "message"), website: s(fd, "website") },
+      await requestMeta(),
+    );
+  } catch (e) {
+    return toState(e);
+  }
+  return { ok: true, message: "Message transmis. Le cédant vous recontacte s'il souhaite donner suite." };
 }

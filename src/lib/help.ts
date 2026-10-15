@@ -2371,6 +2371,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "reprise-entreprise",
+    category: "compte",
+    title: "Trouver un repreneur, ou reprendre une entreprise",
+    summary: "Une annonce anonyme sur la plateforme de reprise, avec le chiffre d'affaires et l'effectif en tranches calculées depuis votre activité.",
+    steps: [
+      "Ouvrez Rapports, Transmission, puis Trouver un repreneur. Le métier, le département, la tranche de chiffre d'affaires et l'effectif sont calculés d'office.",
+      "Rédigez le titre et la description sans nom, sans rue, sans téléphone, sans e-mail ni numéro SIRET : l'annonce est vérifiée et refusée si elle vous identifie.",
+      "Publiez : l'annonce apparaît sur la page publique Reprendre une entreprise. Vous pouvez la retirer à tout moment.",
+      "Les repreneurs vous écrivent depuis l'annonce ; leurs messages arrivent par e-mail et sur la page de l'annonce. Vous choisissez à qui répondre.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

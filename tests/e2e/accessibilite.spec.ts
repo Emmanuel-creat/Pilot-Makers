@@ -1958,6 +1958,32 @@ test("métiers de service : présentés sur l'accueil et proposés à l'inscript
   await expect(page.locator("#trade option", { hasText: "Déménageur" })).toHaveCount(1);
 });
 
+test("reprise d'entreprise : annonce anonyme publiée et prise de contact", async ({ page }) => {
+  await login(page);
+  await page.goto("/app/rapports/transmission");
+  await page.getByRole("link", { name: "Trouver un repreneur avec une annonce anonyme" }).click();
+  await page.waitForURL(/\/app\/rapports\/transmission\/annonce$/);
+  await expect(page.getByTestId("reprise-tranches")).toBeVisible();
+  await page.getByLabel("Titre").fill("Entreprise du bâtiment à reprendre, clientèle fidèle");
+  await page.getByLabel("Description").fill("Activité régulière depuis vingt ans, matériel complet, véhicule utilitaire et carnet de clients particuliers.");
+  await page.getByRole("button", { name: "Enregistrer l'annonce" }).click();
+  await expect(page.getByText("Annonce enregistrée.")).toBeVisible();
+  await page.getByRole("button", { name: "Publier l'annonce" }).click();
+  await expect(page.getByText(/Annonce publiée/)).toBeVisible();
+  await audit(page, "annonce de reprise");
+  await page.goto("/reprendre-une-entreprise");
+  await page.getByRole("link", { name: "Entreprise du bâtiment à reprendre, clientèle fidèle" }).click();
+  await expect(page.getByRole("heading", { name: "Écrire au cédant" })).toBeVisible();
+  await audit(page, "annonce publique de reprise");
+  await page.getByLabel("Nom et prénom").fill("Julie Repreneur");
+  await page.getByLabel("E-mail").fill("julie.repreneur@exemple.fr");
+  await page.getByLabel("Votre projet de reprise").fill("Compagnonne depuis douze ans, je cherche à reprendre une entreprise.");
+  await page.getByRole("button", { name: "Envoyer" }).click();
+  await expect(page.getByText(/Message transmis/)).toBeVisible();
+  await page.goto("/app/rapports/transmission/annonce");
+  await expect(page.getByTestId("reprise-contacts")).toContainText("Julie Repreneur");
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

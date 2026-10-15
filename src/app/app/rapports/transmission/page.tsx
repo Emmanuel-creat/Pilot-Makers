@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PrintButton } from "@/app/app/rapports/ReportActions";
 import { Notice, PageHeader, Section } from "@/components/ui";
@@ -24,6 +25,11 @@ export default async function TransferPage() {
         actions={<PrintButton />}
       />
       <div className="space-y-6">
+        <p className="text-sm">
+          <Link href="/app/rapports/transmission/annonce" className="link">
+            Trouver un repreneur avec une annonce anonyme
+          </Link>
+        </p>
         {v.insufficient ? (
           <Notice tone="info" title="Historique encore court">
             La valeur ci-dessous repose sur moins de deux exercices complets ou un chiffre d&apos;affaires faible : elle se précisera avec le temps.
