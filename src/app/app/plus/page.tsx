@@ -36,6 +36,7 @@ export default async function MorePage() {
     ["/app/assistance", "Assistance", "help"],
     ["/app/menu", "Personnaliser le menu", "edit"],
     ["/app/coffre", "Coffre chiffré", "lock"],
+    ["/montre", "Écran montre connectée", "clock"],
     ["/app/mes-retours", "Mes retours", "note"],
     ["/app/nouveautes", unread ? `Nouveautés (${unread} non lue${unread > 1 ? "s" : ""})` : "Nouveautés", "star"],
     ...(ctx.isPlatformAdmin && !ctx.supportAccess ? [["/admin", "Administration", "shield"]] : []),

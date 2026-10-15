@@ -359,3 +359,4 @@ Numéros de la feuille de route complète (360 actions).
 - Vague 196 (15/10/2026) : moteur de règles par pays (action 58). Versions datées des taux de TVA et des mentions publiées depuis l'administration, appliquées aux devis à leur date sans nouvelle version, annonce du prochain changement dans l'onglet Identité.
 - Vague 197 (15/10/2026) : coffre chiffré de bout en bout (action 40). Pièces et noms chiffrés dans le navigateur (AES-GCM 256, clé dérivée de la phrase secrète par PBKDF2), le serveur ne range que des octets illisibles ; déchiffrement sur l'appareil.
 - Vague 198 (15/10/2026) : télémètres laser Bluetooth (action 238). Leica DISTO et Bosch GLM connectés depuis le métré, chaque mesure remplit la cote sélectionnée puis passe à la suivante.
+- Vague 199 (15/10/2026) : écran montre connectée (action 244). Page /montre à un seul bouton pour pointer sur le chantier du jour, durée en cours et trois alertes au plus (pointage oublié, devis lu, devis qui expire).

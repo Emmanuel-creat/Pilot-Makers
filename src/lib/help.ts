@@ -2608,6 +2608,18 @@ export const HELP_ARTICLES: HelpArticle[] = [
     ],
   },
   {
+    slug: "montre-connectee",
+    category: "demarrer",
+    title: "Pointer et suivre les alertes depuis une montre connectée",
+    summary: "Un écran à un seul bouton, lisible sur un petit cadran.",
+    steps: [
+      "Sur la montre (navigateur de la montre ou application installée), ouvrez l'adresse de l'application suivie de /montre, ou passez par Plus puis « Écran montre connectée ».",
+      "Le chantier planifié du jour s'affiche : appuyez sur « Pointer » en arrivant, puis sur « Arrêter » en partant. Le temps compte dans votre feuille de la semaine.",
+      "Sous le bouton, trois alertes au plus : pointage oublié, devis lu par un client, devis qui expire bientôt.",
+      "Pour recevoir les alertes au poignet, activez les notifications dans Mon compte sur le téléphone : la montre reprend celles du téléphone.",
+    ],
+  },
+  {
     slug: "factures-acompte-et-solde",
     category: "factures",
     title: "Facturer un acompte puis le solde",

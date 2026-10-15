@@ -2290,6 +2290,23 @@ test("coffre chiffré : pièce chiffrée sur l'appareil puis rouverte avec la ph
   await expect(page.getByTestId("coffre-liste")).toHaveCount(0);
 });
 
+test("montre connectée : pointage en un appui sur un petit cadran", async ({ page }) => {
+  await login(page);
+  await page.setViewportSize({ width: 200, height: 240 });
+  await page.goto("/montre");
+  if (await page.getByRole("button", { name: "Arrêter" }).isVisible()) {
+    await page.getByRole("button", { name: "Arrêter" }).click();
+    await expect(page.getByRole("button", { name: "Pointer" })).toBeVisible();
+  }
+  await expect(page.getByRole("heading", { name: /alerte/ })).toBeVisible();
+  await audit(page, "montre");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(200);
+  await page.getByRole("button", { name: "Pointer" }).click();
+  await expect(page.getByTestId("montre-duree")).toHaveText("0 min");
+  await page.getByRole("button", { name: "Arrêter" }).click();
+  await expect(page.getByRole("button", { name: "Pointer" })).toBeVisible();
+});
+
 test("équipe : invitation par fonction et description des droits", async ({ page }) => {
   await login(page);
   await page.goto("/app/equipe");

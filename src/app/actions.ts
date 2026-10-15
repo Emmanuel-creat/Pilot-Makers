@@ -1342,6 +1342,7 @@ export async function startTimerAction(_: ActionState, fd: FormData): Promise<Ac
   try {
     await withCtx((ctx) => startTimer(ctx, { jobId: s(fd, "jobId"), latitude: s(fd, "latitude"), longitude: s(fd, "longitude") }));
     revalidatePath("/app/pointage");
+    revalidatePath("/montre");
     return { ok: true, message: "Pointage commencé." };
   } catch (e) {
     return toState(e);
@@ -1352,6 +1353,7 @@ export async function stopTimerAction(_: ActionState, fd: FormData): Promise<Act
   try {
     const r = await withCtx((ctx) => stopTimer(ctx, { note: s(fd, "note") }));
     revalidatePath("/app/pointage");
+    revalidatePath("/montre");
     return { ok: true, message: `Pointage terminé : ${formatMinutes(r.minutes)}.` };
   } catch (e) {
     return toState(e);

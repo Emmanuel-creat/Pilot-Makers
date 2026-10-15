@@ -17,6 +17,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: "ecran-montre",
+    date: "2026-10-15",
+    title: "Pointer depuis la montre",
+    text: "Un écran pensé pour les montres connectées : un seul gros bouton pour pointer sur le chantier du jour, et trois alertes au plus.",
+    href: "/aide/montre-connectee",
+  },
+  {
     id: "telemetre-laser",
     date: "2026-10-15",
     title: "Métré au télémètre laser Bluetooth",
